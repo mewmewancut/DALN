@@ -6,6 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "Fashion E-Commerce API"
     database_url: str = "postgresql+psycopg://fashion:fashion@localhost:5432/fashion"
+    test_database_url: str = (
+        "postgresql+psycopg://fashion:fashion@localhost:5432/fashion_test"
+    )
     jwt_secret: str = "change-me-before-production"
     jwt_expire_minutes: int = 60
 

@@ -15,12 +15,12 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`PROPOSAL.md`](PROPOSAL.md) | Có sẵn | Mục tiêu và phạm vi đề tài |
 | [`PLANNING.md`](PLANNING.md) | Có sẵn | Kế hoạch và đặc tả triển khai |
 | `ARCHITECTURE.md` | Planned | Kiến trúc tổng thể và ranh giới thành phần |
-| `DATABASE.md` | Planned | Schema, quan hệ, constraint và migration |
+| [`DATABASE.md`](DATABASE.md) | In progress | Schema, quan hệ, constraint và migration |
 | `BUSINESS_RULES.md` | Planned | Luồng nghiệp vụ và invariant |
 | `API.md` | Planned | Endpoint, role và error contract |
 | `DATA_PLATFORM.md` | Planned | Lakebase, Medallion, metric và data quality |
-| `DEVELOPMENT.md` | Planned | Setup và workflow phát triển |
-| `TESTING.md` | Planned | Chiến lược và hướng dẫn chạy test |
+| [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |
+| [`TESTING.md`](TESTING.md) | In progress | Chiến lược và hướng dẫn chạy test |
 
 Các file ở trạng thái `Planned` chỉ được tạo khi phần tương ứng bắt đầu triển khai, tránh tài liệu rỗng hoặc mô tả sai trạng thái thực tế.
 
