@@ -7,6 +7,9 @@ from app.database import Base
 from app.models.common import CreatedAtMixin, IdMixin
 
 if TYPE_CHECKING:
+    from app.models.cart import Cart
+    from app.models.order import Order, OrderStatusHistory
+    from app.models.review import Review
     from app.models.shop import Shop
 
 
@@ -31,3 +34,9 @@ class User(IdMixin, CreatedAtMixin, Base):
     )
 
     shop: Mapped["Shop | None"] = relationship(back_populates="owner", uselist=False)
+    cart: Mapped["Cart | None"] = relationship(back_populates="buyer", uselist=False)
+    orders: Mapped[list["Order"]] = relationship(back_populates="buyer")
+    order_status_changes: Mapped[list["OrderStatusHistory"]] = relationship(
+        back_populates="changed_by_user"
+    )
+    reviews: Mapped[list["Review"]] = relationship(back_populates="buyer")

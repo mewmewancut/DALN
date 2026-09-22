@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Integer
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, ForeignKey, Integer, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -43,3 +43,28 @@ class Inventory(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
 
     variant: Mapped["ProductVariant"] = relationship(back_populates="inventory")
     shop: Mapped["Shop"] = relationship(back_populates="inventory_items")
+
+
+class LowStockAlert(IdMixin, CreatedAtMixin, Base):
+    __tablename__ = "low_stock_alerts"
+
+    variant_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("product_variants.id"),
+        nullable=False,
+    )
+    shop_id: Mapped[int] = mapped_column(
+        BigInteger,
+        ForeignKey("shops.id"),
+        nullable=False,
+    )
+    quantity_at_alert: Mapped[int] = mapped_column(Integer, nullable=False)
+    is_resolved: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default=false(),
+    )
+
+    variant: Mapped["ProductVariant"] = relationship(back_populates="low_stock_alerts")
+    shop: Mapped["Shop"] = relationship(back_populates="low_stock_alerts")

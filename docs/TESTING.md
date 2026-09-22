@@ -1,7 +1,7 @@
 # Testing
 
 **Trạng thái:** In progress  
-**Phạm vi hiện tại:** health check và database constraints B1–B6
+**Phạm vi hiện tại:** health check và database constraints B1–B14
 
 ## Nguyên tắc
 
@@ -27,5 +27,11 @@ docker compose --env-file .env.example exec -T backend pytest -q
 - SKU và bộ `(product_id, size, color)` của variant là duy nhất.
 - Tồn kho không âm và mỗi variant có tối đa một dòng inventory.
 - Các giá trị mặc định và timestamp có timezone được tạo đúng.
+- Trạng thái phiếu nhập hợp lệ, số lượng nhập dương và variant không bị lặp trong một phiếu nhập.
+- Mỗi buyer chỉ có một giỏ; giỏ rỗng cho phép `shop_id=NULL`; số lượng và variant trong giỏ được ràng buộc.
+- Mã đơn là duy nhất; trạng thái đơn và thanh toán chỉ nhận giá trị hợp lệ.
+- Order item lưu snapshot và có số lượng dương; lịch sử đầu tiên cho phép `from_status=NULL`.
+- Rating nằm trong khoảng 1–5 và mỗi order item chỉ có một review.
+- Low-stock alert mặc định ở trạng thái chưa xử lý.
 
 Các test auth, phân quyền và nghiệp vụ F1–F7 sẽ được bổ sung khi module tương ứng được triển khai.

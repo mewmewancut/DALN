@@ -7,8 +7,12 @@ from app.database import Base
 from app.models.common import CreatedAtMixin, IdMixin
 
 if TYPE_CHECKING:
+    from app.models.cart import Cart
     from app.models.catalog import Product
-    from app.models.inventory import Inventory
+    from app.models.inventory import Inventory, LowStockAlert
+    from app.models.order import Order
+    from app.models.purchase import PurchaseOrder
+    from app.models.supplier import Supplier
     from app.models.user import User
 
 
@@ -33,3 +37,10 @@ class Shop(IdMixin, CreatedAtMixin, Base):
     owner: Mapped["User"] = relationship(back_populates="shop")
     products: Mapped[list["Product"]] = relationship(back_populates="shop")
     inventory_items: Mapped[list["Inventory"]] = relationship(back_populates="shop")
+    suppliers: Mapped[list["Supplier"]] = relationship(back_populates="shop")
+    purchase_orders: Mapped[list["PurchaseOrder"]] = relationship(back_populates="shop")
+    carts: Mapped[list["Cart"]] = relationship(back_populates="shop")
+    orders: Mapped[list["Order"]] = relationship(back_populates="shop")
+    low_stock_alerts: Mapped[list["LowStockAlert"]] = relationship(
+        back_populates="shop"
+    )

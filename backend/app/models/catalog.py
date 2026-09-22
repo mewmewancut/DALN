@@ -18,7 +18,12 @@ from app.database import Base
 from app.models.common import CreatedAtMixin, IdMixin, UpdatedAtMixin
 
 if TYPE_CHECKING:
+    from app.models.cart import CartItem
     from app.models.inventory import Inventory
+    from app.models.inventory import LowStockAlert
+    from app.models.order import OrderItem
+    from app.models.purchase import PurchaseOrderItem
+    from app.models.review import Review
     from app.models.shop import Shop
 
 
@@ -60,6 +65,7 @@ class Product(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     shop: Mapped["Shop"] = relationship(back_populates="products")
     category: Mapped["Category"] = relationship(back_populates="products")
     variants: Mapped[list["ProductVariant"]] = relationship(back_populates="product")
+    reviews: Mapped[list["Review"]] = relationship(back_populates="product")
 
 
 class ProductVariant(IdMixin, CreatedAtMixin, Base):
@@ -93,4 +99,12 @@ class ProductVariant(IdMixin, CreatedAtMixin, Base):
     inventory: Mapped["Inventory | None"] = relationship(
         back_populates="variant",
         uselist=False,
+    )
+    purchase_order_items: Mapped[list["PurchaseOrderItem"]] = relationship(
+        back_populates="variant"
+    )
+    cart_items: Mapped[list["CartItem"]] = relationship(back_populates="variant")
+    order_items: Mapped[list["OrderItem"]] = relationship(back_populates="variant")
+    low_stock_alerts: Mapped[list["LowStockAlert"]] = relationship(
+        back_populates="variant"
     )

@@ -1,7 +1,7 @@
 # Database
 
 **Trạng thái:** In progress  
-**Phạm vi đã triển khai:** Planning B1–B6
+**Phạm vi đã triển khai:** Planning B1–B14
 
 Tài liệu này mô tả schema vận hành đã được triển khai trong SQLAlchemy và Alembic. Đặc tả đầy đủ, bao gồm các bảng chưa triển khai, nằm trong [`PLANNING.md`](PLANNING.md#phần-b--database-từng-bảng-từng-cột).
 
@@ -23,6 +23,26 @@ erDiagram
     PRODUCTS ||--o{ PRODUCT_VARIANTS : has
     PRODUCT_VARIANTS ||--o| INVENTORY : stocked_as
     SHOPS ||--o{ INVENTORY : stores
+    SHOPS ||--o{ SUPPLIERS : works_with
+    SHOPS ||--o{ PURCHASE_ORDERS : places
+    SUPPLIERS ||--o{ PURCHASE_ORDERS : fulfills
+    PURCHASE_ORDERS ||--o{ PURCHASE_ORDER_ITEMS : contains
+    PRODUCT_VARIANTS ||--o{ PURCHASE_ORDER_ITEMS : replenishes
+    USERS ||--o| CARTS : owns
+    SHOPS ||--o{ CARTS : receives
+    CARTS ||--o{ CART_ITEMS : contains
+    PRODUCT_VARIANTS ||--o{ CART_ITEMS : selected_as
+    USERS ||--o{ ORDERS : places
+    SHOPS ||--o{ ORDERS : receives
+    ORDERS ||--o{ ORDER_ITEMS : contains
+    PRODUCT_VARIANTS ||--o{ ORDER_ITEMS : traces
+    ORDERS ||--o{ ORDER_STATUS_HISTORY : records
+    USERS ||--o{ ORDER_STATUS_HISTORY : changes
+    ORDER_ITEMS ||--o| REVIEWS : receives
+    PRODUCTS ||--o{ REVIEWS : aggregates
+    USERS ||--o{ REVIEWS : writes
+    PRODUCT_VARIANTS ||--o{ LOW_STOCK_ALERTS : triggers
+    SHOPS ||--o{ LOW_STOCK_ALERTS : receives
 ```
 
 ## Bảng và constraint
@@ -65,9 +85,47 @@ erDiagram
 - `quantity` mặc định là `0` và có database check `quantity >= 0`.
 - `low_stock_threshold` mặc định là `5`.
 
+### `suppliers`
+
+- Supplier thuộc một shop và mặc định hoạt động.
+- Số điện thoại và địa chỉ có thể để trống.
+
+### `purchase_orders` và `purchase_order_items`
+
+- Trạng thái phiếu nhập chỉ nhận `DRAFT`, `ORDERED`, `RECEIVED` hoặc `CANCELLED`; mặc định là `DRAFT`.
+- Mỗi variant chỉ xuất hiện một lần trong một phiếu nhập.
+- Số lượng nhập phải lớn hơn `0`.
+- Việc chuyển `ORDERED → RECEIVED` và cộng kho một lần sẽ được bảo đảm bởi purchase service ở Planning C7.
+
+### `carts` và `cart_items`
+
+- Mỗi buyer có tối đa một giỏ hàng.
+- `shop_id` của giỏ được phép `NULL` khi giỏ rỗng.
+- Mỗi variant chỉ xuất hiện một lần trong giỏ và số lượng phải lớn hơn `0`.
+
+### `orders`, `order_items` và `order_status_history`
+
+- Mã đơn là duy nhất.
+- Trạng thái đơn, phương thức thanh toán và trạng thái thanh toán bị giới hạn theo Planning B10.
+- `order_items` lưu snapshot tên sản phẩm, size, màu và đơn giá; số lượng phải lớn hơn `0`.
+- Dòng lịch sử đầu tiên cho phép `from_status=NULL`; người thay đổi được liên kết với `users`.
+- State machine và việc bắt buộc ghi lịch sử trong cùng transaction sẽ được triển khai ở Planning C5.
+
+### `reviews`
+
+- Mỗi order item chỉ được review một lần.
+- Rating chỉ nhận giá trị từ `1` đến `5`.
+- Product và buyer được lưu trực tiếp để phục vụ truy vấn và kiểm tra quyền.
+
+### `low_stock_alerts`
+
+- Alert liên kết trực tiếp với variant và shop; mặc định chưa được xử lý.
+- Quy tắc chỉ có một alert chưa xử lý cho mỗi variant sẽ được bảo đảm bởi inventory service ở Planning C6.
+
 ## Migration
 
-Migration nền tảng: `20260916_0001_foundation_models.py`.
+- Migration nền tảng: `20260916_0001_foundation_models.py`.
+- Migration nghiệp vụ B7–B14: `20260922_0002_operational_models.py`.
 
 ```powershell
 docker compose --env-file .env.example exec -T backend alembic upgrade head
@@ -76,4 +134,4 @@ docker compose --env-file .env.example exec -T backend alembic current
 
 ## Phạm vi chưa triển khai
 
-Các bảng B7–B14 vẫn ở trạng thái `Planned`: supplier, purchase order, cart, order, order status history, review và low-stock alert. Chúng sẽ được bổ sung bằng migration tiếp theo thay vì sửa migration đã áp dụng.
+Seed data B15 vẫn ở trạng thái `Planned`. Các invariant cần transaction hoặc kiểm tra quyền sẽ được triển khai trong service tương ứng ở phần C.
