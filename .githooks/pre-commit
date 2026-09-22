@@ -1,0 +1,41 @@
+#!/bin/sh
+set -eu
+
+cd "$(git rev-parse --show-toplevel)"
+
+compose() {
+  docker compose --env-file .env.example "$@"
+}
+
+step() {
+  printf '\n[pre-commit] %s\n' "$1"
+}
+
+step "Kiểm tra diff đã stage và Docker Compose"
+git diff --cached --check
+git diff --check
+compose config --quiet
+
+step "Khởi động và build các service"
+compose up --build -d
+
+step "Kiểm tra migration"
+compose exec -T backend alembic upgrade head
+compose exec -T backend alembic check
+
+step "Chạy toàn bộ test backend"
+compose exec -T backend pytest -q
+
+step "Đồng bộ dependency và chạy test frontend"
+compose exec -T frontend npm ci --no-audit --no-fund
+compose exec -T frontend npm test
+
+step "Build frontend và kiểm tra dependency"
+compose exec -T frontend npm run build
+compose exec -T frontend npm audit --audit-level=moderate
+
+step "Smoke test các service đang chạy"
+compose exec -T backend python -c "import httpx; r = httpx.get('http://127.0.0.1:8000/health'); assert r.status_code == 200 and r.json() == {'status': 'ok'}"
+compose exec -T frontend node -e "fetch('http://127.0.0.1:5173/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
+
+step "Tất cả kiểm tra đã pass"

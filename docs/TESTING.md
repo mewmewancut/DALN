@@ -1,10 +1,27 @@
 # Testing
 
 **Trạng thái:** In progress  
-**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1 và catalog C2
+**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2 và luồng API từ đăng ký đến đăng sản phẩm
+
+Frontend D1 có test gắn token, xử lý `401` và điều hướng theo vai trò.
+
+## Các lớp kiểm tra hiện có
+
+| Lớp | Công cụ | Phạm vi đang chạy |
+|---|---|---|
+| Database | pytest + PostgreSQL test | Constraint, giá trị mặc định, timestamp, seed chạy lại không nhân đôi |
+| API và phân quyền | pytest + FastAPI TestClient | Auth, shop, catalog, lỗi nghiệp vụ, quyền sở hữu và rollback |
+| Luồng API | pytest + FastAPI TestClient | Đăng ký chủ shop → đăng nhập → tạo shop → đăng sản phẩm → buyer xem catalog; category được tạo trong fixture vì API admin chưa có |
+| Frontend | Vitest + jsdom | Axios token/`401`, điều hướng theo vai trò, đăng nhập/đăng xuất trong khung D1 |
+| Migration và cấu hình | Alembic + Docker Compose | Áp dụng migration và kiểm tra model khớp schema; kiểm tra Compose |
+| Runtime và dependency | HTTP smoke + Vite build + npm audit | Health backend, frontend phục vụ trang, build và lỗ hổng mức moderate trở lên |
+
+Browser end-to-end cho luồng mua hàng, test đồng thời lúc checkout và kiểm tra Bronze/Silver/Gold của F2–F7 vẫn là **Planned** vì các module đó chưa triển khai. Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
 
 ## Nguyên tắc
 
+- Mỗi hành vi mới hoặc thay đổi hành vi (API, service, model/constraint, component/route frontend, script, cấu hình) phải có test mới hoặc test được cập nhật trong cùng task và commit. Test phải kiểm tra kết quả quan sát được cùng các nhánh lỗi, phân quyền, biên và invariant liên quan; chỉ chạy lại test cũ không tính là đã cover phần mới.
+- Thay đổi chỉ về tài liệu phải có lệnh kiểm tra phù hợp, tối thiểu là kiểm tra diff. Chỉ coi task hoàn thành khi test và kiểm tra liên quan đều pass.
 - Backend test dùng PostgreSQL `fashion_test`, tách khỏi database development `fashion`.
 - Dữ liệu của mỗi test chạy trong transaction riêng và được rollback sau test.
 - Constraint quan trọng phải được kiểm tra ở database, không chỉ kiểm tra bằng Python.
@@ -13,9 +30,20 @@
 ## Cách chạy
 
 ```powershell
-docker compose --env-file .env.example up -d db backend
+docker compose --env-file .env.example up -d db backend frontend
 docker compose --env-file .env.example exec -T backend pytest -q
+docker compose --env-file .env.example exec -T frontend npm test
 ```
+
+## Hook pre-commit
+
+Hook được lưu trong `.githooks/pre-commit`. Kích hoạt một lần cho mỗi clone:
+
+```powershell
+git config core.hooksPath .githooks
+```
+
+Mỗi lần `git commit`, hook build/khởi động Docker Compose, áp dụng và kiểm tra migration, chạy toàn bộ pytest, đồng bộ npm theo lockfile, chạy Vitest, build frontend, audit dependency và smoke test hai service. Bất kỳ lệnh nào thất bại sẽ chặn commit. Có thể chạy lại thủ công bằng `git hook run pre-commit`. Docker Desktop cần chạy; audit cần truy cập npm registry. Hook kiểm tra working tree đang có trên máy, nên trước khi commit từng phần cần bảo đảm code được test khớp phần đã stage.
 
 ## Test đã có
 
@@ -43,5 +71,6 @@ docker compose --env-file .env.example exec -T backend pytest -q
 - Tạo sản phẩm cùng variant và inventory trong một transaction; variant trùng làm rollback toàn bộ; `shop_id` do client gửi bị từ chối.
 - Shop khác không được sửa, ẩn sản phẩm hoặc quản lý variant; xóa sản phẩm là soft delete và có thể hiện lại qua `PUT`.
 - Catalog công khai lọc, sắp xếp, phân trang theo giá variant hoạt động; ẩn sản phẩm và shop không hoạt động; chi tiết có tồn kho và rating trung bình.
+- Luồng API nối đăng ký, đăng nhập, tạo shop, tạo sản phẩm, catalog công khai, chặn buyer sửa sản phẩm và soft delete.
 
 Các test F1 phụ thuộc vào API admin/order/stats và test nghiệp vụ F2–F7 sẽ được bổ sung khi module tương ứng được triển khai.

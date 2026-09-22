@@ -75,6 +75,11 @@ Test database tách khỏi database development. Test có thể tạo dữ liệ
 ## Kiểm tra frontend
 
 ```powershell
+docker compose --env-file .env.example exec -T frontend npm test
 docker compose --env-file .env.example exec -T frontend npm run build
 docker compose --env-file .env.example exec -T frontend npm audit --audit-level=moderate
 ```
+
+Khung frontend D1 dùng Axios và React Router; package được khóa trong `frontend/package-lock.json`. Khi thay dependency frontend, chạy `npm install` trong `frontend/` rồi cập nhật cả `package.json` và lockfile.
+
+Để bật bộ kiểm tra trước commit, chạy `git config core.hooksPath .githooks` một lần trong clone hiện tại. Danh sách kiểm tra và cách chạy thủ công nằm trong [`TESTING.md`](TESTING.md#hook-pre-commit).

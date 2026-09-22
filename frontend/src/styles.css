@@ -32,6 +32,28 @@ body {
   box-shadow: 0 24px 70px rgb(68 57 40 / 12%);
 }
 
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.brand {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+button {
+  padding: 8px 14px;
+  border: 1px solid #8c3f20;
+  border-radius: 8px;
+  background: transparent;
+  color: #8c3f20;
+  cursor: pointer;
+}
+
 .eyebrow {
   margin: 0 0 12px;
   color: #a14f2a;

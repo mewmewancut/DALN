@@ -14,13 +14,13 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 |---|---|---|
 | [`PROPOSAL.md`](PROPOSAL.md) | Có sẵn | Mục tiêu và phạm vi đề tài |
 | [`PLANNING.md`](PLANNING.md) | Có sẵn | Kế hoạch và đặc tả triển khai |
-| `ARCHITECTURE.md` | Planned | Kiến trúc tổng thể và ranh giới thành phần |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | In progress | Thành phần backend/frontend đã chạy và ranh giới với phần còn planned |
 | [`DATABASE.md`](DATABASE.md) | Implemented | Schema, quan hệ, constraint, migration và seed data |
 | `BUSINESS_RULES.md` | Planned | Luồng nghiệp vụ và invariant |
 | [`API.md`](API.md) | In progress | Auth, shop, catalog, role và error contract đã triển khai; các endpoint từ C3 còn planned |
 | `DATA_PLATFORM.md` | Planned | Lakebase, Medallion, metric và data quality |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |
-| [`TESTING.md`](TESTING.md) | In progress | Chiến lược và hướng dẫn chạy test |
+| [`TESTING.md`](TESTING.md) | In progress | Các lớp test hiện có, hook pre-commit và hướng dẫn chạy |
 
 Các file ở trạng thái `Planned` chỉ được tạo khi phần tương ứng bắt đầu triển khai, tránh tài liệu rỗng hoặc mô tả sai trạng thái thực tế.
 
