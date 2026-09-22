@@ -1,9 +1,9 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Planning C0–C2 (auth, shop và catalog)
+**Phạm vi đã triển khai:** Planning C0–C3 (auth, shop, catalog và giỏ hàng)
 
-Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C3 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
+Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C4 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
 
 ## Auth
 
@@ -37,3 +37,30 @@ JWT được ký bằng HS256 với `JWT_SECRET`, hết hạn theo `JWT_EXPIRE_M
 `PUT /products/{id}` nhận các trường tùy chọn `category_id`, `name`, `description`, `image_url`, `base_price`, `is_active`; chỉ các trường được gửi mới thay đổi. Đặt `is_active=false` sẽ ẩn sản phẩm, còn `true` sẽ hiện lại. `PUT /variants/{id}` chỉ đổi giá hoặc trạng thái, không đổi size/color hay tồn kho. Các endpoint ghi trả cả variant không hoạt động để chủ shop có thể quản lý; endpoint công khai chỉ trả variant hoạt động.
 
 `GET /products` nhận `keyword` (tìm tên không phân biệt chữ hoa/thường), `category_id`, `shop_id`, `min_price`, `max_price`, `sort` (`newest`, `price_asc`, `price_desc`), `page` (mặc định 1) và `page_size` (mặc định 20, tối đa 100). Giá dùng cho lọc, sắp xếp và `price_from` là giá thấp nhất trong các variant đang hoạt động; nếu không còn variant hoạt động thì `price_from=null`. Chỉ sản phẩm hoạt động của shop hoạt động xuất hiện trong danh sách và chi tiết công khai. `items` chứa `id`, `shop_id`, `shop_name`, `category_id`, `name`, `image_url`, `base_price`, `price_from`, `rating_average`; chi tiết thêm `description`, `is_active` và `variants` (mỗi variant có `quantity` tồn kho). `rating_average=null` khi chưa có review.
+
+## Giỏ hàng
+
+Tất cả endpoint dưới đây yêu cầu token của `BUYER`. Thiếu/sai token trả `401`, vai trò khác trả `403`. Buyer được xác định từ phiên đăng nhập.
+
+| Method | Path | Request | Response thành công |
+|---|---|---|---|
+| GET | `/cart` | — | `200`, giỏ hiện tại; buyer chưa có giỏ nhận giỏ rỗng |
+| POST | `/cart/items` | `{variant_id, quantity}` | `200`, giỏ sau khi thêm/cộng dồn |
+| PUT | `/cart/items/{id}` | `{quantity}` | `200`, giỏ sau khi thay số lượng |
+| DELETE | `/cart/items/{id}` | — | `200`, giỏ sau khi xóa item |
+| DELETE | `/cart` | — | `200`, giỏ rỗng; gọi lại vẫn thành công |
+
+Response giỏ gồm `{shop_id, shop_name, items, total_amount}`. Mỗi item có `id` (ID cart item), `variant_id`, `product_id`, `product_name`, `image_url`, `size`, `color`, `quantity`, `unit_price` và `stock_quantity`. Giá, ảnh, tên và tồn kho lấy từ database hiện tại; `total_amount` là tổng `quantity × unit_price` của giỏ, không phải snapshot đơn hàng. Giỏ rỗng có `shop_id=null`, `shop_name=null`, `items=[]`, `total_amount=0`.
+
+`quantity` phải là số nguyên từ 1 đến 2.147.483.647; `variant_id` là số nguyên dương. Body chứa trường ngoài schema, kể cả `buyer_id`, `shop_id` hoặc giá từ client, bị từ chối với `422`. Item không tồn tại trả `404`; sửa/xóa item của buyer khác trả `403`. Thêm hoặc sửa variant đã ẩn, sản phẩm đã ẩn hoặc shop ngừng hoạt động trả `404`; item cũ vẫn có thể được xóa khỏi giỏ. Số lượng mới vượt tồn kho trả `409` với `{"detail":"Không đủ hàng"}` và giữ nguyên giỏ.
+
+Khi thêm hàng khác shop, response `409` có đúng dạng:
+
+```json
+{
+  "detail": "CART_DIFFERENT_SHOP",
+  "current_shop": { "id": 1, "name": "Shop A" }
+}
+```
+
+Frontend xử lý theo Planning C3: chỉ sau khi buyer xác nhận xóa giỏ mới gọi `DELETE /cart`, rồi thêm sản phẩm lại. Quy tắc transaction và tồn kho được mô tả tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#giỏ-hàng-c3).
