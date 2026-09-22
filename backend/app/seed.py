@@ -177,9 +177,7 @@ def get_or_create_variant(
         variant.sku = sku
         return variant
 
-    sku_owner = session.scalar(
-        select(ProductVariant).where(ProductVariant.sku == sku)
-    )
+    sku_owner = session.scalar(select(ProductVariant).where(ProductVariant.sku == sku))
     if sku_owner is not None:
         raise ValueError(f"SKU {sku} đã thuộc về một biến thể khác")
 
@@ -204,9 +202,7 @@ def get_or_create_inventory(
     quantity: int,
     created: dict[str, int],
 ) -> Inventory:
-    inventory = session.scalar(
-        select(Inventory).where(Inventory.variant_id == variant.id)
-    )
+    inventory = session.scalar(select(Inventory).where(Inventory.variant_id == variant.id))
     if inventory is not None:
         return inventory
 
@@ -258,17 +254,14 @@ def create_catalog(
         shop_variants: list[ProductVariant] = []
         for product_number in range(1, 16):
             category = categories[(product_number - 1) % len(categories)]
-            base_price = Decimal(
-                CATEGORY_BASE_PRICES[category.name] + product_number * 10_000
-            )
+            base_price = Decimal(CATEGORY_BASE_PRICES[category.name] + product_number * 10_000)
             product = get_or_create_product(
                 session,
                 shop=shop,
                 category=category,
                 name=f"{category.name} mẫu {product_number:02d} - Shop {shop_number}",
                 image_url=(
-                    "https://placehold.co/600x800?text="
-                    f"shop-{shop_number}-product-{product_number}"
+                    f"https://placehold.co/600x800?text=shop-{shop_number}-product-{product_number}"
                 ),
                 base_price=base_price,
                 created=created,
@@ -404,9 +397,7 @@ def create_orders(
                 receiver_phone=receiver_phone,
                 payment_method=payment_method,
                 payment_status=(
-                    "PAID"
-                    if payment_method == "MOCK_CARD" or status == "DELIVERED"
-                    else "UNPAID"
+                    "PAID" if payment_method == "MOCK_CARD" or status == "DELIVERED" else "UNPAID"
                 ),
                 total_amount=total_amount,
                 delivered_at=finished_at if status == "DELIVERED" else None,
@@ -503,9 +494,7 @@ def seed_database(
         )
         for number in range(1, 6)
     ]
-    categories = [
-        get_or_create_category(session, name, created) for name in CATEGORY_NAMES
-    ]
+    categories = [get_or_create_category(session, name, created) for name in CATEGORY_NAMES]
     shops = [
         get_or_create_shop(
             session,

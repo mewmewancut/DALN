@@ -12,7 +12,6 @@ from app.database import SessionLocal
 from app.models.shop import Shop
 from app.models.user import User
 
-
 bearer_scheme = HTTPBearer(auto_error=False)
 
 

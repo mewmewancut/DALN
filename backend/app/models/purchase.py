@@ -54,9 +54,7 @@ class PurchaseOrder(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
 
     shop: Mapped["Shop"] = relationship(back_populates="purchase_orders")
     supplier: Mapped["Supplier"] = relationship(back_populates="purchase_orders")
-    items: Mapped[list["PurchaseOrderItem"]] = relationship(
-        back_populates="purchase_order"
-    )
+    items: Mapped[list["PurchaseOrderItem"]] = relationship(back_populates="purchase_order")
 
 
 class PurchaseOrderItem(IdMixin, CreatedAtMixin, Base):
@@ -84,6 +82,4 @@ class PurchaseOrderItem(IdMixin, CreatedAtMixin, Base):
     unit_cost: Mapped[Decimal] = mapped_column(Numeric(12, 0), nullable=False)
 
     purchase_order: Mapped["PurchaseOrder"] = relationship(back_populates="items")
-    variant: Mapped["ProductVariant"] = relationship(
-        back_populates="purchase_order_items"
-    )
+    variant: Mapped["ProductVariant"] = relationship(back_populates="purchase_order_items")

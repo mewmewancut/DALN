@@ -20,9 +20,7 @@ def register_user(db: Session, request: RegisterRequest) -> User:
 
     user = User(
         email=request.email,
-        password_hash=bcrypt.hashpw(
-            request.password.encode(), bcrypt.gensalt()
-        ).decode(),
+        password_hash=bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode(),
         full_name=request.full_name,
         role=request.role,
     )
@@ -38,9 +36,7 @@ def register_user(db: Session, request: RegisterRequest) -> User:
 
 def login_user(db: Session, email: str, password: str) -> tuple[str, User]:
     user = db.scalar(select(User).where(User.email == email))
-    if user is None or not bcrypt.checkpw(
-        password.encode(), user.password_hash.encode()
-    ):
+    if user is None or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
         raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không đúng")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Tài khoản đã bị khóa")
@@ -52,8 +48,7 @@ def login_user(db: Session, email: str, password: str) -> tuple[str, User]:
             "sub": str(user.id),
             "role": user.role,
             "shop_id": shop_id,
-            "exp": datetime.now(timezone.utc)
-            + timedelta(minutes=settings.jwt_expire_minutes),
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes),
         },
         settings.jwt_secret,
         algorithm="HS256",

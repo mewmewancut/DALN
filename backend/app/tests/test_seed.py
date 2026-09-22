@@ -111,9 +111,7 @@ def test_seed_creates_complete_demo_data_and_is_idempotent(
         select(func.count()).select_from(Inventory).where(Inventory.quantity == 0)
     )
     assert db_session.scalar(
-        select(func.count())
-        .select_from(Inventory)
-        .where(Inventory.quantity.between(1, 4))
+        select(func.count()).select_from(Inventory).where(Inventory.quantity.between(1, 4))
     )
     assert db_session.scalar(select(func.max(Inventory.quantity))) <= 50
     assert (

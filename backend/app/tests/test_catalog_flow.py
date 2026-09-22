@@ -39,13 +39,9 @@ def test_owner_can_publish_product_for_public_catalog(
     first_login = client.post("/auth/login", json=owner_credentials)
     assert first_login.status_code == 200
     assert first_login.json()["shop_id"] is None
-    owner_headers = {
-        "Authorization": f"Bearer {first_login.json()['access_token']}"
-    }
+    owner_headers = {"Authorization": f"Bearer {first_login.json()['access_token']}"}
 
-    created_shop = client.post(
-        "/shops", json={"name": "Shop luồng mua"}, headers=owner_headers
-    )
+    created_shop = client.post("/shops", json={"name": "Shop luồng mua"}, headers=owner_headers)
     assert created_shop.status_code == 201
     shop_id = created_shop.json()["id"]
     second_login = client.post("/auth/login", json=owner_credentials)
@@ -94,12 +90,13 @@ def test_owner_can_publish_product_for_public_catalog(
         "/auth/login",
         json={"email": "flow-buyer@example.com", "password": "Secret@123"},
     )
-    buyer_headers = {
-        "Authorization": f"Bearer {buyer_login.json()['access_token']}"
-    }
-    assert client.put(
-        f"/products/{product_id}", json={"name": "Sai quyền"}, headers=buyer_headers
-    ).status_code == 403
+    buyer_headers = {"Authorization": f"Bearer {buyer_login.json()['access_token']}"}
+    assert (
+        client.put(
+            f"/products/{product_id}", json={"name": "Sai quyền"}, headers=buyer_headers
+        ).status_code
+        == 403
+    )
 
     assert client.delete(f"/products/{product_id}", headers=owner_headers).status_code == 204
     assert client.get(f"/products/{product_id}").status_code == 404

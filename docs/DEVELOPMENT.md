@@ -8,7 +8,7 @@ Tài liệu này mô tả môi trường development đã được triển khai.
 
 - Docker Desktop với Docker Compose.
 - Git.
-- Python 3.11+ và Node.js 20+ nếu muốn chạy service ngoài container.
+- Python 3.11+ và Node.js 20.19+, 22.13+ hoặc 24+ nếu muốn chạy service ngoài container (theo yêu cầu ESLint 10).
 
 ## Biến môi trường
 
@@ -83,3 +83,22 @@ docker compose --env-file .env.example exec -T frontend npm audit --audit-level=
 Frontend D1 và các trang auth/catalog đầu tiên của D2 dùng Axios và React Router; package được khóa trong `frontend/package-lock.json`. Khi thay dependency frontend, chạy `npm install` trong `frontend/` rồi cập nhật cả `package.json` và lockfile.
 
 Để bật bộ kiểm tra trước commit, chạy `git config core.hooksPath .githooks` một lần trong clone hiện tại. Danh sách kiểm tra và cách chạy thủ công nằm trong [`TESTING.md`](TESTING.md#hook-pre-commit).
+
+## Chuẩn hóa code
+
+Backend dùng Ruff với cấu hình `backend/ruff.toml`: kiểm tra lỗi Python, import không dùng và thứ tự import; format theo độ rộng 100 ký tự. Các migration lịch sử trong `alembic/versions` được loại khỏi quá trình lint/format để không sửa revision đã áp dụng. Frontend dùng ESLint 10 với bộ rule JavaScript recommended và hai rule React Hooks (thứ tự gọi hook, dependency của effect); Prettier quản lý định dạng. Cấu hình nằm trong `frontend/eslint.config.js` và `frontend/.prettierrc.json`.
+
+Chạy các lệnh kiểm tra từ thư mục gốc repository:
+
+```powershell
+docker compose --env-file .env.example exec -T backend ruff check .
+docker compose --env-file .env.example exec -T backend ruff format --check .
+docker compose --env-file .env.example exec -T frontend npm run lint
+docker compose --env-file .env.example exec -T frontend npm run format:check
+```
+
+Sửa định dạng chủ động bằng `docker compose --env-file .env.example exec -T backend ruff format .` và `docker compose --env-file .env.example exec -T frontend npm run format`. Với import Python, dùng `ruff check --fix .` trong container backend rồi review diff. Hook chỉ kiểm tra, không tự sửa file hoặc stage code. Sau khi thay requirements backend, build lại bằng `docker compose --env-file .env.example up --build -d`.
+
+## Skill review DALN
+
+Skill cá nhân `daln-review` đã được tạo trên máy phát triển tại `~/.codex/skills/daln-review/SKILL.md`; file này nằm ngoài repository và không tự có trên máy của người clone. Có thể gọi: `Dùng $daln-review để review thay đổi hiện tại theo Planning, kiểm tra test và báo lỗi trước commit.` Skill đọc nguồn sự thật trong repository, review theo phần nghiệp vụ bị thay đổi và báo phát hiện kèm bằng chứng; yêu cầu review đơn thuần không tự cho phép sửa code hay tạo commit.

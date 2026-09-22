@@ -41,6 +41,4 @@ class Shop(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     purchase_orders: Mapped[list["PurchaseOrder"]] = relationship(back_populates="shop")
     carts: Mapped[list["Cart"]] = relationship(back_populates="shop")
     orders: Mapped[list["Order"]] = relationship(back_populates="shop")
-    low_stock_alerts: Mapped[list["LowStockAlert"]] = relationship(
-        back_populates="shop"
-    )
+    low_stock_alerts: Mapped[list["LowStockAlert"]] = relationship(back_populates="shop")

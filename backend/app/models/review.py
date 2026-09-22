@@ -14,9 +14,7 @@ if TYPE_CHECKING:
 
 class Review(IdMixin, CreatedAtMixin, Base):
     __tablename__ = "reviews"
-    __table_args__ = (
-        CheckConstraint("rating BETWEEN 1 AND 5", name="rating_range"),
-    )
+    __table_args__ = (CheckConstraint("rating BETWEEN 1 AND 5", name="rating_range"),)
 
     order_item_id: Mapped[int] = mapped_column(
         BigInteger,

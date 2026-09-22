@@ -8,21 +8,16 @@ from app.models.user import User
 from app.schemas.auth import LoginRequest, LoginResponse, RegisterRequest, UserResponse
 from app.services.auth_service import login_user, register_user
 
-
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-def register(
-    request: RegisterRequest, db: Annotated[Session, Depends(get_db)]
-) -> User:
+def register(request: RegisterRequest, db: Annotated[Session, Depends(get_db)]) -> User:
     return register_user(db, request)
 
 
 @router.post("/login", response_model=LoginResponse)
-def login(
-    request: LoginRequest, db: Annotated[Session, Depends(get_db)]
-) -> LoginResponse:
+def login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]) -> LoginResponse:
     token, user = login_user(db, request.email, request.password)
     return LoginResponse(
         access_token=token,

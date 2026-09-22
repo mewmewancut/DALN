@@ -13,9 +13,7 @@ if TYPE_CHECKING:
 
 class Inventory(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "inventory"
-    __table_args__ = (
-        CheckConstraint("quantity >= 0", name="quantity_non_negative"),
-    )
+    __table_args__ = (CheckConstraint("quantity >= 0", name="quantity_non_negative"),)
 
     variant_id: Mapped[int] = mapped_column(
         BigInteger,

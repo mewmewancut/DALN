@@ -28,8 +28,7 @@ class Order(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "orders"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('PENDING', 'CONFIRMED', 'PREPARING', 'SHIPPING', "
-            "'DELIVERED', 'CANCELLED')",
+            "status IN ('PENDING', 'CONFIRMED', 'PREPARING', 'SHIPPING', 'DELIVERED', 'CANCELLED')",
             name="status",
         ),
         CheckConstraint(
@@ -77,16 +76,12 @@ class Order(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     buyer: Mapped["User"] = relationship(back_populates="orders")
     shop: Mapped["Shop"] = relationship(back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order")
-    status_history: Mapped[list["OrderStatusHistory"]] = relationship(
-        back_populates="order"
-    )
+    status_history: Mapped[list["OrderStatusHistory"]] = relationship(back_populates="order")
 
 
 class OrderItem(IdMixin, CreatedAtMixin, Base):
     __tablename__ = "order_items"
-    __table_args__ = (
-        CheckConstraint("quantity > 0", name="quantity_positive"),
-    )
+    __table_args__ = (CheckConstraint("quantity > 0", name="quantity_positive"),)
 
     order_id: Mapped[int] = mapped_column(
         BigInteger,
@@ -130,6 +125,4 @@ class OrderStatusHistory(IdMixin, CreatedAtMixin, Base):
     note: Mapped[str | None] = mapped_column(Text)
 
     order: Mapped["Order"] = relationship(back_populates="status_history")
-    changed_by_user: Mapped["User"] = relationship(
-        back_populates="order_status_changes"
-    )
+    changed_by_user: Mapped["User"] = relationship(back_populates="order_status_changes")

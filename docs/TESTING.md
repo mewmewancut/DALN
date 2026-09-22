@@ -14,6 +14,7 @@ Frontend D1 và phần đầu D2 có test gắn token, xử lý `401`, điều h
 | Luồng API | pytest + FastAPI TestClient | Đăng ký chủ shop → đăng nhập → tạo shop → đăng sản phẩm → buyer xem catalog; category được tạo trong fixture vì API admin chưa có |
 | Frontend | Vitest + jsdom | Axios token/`401`, điều hướng theo vai trò, form login/register, tìm kiếm/lọc/phân trang catalog, chọn variant và lỗi API |
 | Migration và cấu hình | Alembic + Docker Compose | Áp dụng migration và kiểm tra model khớp schema; kiểm tra Compose |
+| Lint và format | Ruff + ESLint + Prettier | Lỗi Python/JavaScript, import, React Hooks và định dạng; test cấu hình xác nhận code sai bị từ chối |
 | Runtime và dependency | HTTP smoke + Vite build + npm audit | Health backend, frontend phục vụ trang, build và lỗ hổng mức moderate trở lên |
 
 Browser end-to-end cho luồng mua hàng, test đồng thời lúc checkout và kiểm tra Bronze/Silver/Gold của F2–F7 vẫn là **Planned** vì các module đó chưa triển khai. Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
@@ -43,7 +44,9 @@ Hook được lưu trong `.githooks/pre-commit`. Kích hoạt một lần cho m�
 git config core.hooksPath .githooks
 ```
 
-Mỗi lần `git commit`, hook build/khởi động Docker Compose, áp dụng và kiểm tra migration, chạy toàn bộ pytest, đồng bộ npm theo lockfile, chạy Vitest, build frontend, audit dependency và smoke test hai service. Bất kỳ lệnh nào thất bại sẽ chặn commit. Có thể chạy lại thủ công bằng `git hook run pre-commit`. Docker Desktop cần chạy; audit cần truy cập npm registry. Hook kiểm tra working tree đang có trên máy, nên trước khi commit từng phần cần bảo đảm code được test khớp phần đã stage.
+Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff lint/format, đồng bộ npm theo lockfile, chạy ESLint/Prettier, áp dụng và kiểm tra migration, chạy toàn bộ pytest và Vitest, build frontend, audit dependency và smoke test hai service. Bất kỳ lệnh nào thất bại sẽ chặn commit. Lint/format chỉ kiểm tra, không tự sửa file. Có thể chạy lại thủ công bằng `git hook run pre-commit`. Docker Desktop cần chạy; cài dependency và audit cần truy cập registry. Hook kiểm tra working tree đang có trên máy, nên trước khi commit từng phần cần bảo đảm code được test khớp phần đã stage. Lệnh lint/format thủ công và phạm vi cấu hình nằm trong [`DEVELOPMENT.md`](DEVELOPMENT.md#chuẩn-hóa-code).
+
+`backend/app/tests/test_code_quality.py` và `frontend/quality.test.js` chạy CLI thật trên đoạn code qua stdin: code hợp lệ được chấp nhận, biến/import lỗi, JSX chưa khai báo, hook có điều kiện và dependency effect thiếu bị từ chối. Test format xác nhận code chưa chuẩn trả exit code 1 và output sau format pass. Các probe không tạo file lỗi trong source tree.
 
 ## Test đã có
 

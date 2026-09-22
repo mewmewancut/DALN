@@ -4,9 +4,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+import app.models  # noqa: F401
 from app.config import get_settings
 from app.database import Base
-import app.models  # noqa: F401
 
 test_engine = create_engine(get_settings().test_database_url, pool_pre_ping=True)
 

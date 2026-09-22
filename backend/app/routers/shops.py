@@ -9,7 +9,6 @@ from app.models.user import User
 from app.schemas.shop import ShopCreate, ShopResponse, ShopUpdate
 from app.services.shop_service import create_shop, update_shop
 
-
 router = APIRouter(prefix="/shops", tags=["shops"])
 
 

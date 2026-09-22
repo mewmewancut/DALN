@@ -30,6 +30,4 @@ class Supplier(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     )
 
     shop: Mapped["Shop"] = relationship(back_populates="suppliers")
-    purchase_orders: Mapped[list["PurchaseOrder"]] = relationship(
-        back_populates="supplier"
-    )
+    purchase_orders: Mapped[list["PurchaseOrder"]] = relationship(back_populates="supplier")

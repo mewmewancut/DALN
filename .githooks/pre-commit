@@ -19,6 +19,15 @@ compose config --quiet
 step "Khởi động và build các service"
 compose up --build -d
 
+step "Kiểm tra lint và format backend"
+compose exec -T backend ruff check .
+compose exec -T backend ruff format --check .
+
+step "Đồng bộ dependency, kiểm tra lint và format frontend"
+compose exec -T frontend npm ci --no-audit --no-fund
+compose exec -T frontend npm run lint
+compose exec -T frontend npm run format:check
+
 step "Kiểm tra migration"
 compose exec -T backend alembic upgrade head
 compose exec -T backend alembic check
@@ -26,8 +35,7 @@ compose exec -T backend alembic check
 step "Chạy toàn bộ test backend"
 compose exec -T backend pytest -q
 
-step "Đồng bộ dependency và chạy test frontend"
-compose exec -T frontend npm ci --no-audit --no-fund
+step "Chạy test frontend"
 compose exec -T frontend npm test
 
 step "Build frontend và kiểm tra dependency"

@@ -74,18 +74,26 @@ def test_shop_creation_and_update_use_authenticated_owner(
 ) -> None:
     owner, owner_headers = user_with_token(db_session, "owner-c2@example.com", "SHOP_OWNER")
     _, buyer_headers = user_with_token(db_session, "buyer-c2@example.com", "BUYER")
-    assert client.post("/shops", json={"name": "Sai quyền"}, headers=buyer_headers).status_code == 403
+    assert (
+        client.post("/shops", json={"name": "Sai quyền"}, headers=buyer_headers).status_code == 403
+    )
     assert client.post("/shops", json={"name": "Thiếu token"}).status_code == 401
-    assert client.post(
-        "/shops", json={"name": "Sai owner", "owner_id": 123}, headers=owner_headers
-    ).status_code == 422
+    assert (
+        client.post(
+            "/shops", json={"name": "Sai owner", "owner_id": 123}, headers=owner_headers
+        ).status_code
+        == 422
+    )
 
     created = client.post(
         "/shops", json={"name": "Shop A", "description": "Mô tả"}, headers=owner_headers
     )
     assert created.status_code == 201
     assert created.json()["owner_id"] == owner.id
-    assert client.post("/shops", json={"name": "Shop thứ hai"}, headers=owner_headers).status_code == 400
+    assert (
+        client.post("/shops", json={"name": "Shop thứ hai"}, headers=owner_headers).status_code
+        == 400
+    )
     updated = client.put(
         "/shops/me", json={"name": "Shop mới", "description": None}, headers=owner_headers
     )
@@ -103,19 +111,27 @@ def test_product_creation_writes_variants_and_inventory_together(
     db_session.add(category)
     db_session.flush()
 
-    assert client.post(
-        "/products", json={**product_payload(category.id), "shop_id": 999}, headers=owner_headers
-    ).status_code == 422
-    response = client.post(
-        "/products", json=product_payload(category.id), headers=owner_headers
+    assert (
+        client.post(
+            "/products",
+            json={**product_payload(category.id), "shop_id": 999},
+            headers=owner_headers,
+        ).status_code
+        == 422
     )
+    response = client.post("/products", json=product_payload(category.id), headers=owner_headers)
     assert response.status_code == 201
     body = response.json()
     assert body["shop_id"] == shop_id
     assert body["price_from"] == 220000
     assert [(v["size"], v["quantity"]) for v in body["variants"]] == [("M", 7), ("L", 3)]
     assert body["variants"][0]["sku"] == f"P{body['id']}-M-Đen"
-    assert db_session.scalar(select(func.count()).select_from(Inventory).where(Inventory.shop_id == shop_id)) == 2
+    assert (
+        db_session.scalar(
+            select(func.count()).select_from(Inventory).where(Inventory.shop_id == shop_id)
+        )
+        == 2
+    )
     assert client.get(f"/products/{body['id']}").status_code == 200
 
 
@@ -146,20 +162,31 @@ def test_owner_isolation_variant_updates_and_soft_delete(
     category = Category(name="Váy")
     db_session.add(category)
     db_session.flush()
-    product = client.post(
-        "/products", json=product_payload(category.id), headers=owner_b
-    ).json()
+    product = client.post("/products", json=product_payload(category.id), headers=owner_b).json()
     product_id = product["id"]
     variant_id = product["variants"][0]["id"]
-    assert client.put(f"/products/{product_id}", json={"name": "Chiếm"}, headers=owner_a).status_code == 403
+    assert (
+        client.put(f"/products/{product_id}", json={"name": "Chiếm"}, headers=owner_a).status_code
+        == 403
+    )
     assert client.delete(f"/products/{product_id}", headers=owner_a).status_code == 403
-    assert client.post(
-        f"/products/{product_id}/variants",
-        json={"size": "S", "color": "Đỏ", "price": 100000, "initial_quantity": 1},
-        headers=owner_a,
-    ).status_code == 403
-    assert client.put(f"/variants/{variant_id}", json={"price": 1}, headers=owner_a).status_code == 403
-    assert client.put(f"/products/{product_id}", json={"name": "Váy mới"}, headers=owner_b).json()["name"] == "Váy mới"
+    assert (
+        client.post(
+            f"/products/{product_id}/variants",
+            json={"size": "S", "color": "Đỏ", "price": 100000, "initial_quantity": 1},
+            headers=owner_a,
+        ).status_code
+        == 403
+    )
+    assert (
+        client.put(f"/variants/{variant_id}", json={"price": 1}, headers=owner_a).status_code == 403
+    )
+    assert (
+        client.put(f"/products/{product_id}", json={"name": "Váy mới"}, headers=owner_b).json()[
+            "name"
+        ]
+        == "Váy mới"
+    )
 
     duplicate = client.post(
         f"/products/{product_id}/variants",
@@ -187,7 +214,10 @@ def test_owner_isolation_variant_updates_and_soft_delete(
     assert db_session.get(Product, product_id).is_active is False
     assert client.get(f"/products/{product_id}").status_code == 404
     assert client.get("/products").json()["total"] == 0
-    assert client.put(f"/products/{product_id}", json={"is_active": True}, headers=owner_b).status_code == 200
+    assert (
+        client.put(f"/products/{product_id}", json={"is_active": True}, headers=owner_b).status_code
+        == 200
+    )
     assert client.get(f"/products/{product_id}").status_code == 200
 
 
@@ -235,16 +265,23 @@ def test_public_search_filters_sort_pagination_and_rating(
     )
     db_session.add(item)
     db_session.flush()
-    db_session.add(Review(order_item_id=item.id, product_id=cheap_product["id"], buyer_id=buyer.id, rating=4))
+    db_session.add(
+        Review(order_item_id=item.id, product_id=cheap_product["id"], buyer_id=buyer.id, rating=4)
+    )
     db_session.flush()
 
     assert [row["name"] for row in client.get("/categories").json()] == ["Áo", "Quần"]
     assert client.get("/products", params={"keyword": "ÁO"}).json()["total"] == 1
-    assert client.get("/products", params={"category_id": pants.id}).json()["items"][0]["id"] == expensive_product["id"]
+    assert (
+        client.get("/products", params={"category_id": pants.id}).json()["items"][0]["id"]
+        == expensive_product["id"]
+    )
     assert client.get("/products", params={"shop_id": shop_a}).json()["total"] == 1
     assert client.get("/products", params={"min_price": 200000}).json()["total"] == 1
     assert client.get("/products", params={"max_price": 200000}).json()["total"] == 1
-    assert [row["id"] for row in client.get("/products", params={"sort": "price_asc"}).json()["items"]] == [cheap_product["id"], expensive_product["id"]]
+    assert [
+        row["id"] for row in client.get("/products", params={"sort": "price_asc"}).json()["items"]
+    ] == [cheap_product["id"], expensive_product["id"]]
     paged = client.get("/products", params={"sort": "price_desc", "page_size": 1, "page": 2}).json()
     assert paged["total"] == 2
     assert paged["items"][0]["id"] == cheap_product["id"]

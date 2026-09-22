@@ -26,7 +26,6 @@ from app.services.catalog_service import (
     update_variant,
 )
 
-
 category_router = APIRouter(prefix="/categories", tags=["catalog"])
 product_router = APIRouter(prefix="/products", tags=["catalog"])
 variant_router = APIRouter(prefix="/variants", tags=["catalog"])
@@ -63,9 +62,7 @@ def products(
 
 
 @product_router.get("/{product_id}", response_model=ProductDetail)
-def product_detail(
-    product_id: int, db: Annotated[Session, Depends(get_db)]
-) -> ProductDetail:
+def product_detail(product_id: int, db: Annotated[Session, Depends(get_db)]) -> ProductDetail:
     return get_product_detail(db, product_id)
 
 

@@ -66,9 +66,7 @@ def _add_variant(
     return variant
 
 
-def create_product(
-    db: Session, shop: Shop, request: ProductCreate
-) -> ProductDetail:
+def create_product(db: Session, shop: Shop, request: ProductCreate) -> ProductDetail:
     _require_category(db, request.category_id)
     product = Product(
         shop_id=shop.id,
@@ -167,9 +165,7 @@ def _variant_response(variant: ProductVariant) -> VariantResponse:
 
 
 def _rating_average(db: Session, product_id: int) -> float | None:
-    rating = db.scalar(
-        select(func.avg(Review.rating)).where(Review.product_id == product_id)
-    )
+    rating = db.scalar(select(func.avg(Review.rating)).where(Review.product_id == product_id))
     return float(rating) if rating is not None else None
 
 
