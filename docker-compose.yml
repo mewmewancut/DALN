@@ -22,7 +22,7 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fashion}:${POSTGRES_PASSWORD:-fashion}@db:5432/${POSTGRES_DB:-fashion}
       TEST_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-fashion}:${POSTGRES_PASSWORD:-fashion}@db:5432/fashion_test
-      JWT_SECRET: ${JWT_SECRET:-change-me-before-production}
+      JWT_SECRET: ${JWT_SECRET:-change-me-before-production-use-at-least-32-characters}
       JWT_EXPIRE_MINUTES: ${JWT_EXPIRE_MINUTES:-60}
     ports:
       - "8000:8000"

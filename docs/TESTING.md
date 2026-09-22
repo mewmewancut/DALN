@@ -1,7 +1,7 @@
 # Testing
 
 **Trạng thái:** In progress  
-**Phạm vi hiện tại:** health check, database constraints B1–B14 và seed data B15
+**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15 và auth C1
 
 ## Nguyên tắc
 
@@ -37,5 +37,7 @@ docker compose --env-file .env.example exec -T backend pytest -q
 - Chạy seed lần hai không làm thay đổi số lượng bản ghi.
 - SKU của seed khớp `P{product_id}-{size}-{color}` và chạy lại với mốc ngày khác vẫn không nhân đôi đơn hàng.
 - Các bảng có luồng cập nhật nhận `updated_at` có timezone.
+- Auth: đăng ký thành công, email trùng, cấm role ADMIN; login đúng/sai mật khẩu; JWT chứa user ID, role và shop ID; `/auth/me` không lộ password hash.
+- Thiếu, sai, hết hạn token hoặc user bị khóa đều bị từ chối; dependency role và shop lấy quyền sở hữu từ database thay vì tin `shop_id` trong token.
 
-Các test auth, phân quyền và nghiệp vụ F1–F7 sẽ được bổ sung khi module tương ứng được triển khai.
+Các test F1 phụ thuộc vào API shop/admin/order và test nghiệp vụ F2–F7 sẽ được bổ sung khi module tương ứng được triển khai.

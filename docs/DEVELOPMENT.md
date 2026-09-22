@@ -16,7 +16,7 @@ Sao chép `.env.example` thành `.env` trước khi dùng thông tin riêng trê
 
 - `DATABASE_URL`: database development `fashion`.
 - `TEST_DATABASE_URL`: database test độc lập `fashion_test`.
-- `JWT_SECRET`: khóa ký JWT; phải thay giá trị mẫu ở môi trường không phải local.
+- `JWT_SECRET`: khóa ký JWT HS256; phải thay giá trị mẫu bằng khóa bí mật dài ít nhất 32 byte ở môi trường không phải local.
 - `JWT_EXPIRE_MINUTES`: thời hạn token.
 - `VITE_API_URL`: địa chỉ backend mà frontend sử dụng.
 
