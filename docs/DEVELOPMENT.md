@@ -46,6 +46,24 @@ docker compose --env-file .env.example exec -T backend alembic check
 
 Không sửa migration đã được áp dụng. Schema mới phải được thêm bằng migration tiếp theo.
 
+## Dữ liệu mẫu
+
+Sau khi migration hoàn tất, chạy seed bằng container backend:
+
+```powershell
+docker compose --env-file .env.example exec -T backend python -m app.seed
+```
+
+Script có thể chạy lại an toàn mà không nhân đôi dữ liệu. Bộ dữ liệu hiện tại gồm 3 shop, 45 sản phẩm, 135 variant, 6 supplier và 36 đơn hàng mẫu.
+
+Tài khoản demo:
+
+| Vai trò | Email | Mật khẩu |
+|---|---|---|
+| Admin | `admin@shop.vn` | `Admin@123` |
+| Shop owner | `shop1@shop.vn` đến `shop3@shop.vn` | `Shop@123` |
+| Buyer | `buyer1@shop.vn` đến `buyer5@shop.vn` | `Buyer@123` |
+
 ## Test backend
 
 ```powershell

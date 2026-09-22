@@ -1,7 +1,7 @@
 # Database
 
-**Trạng thái:** In progress  
-**Phạm vi đã triển khai:** Planning B1–B14
+**Trạng thái:** Implemented
+**Phạm vi đã triển khai:** Planning B1–B15
 
 Tài liệu này mô tả schema vận hành đã được triển khai trong SQLAlchemy và Alembic. Đặc tả đầy đủ, bao gồm các bảng chưa triển khai, nằm trong [`PLANNING.md`](PLANNING.md#phần-b--database-từng-bảng-từng-cột).
 
@@ -50,7 +50,7 @@ erDiagram
 ### `users`
 
 - Email là duy nhất và bắt buộc.
-- Mật khẩu chỉ lưu ở cột `password_hash`; logic bcrypt sẽ được triển khai cùng authentication.
+- Mật khẩu chỉ lưu ở cột `password_hash`; seed data đã hash bằng bcrypt và authentication sẽ dùng cùng cơ chế.
 - Role chỉ nhận `BUYER`, `SHOP_OWNER` hoặc `ADMIN`.
 - `is_active` mặc định là `true`.
 
@@ -132,6 +132,8 @@ docker compose --env-file .env.example exec -T backend alembic upgrade head
 docker compose --env-file .env.example exec -T backend alembic current
 ```
 
-## Phạm vi chưa triển khai
+## Seed data
 
-Seed data B15 vẫn ở trạng thái `Planned`. Các invariant cần transaction hoặc kiểm tra quyền sẽ được triển khai trong service tương ứng ở phần C.
+`python -m app.seed` tạo dữ liệu demo idempotent theo Planning B15. Mật khẩu được hash bằng bcrypt; user được nhận diện theo email, variant theo SKU và đơn hàng theo code nên chạy lại không nhân đôi dữ liệu.
+
+Các invariant cần transaction hoặc kiểm tra quyền sẽ được triển khai trong service tương ứng ở phần C.

@@ -15,7 +15,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`PROPOSAL.md`](PROPOSAL.md) | Có sẵn | Mục tiêu và phạm vi đề tài |
 | [`PLANNING.md`](PLANNING.md) | Có sẵn | Kế hoạch và đặc tả triển khai |
 | `ARCHITECTURE.md` | Planned | Kiến trúc tổng thể và ranh giới thành phần |
-| [`DATABASE.md`](DATABASE.md) | In progress | Schema, quan hệ, constraint và migration |
+| [`DATABASE.md`](DATABASE.md) | Implemented | Schema, quan hệ, constraint, migration và seed data |
 | `BUSINESS_RULES.md` | Planned | Luồng nghiệp vụ và invariant |
 | `API.md` | Planned | Endpoint, role và error contract |
 | `DATA_PLATFORM.md` | Planned | Lakebase, Medallion, metric và data quality |

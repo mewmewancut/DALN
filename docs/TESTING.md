@@ -1,7 +1,7 @@
 # Testing
 
 **Trạng thái:** In progress  
-**Phạm vi hiện tại:** health check và database constraints B1–B14
+**Phạm vi hiện tại:** health check, database constraints B1–B14 và seed data B15
 
 ## Nguyên tắc
 
@@ -33,5 +33,7 @@ docker compose --env-file .env.example exec -T backend pytest -q
 - Order item lưu snapshot và có số lượng dương; lịch sử đầu tiên cho phép `from_status=NULL`.
 - Rating nằm trong khoảng 1–5 và mỗi order item chỉ có một review.
 - Low-stock alert mặc định ở trạng thái chưa xử lý.
+- Seed tạo đủ tài khoản, shop, catalog, tồn kho, supplier và đơn hàng; mật khẩu admin kiểm tra được bằng bcrypt.
+- Chạy seed lần hai không làm thay đổi số lượng bản ghi.
 
 Các test auth, phân quyền và nghiệp vụ F1–F7 sẽ được bổ sung khi module tương ứng được triển khai.

@@ -280,7 +280,7 @@ Một số chức năng có thể mở rộng sau phiên bản đầu:
 ## 12. Thông tin dự án
 
 **Tên dự án:** Hệ thống thương mại điện tử dành cho thời trang  
-**Trạng thái:** Đang lên kế hoạch  
+**Trạng thái:** Đang triển khai
 **Ngày bắt đầu:** 17/08/2026  
 **Deadline dự kiến:** 12/10/2026  
 
