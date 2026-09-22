@@ -1,52 +1,75 @@
-import { Link, Navigate, Route, Routes } from "react-router";
+import { Navigate, Route, Routes } from "react-router";
 
 import { useAuth } from "./auth/AuthContext.jsx";
 import RequireRole from "./auth/RequireRole.jsx";
 import { homeForRole } from "./auth/session.js";
+import SiteLayout from "./components/SiteLayout.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import ProductDetailPage from "./pages/ProductDetailPage.jsx";
+import ProductListPage from "./pages/ProductListPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
 
 function Page({ title, children }) {
-  const { session, logout } = useAuth();
   return (
-    <main className="shell">
-      <section className="card">
-        <header className="site-header">
-          <Link to="/" className="brand">Fashion E-Commerce</Link>
-          {session ? (
-            <button type="button" onClick={logout}>Đăng xuất</button>
-          ) : (
-            <Link to="/login">Đăng nhập</Link>
-          )}
-        </header>
-        <p className="eyebrow">Fashion E-Commerce Platform</p>
-        <h1>{title}</h1>
-        <p>{children}</p>
-      </section>
-    </main>
+    <SiteLayout>
+      <p className="eyebrow">Fashion E-Commerce Platform</p>
+      <h1>{title}</h1>
+      <p>{children}</p>
+    </SiteLayout>
   );
 }
 
-function BuyerHome() {
+function BuyerRoute({ children }) {
   const { session } = useAuth();
   if (session && session.role !== "BUYER") {
     return <Navigate to={homeForRole(session.role)} replace />;
   }
-  return <Page title="Khám phá thời trang">Danh sách sản phẩm đang được hoàn thiện.</Page>;
+  return children;
 }
 
-function GuestPage({ title }) {
+function GuestRoute({ children }) {
   const { session } = useAuth();
   if (session) {
     return <Navigate to={homeForRole(session.role)} replace />;
   }
-  return <Page title={title}>Trang này đang được hoàn thiện.</Page>;
+  return children;
 }
 
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<BuyerHome />} />
-      <Route path="/login" element={<GuestPage title="Đăng nhập" />} />
-      <Route path="/register" element={<GuestPage title="Đăng ký" />} />
+      <Route
+        path="/"
+        element={
+          <BuyerRoute>
+            <ProductListPage />
+          </BuyerRoute>
+        }
+      />
+      <Route
+        path="/products/:id"
+        element={
+          <BuyerRoute>
+            <ProductDetailPage />
+          </BuyerRoute>
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <GuestRoute>
+            <LoginPage />
+          </GuestRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <GuestRoute>
+            <RegisterPage />
+          </GuestRoute>
+        }
+      />
       <Route
         path="/shop/dashboard"
         element={

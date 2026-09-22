@@ -17,7 +17,7 @@ client.interceptors.request.use((config) => {
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && error.config?.url !== "/auth/login") {
       clearSession();
       window.dispatchEvent(new Event("fashion:session-cleared"));
       if (window.location.pathname !== "/login") {

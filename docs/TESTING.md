@@ -3,7 +3,7 @@
 **Trạng thái:** In progress  
 **Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2 và luồng API từ đăng ký đến đăng sản phẩm
 
-Frontend D1 có test gắn token, xử lý `401` và điều hướng theo vai trò.
+Frontend D1 và phần đầu D2 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth và catalog.
 
 ## Các lớp kiểm tra hiện có
 
@@ -12,7 +12,7 @@ Frontend D1 có test gắn token, xử lý `401` và điều hướng theo vai t
 | Database | pytest + PostgreSQL test | Constraint, giá trị mặc định, timestamp, seed chạy lại không nhân đôi |
 | API và phân quyền | pytest + FastAPI TestClient | Auth, shop, catalog, lỗi nghiệp vụ, quyền sở hữu và rollback |
 | Luồng API | pytest + FastAPI TestClient | Đăng ký chủ shop → đăng nhập → tạo shop → đăng sản phẩm → buyer xem catalog; category được tạo trong fixture vì API admin chưa có |
-| Frontend | Vitest + jsdom | Axios token/`401`, điều hướng theo vai trò, đăng nhập/đăng xuất trong khung D1 |
+| Frontend | Vitest + jsdom | Axios token/`401`, điều hướng theo vai trò, form login/register, tìm kiếm/lọc/phân trang catalog, chọn variant và lỗi API |
 | Migration và cấu hình | Alembic + Docker Compose | Áp dụng migration và kiểm tra model khớp schema; kiểm tra Compose |
 | Runtime và dependency | HTTP smoke + Vite build + npm audit | Health backend, frontend phục vụ trang, build và lỗ hổng mức moderate trở lên |
 
@@ -72,5 +72,9 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, áp dụng v
 - Shop khác không được sửa, ẩn sản phẩm hoặc quản lý variant; xóa sản phẩm là soft delete và có thể hiện lại qua `PUT`.
 - Catalog công khai lọc, sắp xếp, phân trang theo giá variant hoạt động; ẩn sản phẩm và shop không hoạt động; chi tiết có tồn kho và rating trung bình.
 - Luồng API nối đăng ký, đăng nhập, tạo shop, tạo sản phẩm, catalog công khai, chặn buyer sửa sản phẩm và soft delete.
+
+- Frontend gửi đúng body login/register, điều hướng sau auth, hiển thị lỗi API và giữ lỗi `401` của login trên form.
+- Frontend gọi lại catalog với query params khi đổi bộ lọc hoặc trang, về trang 1 khi đổi filter, hiển thị trạng thái rỗng/lỗi và giá từ API.
+- Chi tiết sản phẩm hiển thị giá/tồn kho đúng variant được chọn, xóa size khi đổi màu và báo lỗi sản phẩm không tồn tại.
 
 Các test F1 phụ thuộc vào API admin/order/stats và test nghiệp vụ F2–F7 sẽ được bổ sung khi module tương ứng được triển khai.

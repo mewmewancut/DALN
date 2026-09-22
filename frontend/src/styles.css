@@ -1,7 +1,14 @@
 :root {
   color: #1f2937;
   background: #f4f1ea;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
@@ -32,12 +39,22 @@ body {
   box-shadow: 0 24px 70px rgb(68 57 40 / 12%);
 }
 
+.card-wide {
+  width: min(1200px, 100%);
+}
+
 .site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 32px;
+}
+
+.site-header nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .brand {
@@ -77,4 +94,145 @@ p {
 
 a {
   color: #8c3f20;
+}
+
+.form-stack,
+.catalog-filters {
+  display: grid;
+  gap: 16px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #bcb3a4;
+  border-radius: 8px;
+  background: #fff;
+  color: #1f2937;
+  font: inherit;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.form-error {
+  color: #a12323;
+}
+
+.muted {
+  color: #6b625b;
+}
+
+.catalog-layout {
+  display: grid;
+  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+  gap: 32px;
+}
+
+.catalog-results > p:first-child {
+  margin-top: 0;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.product-card {
+  overflow: hidden;
+  border: 1px solid #ded8cd;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.product-card img,
+.product-image-placeholder {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  place-items: center;
+  object-fit: cover;
+  background: #eee8df;
+}
+
+.product-card-body {
+  padding: 12px;
+}
+
+.product-card h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.product-card p {
+  margin: 6px 0;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.product-detail {
+  display: grid;
+  grid-template-columns: minmax(240px, 420px) minmax(0, 1fr);
+  gap: 40px;
+}
+
+.detail-image {
+  width: 100%;
+  border-radius: 12px;
+}
+
+.detail-price {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.variant-options fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 0;
+  border: 0;
+}
+
+.variant-options legend {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.variant-options button[aria-pressed="true"] {
+  background: #8c3f20;
+  color: #fff;
+}
+
+.reviews {
+  margin-top: 32px;
+  border-top: 1px solid #ded8cd;
+}
+
+@media (max-width: 700px) {
+  .card {
+    padding: 24px;
+  }
+  .catalog-layout,
+  .product-detail {
+    grid-template-columns: 1fr;
+  }
 }

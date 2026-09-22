@@ -27,11 +27,7 @@ export function AuthProvider({ children }) {
     setSession(null);
   }
 
-  return (
-    <AuthContext.Provider value={{ session, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={{ session, login, logout }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

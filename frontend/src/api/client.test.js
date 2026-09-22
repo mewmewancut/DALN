@@ -54,11 +54,32 @@ it("xóa phiên và chuyển tới đăng nhập khi API trả 401", async () =>
 
   await expect(
     client.get("/auth/me", {
-      adapter: async () => { throw unauthorized; },
+      adapter: async () => {
+        throw unauthorized;
+      },
     }),
   ).rejects.toBe(unauthorized);
 
   expect(readSession()).toBeNull();
   expect(window.dispatchEvent).toHaveBeenCalledOnce();
   expect(replace).toHaveBeenCalledWith("/login");
+});
+
+it("giữ lỗi 401 của form đăng nhập để hiển thị trên form", async () => {
+  const unauthorized = Object.assign(new Error("Sai mật khẩu"), {
+    response: { status: 401, data: { detail: "Sai mật khẩu" } },
+    config: { url: "/auth/login" },
+  });
+  await expect(
+    client.post(
+      "/auth/login",
+      {},
+      {
+        adapter: async () => {
+          throw unauthorized;
+        },
+      },
+    ),
+  ).rejects.toBe(unauthorized);
+  expect(replace).not.toHaveBeenCalled();
 });
