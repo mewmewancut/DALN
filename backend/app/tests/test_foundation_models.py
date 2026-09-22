@@ -141,8 +141,17 @@ def test_database_defaults_are_applied(db_session: Session) -> None:
     assert variant.is_active is True
     assert inventory.quantity == 0
     assert inventory.low_stock_threshold == 5
-    assert inventory.created_at.tzinfo is not None
-    assert inventory.updated_at.tzinfo is not None
+    mutable_records = (
+        shop.owner,
+        shop,
+        product.category,
+        product,
+        variant,
+        inventory,
+    )
+    for record in mutable_records:
+        assert record.created_at.tzinfo is not None
+        assert record.updated_at.tzinfo is not None
 
 
 def test_variant_has_only_one_inventory_row(db_session: Session) -> None:

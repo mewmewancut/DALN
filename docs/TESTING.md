@@ -35,5 +35,7 @@ docker compose --env-file .env.example exec -T backend pytest -q
 - Low-stock alert mặc định ở trạng thái chưa xử lý.
 - Seed tạo đủ tài khoản, shop, catalog, tồn kho, supplier và đơn hàng; mật khẩu admin kiểm tra được bằng bcrypt.
 - Chạy seed lần hai không làm thay đổi số lượng bản ghi.
+- SKU của seed khớp `P{product_id}-{size}-{color}` và chạy lại với mốc ngày khác vẫn không nhân đôi đơn hàng.
+- Các bảng có luồng cập nhật nhận `updated_at` có timezone.
 
 Các test auth, phân quyền và nghiệp vụ F1–F7 sẽ được bổ sung khi module tương ứng được triển khai.

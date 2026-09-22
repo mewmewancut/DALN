@@ -4,7 +4,7 @@ from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Integer, UniqueC
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.common import CreatedAtMixin, IdMixin
+from app.models.common import CreatedAtMixin, IdMixin, UpdatedAtMixin
 
 if TYPE_CHECKING:
     from app.models.catalog import ProductVariant
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class Cart(IdMixin, CreatedAtMixin, Base):
+class Cart(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "carts"
 
     buyer_id: Mapped[int] = mapped_column(
@@ -31,7 +31,7 @@ class Cart(IdMixin, CreatedAtMixin, Base):
     items: Mapped[list["CartItem"]] = relationship(back_populates="cart")
 
 
-class CartItem(IdMixin, CreatedAtMixin, Base):
+class CartItem(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "cart_items"
     __table_args__ = (
         CheckConstraint("quantity > 0", name="quantity_positive"),

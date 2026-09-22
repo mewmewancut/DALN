@@ -4,7 +4,7 @@ from sqlalchemy import Boolean, CheckConstraint, String, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.common import CreatedAtMixin, IdMixin
+from app.models.common import CreatedAtMixin, IdMixin, UpdatedAtMixin
 
 if TYPE_CHECKING:
     from app.models.cart import Cart
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from app.models.shop import Shop
 
 
-class User(IdMixin, CreatedAtMixin, Base):
+class User(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "users"
     __table_args__ = (
         CheckConstraint(

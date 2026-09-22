@@ -23,7 +23,6 @@ from app.models import (
     User,
 )
 
-SEED_REFERENCE_TIME = datetime(2026, 9, 22, 12, tzinfo=timezone.utc)
 CATEGORY_NAMES = ("Áo", "Quần", "Váy", "Giày", "Túi xách", "Phụ kiện")
 CATEGORY_BASE_PRICES = {
     "Áo": 199_000,
@@ -41,7 +40,7 @@ CATEGORY_SIZES = {
     "Túi xách": ("MINI", "MEDIUM", "LARGE"),
     "Phụ kiện": ("SMALL", "MEDIUM", "LARGE"),
 }
-VARIANT_COLORS = (("Đen", "DEN"), ("Trắng", "TRANG"), ("Xanh", "XANH"))
+VARIANT_COLORS = ("Đen", "Trắng", "Xanh")
 ORDER_STATUSES = (
     "PENDING",
     "CONFIRMED",
@@ -167,9 +166,22 @@ def get_or_create_variant(
     sku: str,
     created: dict[str, int],
 ) -> ProductVariant:
-    variant = session.scalar(select(ProductVariant).where(ProductVariant.sku == sku))
+    variant = session.scalar(
+        select(ProductVariant).where(
+            ProductVariant.product_id == product.id,
+            ProductVariant.size == size,
+            ProductVariant.color == color,
+        )
+    )
     if variant is not None:
+        variant.sku = sku
         return variant
+
+    sku_owner = session.scalar(
+        select(ProductVariant).where(ProductVariant.sku == sku)
+    )
+    if sku_owner is not None:
+        raise ValueError(f"SKU {sku} đã thuộc về một biến thể khác")
 
     variant = ProductVariant(
         product=product,
@@ -263,12 +275,11 @@ def create_catalog(
             )
 
             sizes = CATEGORY_SIZES[category.name]
-            for variant_number, (size, color_data) in enumerate(
+            for variant_number, (size, color) in enumerate(
                 zip(sizes, VARIANT_COLORS, strict=True),
                 start=1,
             ):
-                color, color_code = color_data
-                sku = f"S{shop_number}-P{product_number:02d}-{size}-{color_code}"
+                sku = f"P{product.id}-{size}-{color}"
                 variant = get_or_create_variant(
                     session,
                     product=product,
@@ -339,6 +350,7 @@ def create_orders(
     shops: Sequence[Shop],
     owners: Sequence[User],
     variants_by_shop: dict[int, list[ProductVariant]],
+    reference_time: datetime,
     created: dict[str, int],
 ) -> None:
     order_number = 0
@@ -346,12 +358,21 @@ def create_orders(
         shop_variants = variants_by_shop[shop.id]
         for shop_order_number in range(12):
             order_number += 1
-            created_at = SEED_REFERENCE_TIME - timedelta(
+            created_at = reference_time - timedelta(
                 days=(order_number - 1) % 30,
                 hours=shop_order_number % 6,
             )
+            receiver_phone = f"090{order_number:07d}"
+            shipping_address = f"{order_number} Nguyễn Huệ, TP.HCM"
             code = f"ORD-{created_at:%Y%m%d}-{order_number:04d}"
-            if session.scalar(select(Order.id).where(Order.code == code)) is not None:
+            existing_order = session.scalar(
+                select(Order.id).where(
+                    Order.shop_id == shop.id,
+                    Order.receiver_phone == receiver_phone,
+                    Order.shipping_address == shipping_address,
+                )
+            )
+            if existing_order is not None:
                 continue
 
             buyer = buyers[(order_number + shop_index) % len(buyers)]
@@ -378,9 +399,9 @@ def create_orders(
                 buyer=buyer,
                 shop=shop,
                 status=status,
-                shipping_address=f"{order_number} Nguyễn Huệ, TP.HCM",
+                shipping_address=shipping_address,
                 receiver_name=buyer.full_name,
-                receiver_phone=f"090{order_number:07d}",
+                receiver_phone=receiver_phone,
                 payment_method=payment_method,
                 payment_status=(
                     "PAID"
@@ -424,7 +445,23 @@ def create_orders(
     session.flush()
 
 
-def seed_database(session: Session) -> dict[str, int]:
+def seed_database(
+    session: Session,
+    *,
+    reference_time: datetime | None = None,
+) -> dict[str, int]:
+    if reference_time is None:
+        reference_time = datetime.now(timezone.utc).replace(
+            hour=12,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+    elif reference_time.tzinfo is None:
+        raise ValueError("reference_time phải có timezone")
+    else:
+        reference_time = reference_time.astimezone(timezone.utc)
+
     created = {
         "users": 0,
         "shops": 0,
@@ -501,6 +538,7 @@ def seed_database(session: Session) -> dict[str, int]:
         shops=shops,
         owners=owners,
         variants_by_shop=variants_by_shop,
+        reference_time=reference_time,
         created=created,
     )
     return created

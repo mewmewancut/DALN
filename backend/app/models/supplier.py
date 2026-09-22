@@ -4,14 +4,14 @@ from sqlalchemy import BigInteger, Boolean, ForeignKey, String, Text, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.common import CreatedAtMixin, IdMixin
+from app.models.common import CreatedAtMixin, IdMixin, UpdatedAtMixin
 
 if TYPE_CHECKING:
     from app.models.purchase import PurchaseOrder
     from app.models.shop import Shop
 
 
-class Supplier(IdMixin, CreatedAtMixin, Base):
+class Supplier(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "suppliers"
 
     shop_id: Mapped[int] = mapped_column(

@@ -45,7 +45,7 @@ class Inventory(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     shop: Mapped["Shop"] = relationship(back_populates="inventory_items")
 
 
-class LowStockAlert(IdMixin, CreatedAtMixin, Base):
+class LowStockAlert(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "low_stock_alerts"
 
     variant_id: Mapped[int] = mapped_column(

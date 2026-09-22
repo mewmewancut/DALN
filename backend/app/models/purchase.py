@@ -16,7 +16,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from app.models.common import CreatedAtMixin, IdMixin
+from app.models.common import CreatedAtMixin, IdMixin, UpdatedAtMixin
 
 if TYPE_CHECKING:
     from app.models.catalog import ProductVariant
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from app.models.supplier import Supplier
 
 
-class PurchaseOrder(IdMixin, CreatedAtMixin, Base):
+class PurchaseOrder(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "purchase_orders"
     __table_args__ = (
         CheckConstraint(

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from sqlalchemy import func, select
@@ -16,7 +16,9 @@ from app.models import (
     Supplier,
     User,
 )
-from app.seed import SEED_REFERENCE_TIME, seed_database
+from app.seed import seed_database
+
+TEST_REFERENCE_TIME = datetime(2026, 9, 22, 12, tzinfo=timezone.utc)
 
 
 def count_rows(db_session: Session, model: type) -> int:
@@ -26,7 +28,7 @@ def count_rows(db_session: Session, model: type) -> int:
 def test_seed_creates_complete_demo_data_and_is_idempotent(
     db_session: Session,
 ) -> None:
-    first_run = seed_database(db_session)
+    first_run = seed_database(db_session, reference_time=TEST_REFERENCE_TIME)
     counts_after_first_run = {
         "users": count_rows(db_session, User),
         "shops": count_rows(db_session, Shop),
@@ -40,7 +42,10 @@ def test_seed_creates_complete_demo_data_and_is_idempotent(
         "order_history": count_rows(db_session, OrderStatusHistory),
     }
 
-    second_run = seed_database(db_session)
+    second_run = seed_database(
+        db_session,
+        reference_time=TEST_REFERENCE_TIME + timedelta(days=7),
+    )
     counts_after_second_run = {
         "users": count_rows(db_session, User),
         "shops": count_rows(db_session, Shop),
@@ -92,6 +97,11 @@ def test_seed_creates_complete_demo_data_and_is_idempotent(
         )
     ).all()
     assert {count for _, count in variants_per_product} == {3}
+    variants = db_session.scalars(select(ProductVariant)).all()
+    assert all(
+        variant.sku == f"P{variant.product_id}-{variant.size}-{variant.color}"
+        for variant in variants
+    )
     suppliers_per_shop = db_session.execute(
         select(Supplier.shop_id, func.count(Supplier.id)).group_by(Supplier.shop_id)
     ).all()
@@ -116,5 +126,5 @@ def test_seed_creates_complete_demo_data_and_is_idempotent(
     newest_order = db_session.scalar(select(func.max(Order.created_at)))
     assert oldest_order is not None
     assert newest_order is not None
-    assert newest_order <= SEED_REFERENCE_TIME
-    assert oldest_order >= SEED_REFERENCE_TIME - timedelta(days=30)
+    assert newest_order <= TEST_REFERENCE_TIME
+    assert oldest_order >= TEST_REFERENCE_TIME - timedelta(days=30)

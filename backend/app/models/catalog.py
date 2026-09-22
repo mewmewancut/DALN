@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from app.models.shop import Shop
 
 
-class Category(IdMixin, CreatedAtMixin, Base):
+class Category(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "categories"
 
     name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
@@ -68,7 +68,7 @@ class Product(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     reviews: Mapped[list["Review"]] = relationship(back_populates="product")
 
 
-class ProductVariant(IdMixin, CreatedAtMixin, Base):
+class ProductVariant(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "product_variants"
     __table_args__ = (
         UniqueConstraint(

@@ -96,7 +96,8 @@ def test_supplier_and_purchase_order_defaults(db_session: Session) -> None:
     assert supplier.is_active is True
     assert purchase_order.status == "DRAFT"
     assert purchase_order.received_at is None
-    assert purchase_order.created_at.tzinfo is not None
+    assert supplier.updated_at.tzinfo is not None
+    assert purchase_order.updated_at.tzinfo is not None
 
 
 def test_purchase_order_status_is_constrained(db_session: Session) -> None:
@@ -165,6 +166,17 @@ def test_empty_cart_can_have_no_shop(db_session: Session) -> None:
     db_session.flush()
 
     assert cart.shop_id is None
+    assert cart.updated_at.tzinfo is not None
+
+
+def test_cart_item_has_updated_timestamp(db_session: Session) -> None:
+    _, buyer, shop, _, variant = create_catalog(db_session)
+    cart = Cart(buyer=buyer, shop=shop)
+    item = CartItem(cart=cart, variant=variant, quantity=1)
+    db_session.add(item)
+    db_session.flush()
+
+    assert item.updated_at.tzinfo is not None
 
 
 def test_cart_item_quantity_must_be_positive(db_session: Session) -> None:
@@ -339,3 +351,4 @@ def test_low_stock_alert_defaults_to_unresolved(db_session: Session) -> None:
 
     assert alert.is_resolved is False
     assert alert.created_at.tzinfo is not None
+    assert alert.updated_at.tzinfo is not None
