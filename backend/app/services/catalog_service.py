@@ -38,7 +38,9 @@ def _require_category(db: Session, category_id: int) -> None:
 
 
 def _sku(product_id: int, size: str, color: str) -> str:
-    sku = f"P{product_id}-{size}-{color}"
+    safe_size = size.replace("-", "_")
+    safe_color = color.replace("-", "_")
+    sku = f"P{product_id}-{safe_size}-{safe_color}"
     if len(sku) > 50:
         raise HTTPException(status_code=400, detail="SKU vượt quá 50 ký tự")
     return sku

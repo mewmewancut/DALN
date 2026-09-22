@@ -138,6 +138,27 @@ def test_locked_user_and_bad_tokens(db_session: Session, client: TestClient) -> 
     )
 
 
+def test_register_and_login_are_case_insensitive_for_email(
+    db_session: Session,
+    client: TestClient,
+) -> None:
+    payload = {
+        "email": "Case@Example.com",
+        "password": "Secret@123",
+        "full_name": "Case User",
+        "role": "BUYER",
+    }
+    assert client.post("/auth/register", json=payload).status_code == 201
+    assert (
+        client.post("/auth/register", json={**payload, "email": "case@example.com"}).status_code
+        == 400
+    )
+    response = client.post(
+        "/auth/login", json={"email": "case@example.com", "password": "Secret@123"}
+    )
+    assert response.status_code == 200
+
+
 def test_shared_role_and_shop_dependencies(db_session: Session) -> None:
     buyer = add_user(db_session, email="buyer@example.com")
     owner = add_user(db_session, email="owner2@example.com", role="SHOP_OWNER")

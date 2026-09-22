@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 import jwt
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -15,7 +15,10 @@ from app.schemas.auth import RegisterRequest
 def register_user(db: Session, request: RegisterRequest) -> User:
     if request.role not in ("BUYER", "SHOP_OWNER"):
         raise HTTPException(status_code=400, detail="Vai trò đăng ký không hợp lệ")
-    if db.scalar(select(User.id).where(User.email == request.email)) is not None:
+    if (
+        db.scalar(select(User.id).where(func.lower(User.email) == request.email.lower()))
+        is not None
+    ):
         raise HTTPException(status_code=400, detail="Email đã được sử dụng")
 
     user = User(
@@ -35,7 +38,7 @@ def register_user(db: Session, request: RegisterRequest) -> User:
 
 
 def login_user(db: Session, email: str, password: str) -> tuple[str, User]:
-    user = db.scalar(select(User).where(User.email == email))
+    user = db.scalar(select(User).where(func.lower(User.email) == email.lower()))
     if user is None or not bcrypt.checkpw(password.encode(), user.password_hash.encode()):
         raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không đúng")
     if not user.is_active:

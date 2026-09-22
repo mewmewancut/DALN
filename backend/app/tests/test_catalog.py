@@ -135,6 +135,25 @@ def test_product_creation_writes_variants_and_inventory_together(
     assert client.get(f"/products/{body['id']}").status_code == 200
 
 
+def test_variant_sku_is_collision_safe_when_size_or_color_contains_hyphen(
+    db_session: Session, client: TestClient
+) -> None:
+    _, headers = user_with_token(db_session, "owner-sku@example.com", "SHOP_OWNER")
+    client.post("/shops", json={"name": "Shop SKU"}, headers=headers)
+    category = Category(name="Phụ kiện")
+    db_session.add(category)
+    db_session.flush()
+    payload = product_payload(category.id, "Sản phẩm SKU")
+    payload["variants"] = [
+        {"size": "S-M", "color": "Red", "price": 100000, "initial_quantity": 1},
+        {"size": "S", "color": "M-Red", "price": 100000, "initial_quantity": 1},
+    ]
+    response = client.post("/products", json=payload, headers=headers)
+    assert response.status_code == 201
+    skus = [variant["sku"] for variant in response.json()["variants"]]
+    assert len(skus) == len(set(skus))
+
+
 def test_duplicate_variant_rolls_back_the_whole_product(
     db_session: Session, client: TestClient
 ) -> None:
