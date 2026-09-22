@@ -1,7 +1,7 @@
 # Testing
 
 **Trạng thái:** In progress  
-**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2, giỏ hàng C3 và luồng API từ đăng ký đến đăng sản phẩm
+**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2, giỏ hàng C3, checkout C4 và luồng API từ đăng ký đến đăng sản phẩm
 
 Frontend D1 và phần đầu D2 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth và catalog.
 
@@ -12,13 +12,14 @@ Frontend D1 và phần đầu D2 có test gắn token, xử lý `401`, điều h
 | Database | pytest + PostgreSQL test | Constraint, giá trị mặc định, timestamp, seed chạy lại không nhân đôi |
 | API và phân quyền | pytest + FastAPI TestClient | Auth, shop, catalog, giỏ hàng, lỗi nghiệp vụ, quyền sở hữu và rollback |
 | Đồng thời giỏ hàng | pytest + PostgreSQL, hai session/thread | Lần thêm đầu tiên cùng variant hoặc khác shop bảo toàn một giỏ/một shop, không mất số lượng |
+| Đồng thời checkout | pytest + PostgreSQL, hai session/thread | Hai checkout cùng lúc trên variant chỉ còn đúng 1 tồn kho: đúng một đơn thành công, kho về đúng 0, không âm |
 | Luồng API | pytest + FastAPI TestClient | Đăng ký chủ shop → đăng nhập → tạo shop → đăng sản phẩm → buyer xem catalog; category được tạo trong fixture vì API admin chưa có |
 | Frontend | Vitest + jsdom | Axios token/`401`, điều hướng theo vai trò, form login/register, tìm kiếm/lọc/phân trang catalog, chọn variant và lỗi API |
 | Migration và cấu hình | Alembic + Docker Compose | Áp dụng migration và kiểm tra model khớp schema; kiểm tra Compose |
 | Lint và format | Ruff + ESLint + Prettier | Lỗi Python/JavaScript, import, React Hooks và định dạng; test cấu hình xác nhận code sai bị từ chối |
 | Runtime và dependency | HTTP smoke + Vite build + npm audit | Health backend, frontend phục vụ trang, build và lỗ hổng mức moderate trở lên |
 
-Browser end-to-end cho luồng mua hàng, test đồng thời lúc checkout và kiểm tra Bronze/Silver/Gold của F2–F7 vẫn là **Planned** vì các module đó chưa triển khai. Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
+Browser end-to-end cho luồng mua hàng và kiểm tra Bronze/Silver/Gold của F6–F7 vẫn là **Planned** vì các module đó chưa triển khai. Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
 
 ## Nguyên tắc
 
@@ -81,5 +82,6 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - Chi tiết sản phẩm hiển thị giá/tồn kho đúng variant được chọn, xóa size khi đổi màu và báo lỗi sản phẩm không tồn tại.
 - Giỏ hàng C3/F2-10–11: xem giỏ rỗng, cộng dồn variant, chặn khác shop đúng error payload, giá/tồn kho hiện tại, sửa/xóa item và đặt lại shop khi giỏ rỗng.
 - Giỏ hàng từ chối số lượng không hợp lệ, tài nguyên thiếu/ẩn, quyền truy cập của shop owner hoặc buyer khác và dữ liệu giá/shop/buyer do client gửi. Lỗi vượt tồn và lỗi commit đều giữ nguyên giỏ; test hai session kiểm tra các request thêm đồng thời.
+- Checkout C4/F2-12–17: giỏ rỗng trả `400`; checkout hợp lệ trừ đúng kho, xóa giỏ và ghi đúng một dòng lịch sử trạng thái; thiếu tồn kho rollback toàn bộ (không tạo đơn, không trừ kho, giỏ giữ nguyên); giá trong đơn giữ nguyên sau khi shop đổi giá; `total_amount` luôn tính từ giá database và từ chối trường `total_amount` do client gửi (`422`); test hai session xác nhận hai checkout đồng thời trên cùng variant chỉ một đơn thành công, kho không âm.
 
-Các test F1 phụ thuộc vào API admin/order/stats và test nghiệp vụ F2–F7 sẽ được bổ sung khi module tương ứng được triển khai.
+Các test F1 phụ thuộc vào API admin/order/stats và test nghiệp vụ F3–F7 sẽ được bổ sung khi module tương ứng được triển khai.

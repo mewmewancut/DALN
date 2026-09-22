@@ -1,9 +1,9 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Planning C0–C3 (auth, shop, catalog và giỏ hàng)
+**Phạm vi đã triển khai:** Planning C0–C4 (auth, shop, catalog, giỏ hàng và checkout)
 
-Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C4 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
+Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C5 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
 
 ## Auth
 
@@ -64,3 +64,13 @@ Khi thêm hàng khác shop, response `409` có đúng dạng:
 ```
 
 Frontend xử lý theo Planning C3: chỉ sau khi buyer xác nhận xóa giỏ mới gọi `DELETE /cart`, rồi thêm sản phẩm lại. Quy tắc transaction và tồn kho được mô tả tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#giỏ-hàng-c3).
+
+## Checkout
+
+| Method | Path | Quyền | Request | Response thành công |
+|---|---|---|---|---|
+| POST | `/orders/checkout` | BUYER | `receiver_name`, `receiver_phone`, `shipping_address`, `payment_method` (`COD` hoặc `MOCK_CARD`) | `201` với đơn hàng vừa tạo |
+
+Response gồm `{id, code, shop_id, status, receiver_name, receiver_phone, shipping_address, payment_method, payment_status, total_amount, items}`. `code` sinh dạng `ORD-YYYYMMDD-{id}` theo ngày UTC. `items` là snapshot lúc đặt: `{id, variant_id, product_name, size, color, unit_price, quantity}`. Đơn mới luôn ở `status=PENDING`; `payment_status=PAID` ngay nếu `payment_method=MOCK_CARD`, ngược lại `UNPAID`.
+
+Giỏ rỗng hoặc buyer chưa có giỏ trả `400`. Body chứa trường ngoài schema (kể cả `total_amount` do client gửi) bị từ chối `422`; `total_amount` trả về luôn do backend tự tính từ giá variant hiện tại trong database, không nhận từ client. Nếu bất kỳ item nào không đủ tồn kho, toàn bộ giao dịch rollback (không tạo đơn, không trừ kho item nào khác) và trả `409` với thông báo nêu rõ sản phẩm/size/màu thiếu hàng. Trừ kho dùng `UPDATE` có điều kiện nguyên tử nên hai request checkout đồng thời trên cùng variant chỉ một request thành công. Sau khi tạo đơn thành công, giỏ hàng được xóa sạch và `cart.shop_id` đặt về `null`. Quy tắc transaction và tồn kho được mô tả tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#checkout-c4).
