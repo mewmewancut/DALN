@@ -17,7 +17,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | `ARCHITECTURE.md` | Planned | Kiến trúc tổng thể và ranh giới thành phần |
 | [`DATABASE.md`](DATABASE.md) | Implemented | Schema, quan hệ, constraint, migration và seed data |
 | `BUSINESS_RULES.md` | Planned | Luồng nghiệp vụ và invariant |
-| [`API.md`](API.md) | In progress | Auth endpoint, role và error contract đã triển khai; các endpoint nghiệp vụ khác còn planned |
+| [`API.md`](API.md) | In progress | Auth, shop, catalog, role và error contract đã triển khai; các endpoint từ C3 còn planned |
 | `DATA_PLATFORM.md` | Planned | Lakebase, Medallion, metric và data quality |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |
 | [`TESTING.md`](TESTING.md) | In progress | Chiến lược và hướng dẫn chạy test |

@@ -11,7 +11,7 @@ Tài liệu này mô tả schema vận hành đã được triển khai trong SQ
 - Khóa chính dùng `BIGINT` tự tăng; PostgreSQL tạo sequence tương ứng khi migration chạy.
 - `created_at` và `updated_at` dùng `TIMESTAMPTZ` và lưu thời gian UTC. Các bảng có luồng cập nhật mang cả hai timestamp; bảng snapshot và lịch sử chỉ cần `created_at`.
 - Tên constraint được chuẩn hóa để migration và lỗi database dễ truy vết.
-- Quan hệ lịch sử không dùng cascade delete. Product sẽ được soft delete bằng `is_active` ở tầng nghiệp vụ.
+- Quan hệ lịch sử không dùng cascade delete. Product được soft delete bằng `is_active` ở tầng nghiệp vụ.
 
 ## Quan hệ đã triển khai
 
@@ -50,7 +50,7 @@ erDiagram
 ### `users`
 
 - Email là duy nhất và bắt buộc.
-- Mật khẩu chỉ lưu ở cột `password_hash`; seed data đã hash bằng bcrypt và authentication sẽ dùng cùng cơ chế.
+- Mật khẩu chỉ lưu ở cột `password_hash`; seed data và authentication dùng bcrypt.
 - Role chỉ nhận `BUYER`, `SHOP_OWNER` hoặc `ADMIN`.
 - `is_active` mặc định là `true`.
 
@@ -75,7 +75,7 @@ erDiagram
 
 - Variant thuộc một product.
 - Bộ `(product_id, size, color)` là duy nhất.
-- SKU là duy nhất, bắt buộc và có dạng `P{product_id}-{size}-{color}`; service tạo sản phẩm sẽ chịu trách nhiệm sinh SKU khi C2 được triển khai.
+- SKU là duy nhất, bắt buộc và có dạng `P{product_id}-{size}-{color}`; catalog service sinh SKU khi tạo variant.
 - `price` dùng `NUMERIC(12,0)`.
 
 ### `inventory`

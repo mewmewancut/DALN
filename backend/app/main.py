@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.routers.auth import router as auth_router
+from app.routers.products import category_router, product_router, variant_router
+from app.routers.shops import router as shops_router
 
 settings = get_settings()
 
@@ -15,6 +17,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(auth_router)
+app.include_router(shops_router)
+app.include_router(category_router)
+app.include_router(product_router)
+app.include_router(variant_router)
 
 
 @app.get("/health", tags=["system"])
