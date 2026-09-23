@@ -8,7 +8,9 @@ from app.routers.inventory import router as inventory_router
 from app.routers.orders import router as orders_router
 from app.routers.orders import shop_router as shop_orders_router
 from app.routers.products import category_router, product_router, variant_router
+from app.routers.purchase_orders import router as purchase_orders_router
 from app.routers.shops import router as shops_router
+from app.routers.suppliers import router as suppliers_router
 
 settings = get_settings()
 
@@ -25,6 +27,8 @@ app.include_router(cart_router)
 app.include_router(orders_router)
 app.include_router(shop_orders_router)
 app.include_router(inventory_router)
+app.include_router(suppliers_router)
+app.include_router(purchase_orders_router)
 app.include_router(shops_router)
 app.include_router(category_router)
 app.include_router(product_router)

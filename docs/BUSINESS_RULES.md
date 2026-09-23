@@ -1,7 +1,7 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Giỏ hàng C3, checkout C4, chuyển trạng thái đơn C5 và tồn kho/cảnh báo hết hàng C6 đã triển khai. Nhập hàng và review vẫn là **Planned** theo các mục C7–C8 trong [`PLANNING.md`](PLANNING.md).
+**Phạm vi:** Giỏ hàng C3, checkout C4, chuyển trạng thái đơn C5, tồn kho/cảnh báo hết hàng C6 và supplier/nhập hàng C7 đã triển khai. Review vẫn là **Planned** theo mục C8 trong [`PLANNING.md`](PLANNING.md).
 
 ## Giỏ hàng C3
 
@@ -50,3 +50,14 @@ Contract endpoint và response nằm tại [`API.md`](API.md#đơn-hàng-và-sta
 - Mọi endpoint tồn kho/cảnh báo lấy `shop_id` từ `get_current_shop()` (SHOP_OWNER đã đăng nhập); sửa hoặc đọc variant thuộc shop khác trả `403`.
 
 Contract endpoint nằm tại [`API.md`](API.md#tồn-kho-và-cảnh-báo-hết-hàng). Test F4-28, F4-29 và test hoàn kho kèm giải quyết cảnh báo nằm tại [`TESTING.md`](TESTING.md).
+
+## Supplier và nhập hàng C7
+
+- Supplier thuộc về đúng một shop. CRUD supplier lấy `shop_id` từ `get_current_shop()`; sửa/xóa supplier của shop khác trả `403`. Xóa là soft delete (`is_active=false`); phiếu nhập cũ vẫn tham chiếu supplier đã ẩn.
+- Tạo phiếu nhập kiểm tra `supplier_id` thuộc shop hiện tại và mọi `variant_id` trong `items` thuộc shop hiện tại (qua dòng `inventory` của variant) trước khi ghi; sai một trong hai trả `403`, không tạo phiếu. `items` không được trùng `variant_id` (chặn ở schema, có `UNIQUE(purchase_order_id, variant_id)` ở DB làm chốt cuối).
+- Tất cả thay đổi trạng thái phiếu nhập đi qua duy nhất `transition_purchase_order()`, khóa dòng bằng `SELECT ... FOR UPDATE` giống `transition_order()` ở C5. Chuỗi hợp lệ là `DRAFT → ORDERED → RECEIVED`; `DRAFT` hoặc `ORDERED` có thể chuyển sang `CANCELLED`. `RECEIVED` và `CANCELLED` là trạng thái cuối, không có transition nào đi tiếp từ đó.
+- ⚠️ Chỉ khi chuyển đúng `ORDERED → RECEIVED` mới cộng kho, dùng `UPDATE inventory SET quantity = quantity + item.quantity` cho từng item trong cùng transaction với đổi `status` và đặt `received_at`. Vì `RECEIVED` là trạng thái cuối và transition được kiểm tra bảng chuyển hợp lệ, một phiếu không thể được nhận 2 lần nên không thể cộng kho 2 lần.
+- Sau khi transaction nhận hàng commit thành công, backend gọi `resolve_alerts_if_ok` (C6) cho từng variant vừa được cộng kho, ngoài transaction nhận hàng — cùng nguyên tắc với hủy đơn ở C5.
+- Đọc/sửa phiếu nhập của shop khác trả `403`; ID không tồn tại trả `404`; chuyển sai trạng thái trả `400`.
+
+Contract endpoint nằm tại [`API.md`](API.md#nhà-cung-cấp) và [`API.md`](API.md#nhập-hàng). Test F4-25, F4-26, F4-27 nằm tại [`TESTING.md`](TESTING.md).

@@ -1,7 +1,7 @@
 # Testing
 
 **Trạng thái:** In progress  
-**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2, giỏ hàng C3, checkout C4, state machine đơn hàng C5, tồn kho/cảnh báo hết hàng C6 và luồng API từ đăng ký đến đăng sản phẩm
+**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2, giỏ hàng C3, checkout C4, state machine đơn hàng C5, tồn kho/cảnh báo hết hàng C6, supplier/nhập hàng C7 và luồng API từ đăng ký đến đăng sản phẩm
 
 Frontend D1 và phần đầu D2 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth và catalog.
 
@@ -87,5 +87,7 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - Checkout C4/F2-12–17: giỏ rỗng trả `400`; checkout hợp lệ trừ đúng kho, xóa giỏ và ghi đúng một dòng lịch sử trạng thái; thiếu tồn kho rollback toàn bộ (không tạo đơn, không trừ kho, giỏ giữ nguyên); giá trong đơn giữ nguyên sau khi shop đổi giá; `total_amount` client gửi bị bỏ qua và tổng luôn tính từ giá database; test hai session xác nhận hai buyer checkout đồng thời trên cùng variant chỉ một đơn thành công khi kho chỉ đủ một đơn, đồng thời hai request trên cùng giỏ chỉ tạo đúng một đơn.
 - State machine C5/F3-18–24: chuỗi giao hàng đầy đủ ghi đủ history và thanh toán COD; chặn nhảy cóc/hủy sai trạng thái; buyer/shop chỉ truy cập đúng đơn; hủy hoàn kho đúng một lần; lỗi commit rollback trạng thái, history và tồn kho; race buyer hủy với shop xác nhận chỉ áp dụng một transition.
 - Tồn kho/cảnh báo C6/F4-28–29: danh sách tồn kho chỉ trả variant của shop hiện tại kèm cờ `is_low`; sửa ngưỡng tính lại `is_low`, từ chối shop khác (`403`), variant không tồn tại (`404`) và ngưỡng âm (`422`); checkout đưa tồn kho xuống dưới ngưỡng sinh đúng một cảnh báo, checkout tiếp theo vẫn dưới ngưỡng không sinh cảnh báo thứ hai; hủy đơn hoàn kho lên trên ngưỡng tự động giải quyết cảnh báo đang mở.
+- Supplier C7: CRUD giới hạn theo shop hiện tại; sửa tên rỗng (`null`) trả `400`; sửa/xóa nhà cung cấp shop khác trả `403`; xóa là soft delete và vẫn hiện trong danh sách quản lý với `is_active=false`.
+- Nhập hàng C7/F4-25–27, F4-30: tạo phiếu với variant hoặc supplier của shop khác trả `403`, không tạo phiếu; `items` trùng `variant_id` trả `422`; `DRAFT→ORDERED→RECEIVED` cộng đúng kho từng variant, đặt `received_at` và tự động giải quyết cảnh báo tồn kho thấp đang mở khi kho vượt ngưỡng; gọi `RECEIVED` lần hai trả `400` và kho không đổi; chuyển trạng thái sai (`RECEIVED` từ `DRAFT`, tiếp tục sau `CANCELLED`) trả `400`; đọc/sửa phiếu của shop khác trả `403`; danh sách phân trang và lọc đúng theo `status`, chỉ trả phiếu của shop hiện tại.
 
-Các test F1 phụ thuộc vào API admin/stats và test nghiệp vụ F4-25–27, F4-30, F5–F7 sẽ được bổ sung khi module tương ứng (nhập hàng C7, review C8) được triển khai.
+Các test F1 phụ thuộc vào API admin/stats và test nghiệp vụ F5–F7 sẽ được bổ sung khi module tương ứng (review C8, admin/stats) được triển khai.

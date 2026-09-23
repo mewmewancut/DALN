@@ -1,9 +1,9 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Planning C0–C6 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng và tồn kho/cảnh báo hết hàng)
+**Phạm vi đã triển khai:** Planning C0–C7 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng và supplier/nhập hàng)
 
-Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C7 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
+Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C8 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
 
 ## Auth
 
@@ -103,4 +103,31 @@ Tất cả endpoint dưới đây yêu cầu token `SHOP_OWNER` và chỉ thao t
 
 Mỗi dòng tồn kho gồm `{variant_id, product_id, product_name, size, color, sku, quantity, low_stock_threshold, is_low}`; `is_low = quantity < low_stock_threshold`. `low_stock_threshold` khi sửa phải là số nguyên không âm, sai kiểu hoặc âm trả `422`. Variant không tồn tại trả `404`; variant thuộc shop khác trả `403`.
 
-Mỗi cảnh báo gồm `{id, variant_id, product_name, size, color, quantity_at_alert, is_resolved, created_at}`, chỉ trả các cảnh báo chưa được giải quyết. Cảnh báo được tạo tự động ngay sau khi checkout trừ kho xuống dưới ngưỡng (không tạo cảnh báo trùng nếu đã có cảnh báo chưa giải quyết cho variant đó) và được đánh dấu `is_resolved=true` tự động khi tồn kho được cộng trở lại từ mức ngưỡng trở lên (hủy đơn hoàn kho; nhận hàng nhập kho theo Planning C7 khi triển khai). Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#tồn-kho-và-cảnh-báo-hết-hàng-c6).
+Mỗi cảnh báo gồm `{id, variant_id, product_name, size, color, quantity_at_alert, is_resolved, created_at}`, chỉ trả các cảnh báo chưa được giải quyết. Cảnh báo được tạo tự động ngay sau khi checkout trừ kho xuống dưới ngưỡng (không tạo cảnh báo trùng nếu đã có cảnh báo chưa giải quyết cho variant đó) và được đánh dấu `is_resolved=true` tự động khi tồn kho được cộng trở lại từ mức ngưỡng trở lên (hủy đơn hoàn kho; nhận hàng nhập kho theo C7). Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#tồn-kho-và-cảnh-báo-hết-hàng-c6).
+
+## Nhà cung cấp
+
+Tất cả endpoint dưới đây yêu cầu token `SHOP_OWNER` và chỉ thao tác trên nhà cung cấp của shop hiện tại.
+
+| Method | Path | Request | Response thành công |
+|---|---|---|---|
+| GET | `/shop/suppliers` | — | `200` với danh sách nhà cung cấp của shop, kể cả đã ẩn |
+| POST | `/shop/suppliers` | `name`, `phone?`, `address?` | `201` với nhà cung cấp mới |
+| PUT | `/shop/suppliers/{id}` | Các trường tùy chọn cần sửa | `200` với nhà cung cấp đã sửa |
+| DELETE | `/shop/suppliers/{id}` | — | `204`; đặt `is_active=false` |
+
+Mỗi nhà cung cấp gồm `{id, name, phone, address, is_active}`. Sửa `name=null` trả `400`; sửa hoặc xóa nhà cung cấp của shop khác trả `403`; ID không tồn tại trả `404`. Xóa là soft delete, phiếu nhập cũ vẫn tham chiếu được nhà cung cấp.
+
+## Nhập hàng
+
+Tất cả endpoint dưới đây yêu cầu token `SHOP_OWNER` và chỉ thao tác trên phiếu nhập của shop hiện tại.
+
+| Method | Path | Request | Response thành công |
+|---|---|---|---|
+| POST | `/shop/purchase-orders` | `supplier_id`, `note?`, `items: [{variant_id, quantity, unit_cost}]` | `201` với phiếu nhập mới ở trạng thái `DRAFT` |
+| GET | `/shop/purchase-orders` | Filter `status`, phân trang `page`, `page_size` | `200` với `{items, total, page, page_size}` |
+| PATCH | `/shop/purchase-orders/{id}/status` | `{status}` | `200` với phiếu nhập sau khi chuyển trạng thái |
+
+`items` không được rỗng và không được trùng `variant_id` trong cùng request (`422` nếu vi phạm). Mọi `variant_id` phải thuộc shop hiện tại và `supplier_id` phải là nhà cung cấp của shop hiện tại, sai một trong hai trả `403`. Phiếu nhập trả `{id, shop_id, supplier_id, status, note, received_at, created_at, items}`; mỗi item có `{id, variant_id, quantity, unit_cost}`.
+
+Chuyển trạng thái hợp lệ là `DRAFT → ORDERED → RECEIVED`; `DRAFT` hoặc `ORDERED` có thể chuyển sang `CANCELLED`. `RECEIVED` và `CANCELLED` là trạng thái cuối. Chỉ khi chuyển sang `RECEIVED` mới cộng kho cho từng variant trong phiếu và đặt `received_at`; vì đây là trạng thái cuối nên gọi lại không cộng kho lần hai. Sau khi cộng kho và commit, backend tự động giải quyết cảnh báo tồn kho thấp cho các variant vừa nhập theo C6. Chuyển sai trạng thái trả `400`; phiếu của shop khác trả `403`; ID không tồn tại trả `404`. Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#supplier-và-nhập-hàng-c7).

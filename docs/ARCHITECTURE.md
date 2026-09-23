@@ -1,7 +1,7 @@
 # Architecture
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Nền tảng A–B, backend C0–C6, khung frontend D1 và phần đầu D2.
+**Phạm vi đã triển khai:** Nền tảng A–B, backend C0–C7, khung frontend D1 và phần đầu D2.
 
 ## Thành phần đang chạy
 
@@ -26,6 +26,8 @@ State machine C5 nằm riêng trong `order_service.py`. Các endpoint đọc áp
 
 Tồn kho và cảnh báo hết hàng C6 nằm trong `inventory_service.py`: hai hàm `check_low_stock` và `resolve_alerts_if_ok` được `checkout_service.py` và `order_service.py` gọi ngay sau khi transaction trừ/cộng kho của chúng đã commit, không nằm trong transaction gốc — lỗi tạo/giải quyết cảnh báo không thể làm rollback hoặc fail thao tác đã thành công. Router `inventory.py` chỉ phục vụ SHOP_OWNER và lấy `shop_id` từ `get_current_shop()`.
 
-Frontend chưa nối API giỏ hàng/checkout/đơn hàng/tồn kho: nút thêm vào giỏ vẫn bị khóa, các trang cart, checkout, order và tồn kho/alert shop thuộc bước D2/D3 tiếp theo. Danh sách review cùng giao diện nghiệp vụ shop và admin vẫn là **Planned**. Rating trung bình trên catalog và chi tiết lấy từ C2; dashboard shop/admin hiện vẫn là màn hình khung.
+Supplier và nhập hàng C7 tách thành hai cặp router/service riêng: `suppliers.py`/`supplier_service.py` (CRUD, soft delete) và `purchase_orders.py`/`purchase_service.py`. `purchase_service.transition_purchase_order()` là hàm duy nhất đổi trạng thái phiếu nhập, dùng cùng khuôn mẫu khóa dòng `FOR UPDATE` và bảng chuyển trạng thái như `order_service.transition_order()` ở C5; khi nhận hàng (`ORDERED → RECEIVED`) nó gọi lại `inventory_service.resolve_alerts_if_ok()` của C6 sau khi commit.
+
+Frontend chưa nối API giỏ hàng/checkout/đơn hàng/tồn kho/nhập hàng: nút thêm vào giỏ vẫn bị khóa, các trang cart, checkout, order, tồn kho/alert, supplier và nhập hàng của shop thuộc bước D2/D3 tiếp theo. Danh sách review cùng giao diện nghiệp vụ shop và admin vẫn là **Planned**. Rating trung bình trên catalog và chi tiết lấy từ C2; dashboard shop/admin hiện vẫn là màn hình khung.
 
 Lakebase và pipeline Bronze/Silver/Gold vẫn là **Planned** theo phần E của [`PLANNING.md`](PLANNING.md). Môi trường development hiện dùng PostgreSQL trong Docker Compose.
