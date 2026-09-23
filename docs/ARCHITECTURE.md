@@ -1,7 +1,7 @@
 # Architecture
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Nền tảng A–B, backend C0–C8, khung frontend D1 và phần đầu D2.
+**Phạm vi đã triển khai:** Nền tảng A–B, backend C0–C9, khung frontend D1 và phần đầu D2.
 
 ## Thành phần đang chạy
 
@@ -29,6 +29,8 @@ Tồn kho và cảnh báo hết hàng C6 nằm trong `inventory_service.py`: hai
 Supplier và nhập hàng C7 tách thành hai cặp router/service riêng: `suppliers.py`/`supplier_service.py` (CRUD, soft delete) và `purchase_orders.py`/`purchase_service.py`. `purchase_service.transition_purchase_order()` là hàm duy nhất đổi trạng thái phiếu nhập, dùng cùng khuôn mẫu khóa dòng `FOR UPDATE` và bảng chuyển trạng thái như `order_service.transition_order()` ở C5; khi nhận hàng (`ORDERED → RECEIVED`) nó gọi lại `inventory_service.resolve_alerts_if_ok()` của C6 sau khi commit.
 
 Review C8 nằm trong `review_service.py`/`routers/reviews.py`. `product_id` của review lấy từ `order_item.variant.product_id` trong database chứ không nhận từ client. Rating trung bình không lưu cột riêng: cả chi tiết sản phẩm (C2) và danh sách review (C8) tính trực tiếp bằng `AVG(rating)` tại thời điểm đọc nên luôn khớp nhau.
+
+Số liệu thống kê shop C9 nằm trong `shop_stats_service.py`/`routers/shop_stats.py`, chỉ đọc dữ liệu (không ghi), dùng chung một định nghĩa metric cho `revenue`, `order_count`, `cancel_rate`, `aov`, `revenue-by-day` và `top-products` theo đúng Planning C9 — định nghĩa này sẽ được tái sử dụng nguyên vẹn khi xây Gold layer, Dashboard và Genie ở phần E. Chuyển đổi giờ Việt Nam dùng `func.timezone('Asia/Ho_Chi_Minh', ...)` ngay trong câu query Postgres, không tính bằng Python để tránh lệch múi giờ giữa ứng dụng và database.
 
 Frontend chưa nối API giỏ hàng/checkout/đơn hàng/tồn kho/nhập hàng/review: nút thêm vào giỏ vẫn bị khóa, các trang cart, checkout, order, tồn kho/alert, supplier, nhập hàng và đánh giá của shop/buyer thuộc bước D2/D3 tiếp theo. Giao diện nghiệp vụ admin vẫn là **Planned**. Dashboard shop/admin hiện vẫn là màn hình khung.
 

@@ -11,6 +11,7 @@ from app.routers.products import category_router, product_router, variant_router
 from app.routers.purchase_orders import router as purchase_orders_router
 from app.routers.reviews import product_router as product_review_router
 from app.routers.reviews import router as reviews_router
+from app.routers.shop_stats import router as shop_stats_router
 from app.routers.shops import router as shops_router
 from app.routers.suppliers import router as suppliers_router
 
@@ -33,6 +34,7 @@ app.include_router(suppliers_router)
 app.include_router(purchase_orders_router)
 app.include_router(reviews_router)
 app.include_router(product_review_router)
+app.include_router(shop_stats_router)
 app.include_router(shops_router)
 app.include_router(category_router)
 app.include_router(product_router)

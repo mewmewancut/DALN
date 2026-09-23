@@ -1,7 +1,7 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Giỏ hàng C3, checkout C4, chuyển trạng thái đơn C5, tồn kho/cảnh báo hết hàng C6, supplier/nhập hàng C7 và review C8 đã triển khai. Shop stats và admin vẫn là **Planned** theo các mục C9–C10 trong [`PLANNING.md`](PLANNING.md).
+**Phạm vi:** Giỏ hàng C3, checkout C4, chuyển trạng thái đơn C5, tồn kho/cảnh báo hết hàng C6, supplier/nhập hàng C7, review C8 và số liệu thống kê shop C9 đã triển khai. Admin vẫn là **Planned** theo mục C10 trong [`PLANNING.md`](PLANNING.md).
 
 ## Giỏ hàng C3
 
@@ -70,3 +70,16 @@ Contract endpoint nằm tại [`API.md`](API.md#nhà-cung-cấp) và [`API.md`](
 - `GET /products/{id}/reviews` là endpoint public, không lọc theo trạng thái `is_active` của sản phẩm/shop (khác với catalog listing C2) vì review vẫn cần xem được từ trang chi tiết đơn hàng cũ; sản phẩm không tồn tại trả `404`.
 
 Contract endpoint nằm tại [`API.md`](API.md#review). Test F5-31–34 nằm tại [`TESTING.md`](TESTING.md).
+
+## Số liệu thống kê shop C9
+
+- 📌 Định nghĩa metric ở Planning C9 là nguồn duy nhất, dùng chung cho endpoint này, Gold layer, Dashboard và Genie khi triển khai (E3, E5, E6) — sai lệch giữa các nơi là lỗi nặng nhất khi demo nên không được tự định nghĩa lại ở bất kỳ nơi nào khác.
+- **Doanh thu** tính theo ngày `delivered_at` **quy đổi sang giờ Việt Nam** (`Asia/Ho_Chi_Minh`, UTC+7), chỉ tính đơn `DELIVERED`. Ví dụ đơn giao lúc `2026-01-01T20:00:00Z` (03:00 giờ VN ngày 02/01) được tính vào doanh thu ngày `2026-01-02`, không phải `2026-01-01`.
+- **Số đơn** và **số đơn hủy** đếm theo `created_at` quy đổi sang giờ Việt Nam, không lọc theo trạng thái (số đơn) hoặc chỉ đếm `CANCELLED` (số đơn hủy). Đây là lần chuyển đổi giờ VN thứ hai, tách biệt với cột dùng cho doanh thu vì hai metric dùng hai mốc thời gian khác nhau (`delivered_at` vs `created_at`) theo đúng Planning.
+- **Tỷ lệ hủy** = số đơn hủy / số đơn; trả `null` khi số đơn trong kỳ bằng 0, không chia cho 0.
+- **AOV** = doanh thu / số đơn `DELIVERED` dùng để tính doanh thu (cùng kỳ, cùng điều kiện lọc); trả `null` khi không có đơn `DELIVERED` nào.
+- `revenue-by-day` nhóm theo cùng cột ngày VN của `delivered_at` như doanh thu ở overview, để hai số liệu luôn khớp nhau khi vẽ chung một dashboard.
+- `top-products` cộng dồn theo `product_id` hiện tại (join từ `order_items.variant_id` qua `product_variants.product_id`), không theo `product_name` snapshot trong `order_items` — sản phẩm đổi tên vẫn gộp đúng một dòng.
+- Mọi truy vấn ở C9 đều có điều kiện `shop_id = current_shop.id`; không có tham số `shop_id` nào được nhận từ client.
+
+Contract endpoint nằm tại [`API.md`](API.md#số-liệu-thống-kê-shop). Test F1-8 (số liệu chỉ ra đúng shop hiện tại) nằm tại [`TESTING.md`](TESTING.md).

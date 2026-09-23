@@ -1,9 +1,9 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Planning C0–C8 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng và review)
+**Phạm vi đã triển khai:** Planning C0–C9 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review và số liệu thống kê shop)
 
-Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C9 trở đi (shop stats, admin) vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
+Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C10 trở đi (admin) vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
 
 ## Auth
 
@@ -142,3 +142,24 @@ Chuyển trạng thái hợp lệ là `DRAFT → ORDERED → RECEIVED`; `DRAFT` 
 Review trả `{id, order_item_id, product_id, buyer_id, rating, comment, created_at}`. Backend kiểm tra theo đúng thứ tự: order item tồn tại (`404` nếu không); đơn của order item thuộc buyer hiện tại (`403` nếu không); đơn phải ở trạng thái `DELIVERED` (`400` "Chỉ đánh giá sau khi nhận hàng" nếu chưa); order item chưa có review (`400`, có `UNIQUE(order_item_id)` ở database làm chốt chặn cuối nếu code check sót). `rating` ngoài khoảng 1–5 trả `422`.
 
 `GET /products/{id}/reviews` trả `rating_average=null` khi sản phẩm chưa có review nào; sản phẩm không tồn tại trả `404`. `rating_average` ở `GET /products/{id}` (C2) dùng cùng một truy vấn `AVG(rating)` nên luôn khớp với trang review. Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#review-c8).
+
+## Số liệu thống kê shop
+
+Tất cả endpoint dưới đây yêu cầu token `SHOP_OWNER` và chỉ tính trên dữ liệu của shop hiện tại (`shop_id` lấy từ `get_current_shop()`).
+
+| Method | Path | Request | Response thành công |
+|---|---|---|---|
+| GET | `/shop/stats/overview` | `from`, `to` (ngày, bắt buộc) | `200` với `{revenue, order_count, cancelled_count, cancel_rate, aov}` |
+| GET | `/shop/stats/revenue-by-day` | `from`, `to` (ngày, bắt buộc) | `200` với mảng `{date, revenue, order_count}` theo ngày |
+| GET | `/shop/stats/top-products` | `limit` (mặc định 10, tối đa 100) | `200` với mảng `{product_id, product_name, total_quantity_sold, total_revenue}`, sắp xếp giảm dần theo số lượng bán, toàn bộ lịch sử |
+
+`from`/`to` là ngày dương lịch (không có giờ); `from` phải nhỏ hơn hoặc bằng `to`, sai trả `400`. Đúng định nghĩa metric ở Planning C9 (dùng chung cho C9, Gold, Dashboard, Genie):
+- **`revenue`** = tổng `total_amount` của đơn `DELIVERED`, tính theo **ngày `delivered_at` quy đổi sang giờ Việt Nam** nằm trong khoảng `[from, to]`.
+- **`order_count`** = số đơn có `created_at` (giờ Việt Nam) nằm trong khoảng `[from, to]`, mọi trạng thái.
+- **`cancelled_count`** = số đơn `CANCELLED` có `created_at` (giờ Việt Nam) trong khoảng `[from, to]`.
+- **`cancel_rate`** = `cancelled_count / order_count`; `null` khi `order_count = 0` (không chia cho 0).
+- **`aov`** = `revenue / delivered_count` (số đơn `DELIVERED` dùng để tính `revenue`); `null` khi không có đơn `DELIVERED` nào trong kỳ.
+- `revenue-by-day` nhóm theo cùng ngày `delivered_at` giờ Việt Nam như `revenue`; `order_count` trong mảng này là số đơn `DELIVERED` của từng ngày, không phải số đơn theo `created_at`. Ngày không có đơn `DELIVERED` không xuất hiện trong mảng.
+- `top-products` cộng dồn `quantity`/`unit_price × quantity` trong `order_items` của các đơn `DELIVERED`, gộp theo `product_id` hiện tại của variant (không theo tên snapshot), toàn thời gian (không lọc theo `from`/`to`).
+
+Thiếu/sai token trả `401`; vai trò khác `SHOP_OWNER` trả `403`. Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#số-liệu-thống-kê-shop-c9).
