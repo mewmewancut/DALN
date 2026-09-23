@@ -1,7 +1,7 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Giỏ hàng C3, checkout C4 và chuyển trạng thái đơn C5 đã triển khai. Tồn kho/alert, nhập hàng và review vẫn là **Planned** theo các mục C6–C8 trong [`PLANNING.md`](PLANNING.md).
+**Phạm vi:** Giỏ hàng C3, checkout C4, chuyển trạng thái đơn C5 và tồn kho/cảnh báo hết hàng C6 đã triển khai. Nhập hàng và review vẫn là **Planned** theo các mục C7–C8 trong [`PLANNING.md`](PLANNING.md).
 
 ## Giỏ hàng C3
 
@@ -25,7 +25,7 @@ Contract endpoint và mã lỗi nằm tại [`API.md`](API.md#giỏ-hàng). Test
 - Đơn mới luôn ở `status=PENDING` và có đúng một dòng `order_status_history` (`from_status=NULL → to_status=PENDING`). `payment_status=PAID` ngay khi `payment_method=MOCK_CARD`, còn `COD` giữ `UNPAID` đến khi giao hàng theo C5.
 - Sau khi đơn tạo thành công, toàn bộ `cart_items` bị xóa và `cart.shop_id` đặt `NULL` trong cùng transaction — không có bước riêng có thể thất bại giữa chừng.
 - Mã đơn (`code`) được gán từ một giá trị tạm duy nhất (UUID) trước, sau đó ghi đè bằng `ORD-{YYYYMMDD}-{order.id}` sau khi `id` đã có — tránh hai transaction đồng thời tranh chấp cùng một giá trị `code` trước khi mỗi đơn có `id` riêng.
-- Kiểm tra `low_stock_alerts` sau khi trừ kho thuộc C6 và chưa triển khai trong checkout.
+- Sau khi transaction trừ kho commit thành công, backend kiểm tra `low_stock_alerts` cho từng variant vừa trừ theo C6. Bước này chạy ngoài transaction checkout nên không bao giờ làm rollback hoặc fail đơn đã đặt thành công.
 
 Contract endpoint và mã lỗi nằm tại [`API.md`](API.md#checkout). Test và cách chạy nằm tại [`TESTING.md`](TESTING.md).
 
@@ -37,5 +37,16 @@ Contract endpoint và mã lỗi nằm tại [`API.md`](API.md#checkout). Test v�
 - Mỗi transition cập nhật order và thêm đúng một dòng `order_status_history` trong cùng transaction. Lỗi quyền, transition, hoàn kho hoặc commit rollback toàn bộ.
 - Hủy đơn cộng lại số lượng từ snapshot `order_items`, đặt `cancelled_at` và `cancel_reason`. Vì order bị khóa và `CANCELLED` là trạng thái cuối, gọi hủy lại không cộng kho lần hai.
 - Khi chuyển sang `DELIVERED`, backend đặt `delivered_at`; đơn COD chuyển sang `payment_status=PAID` trong cùng transaction.
+- Sau khi transaction hủy đơn commit thành công, backend gọi `resolve_alerts_if_ok` (C6) cho từng variant vừa được hoàn kho, ngoài transaction hủy đơn.
 
 Contract endpoint và response nằm tại [`API.md`](API.md#đơn-hàng-và-state-machine). Test F3 và concurrency nằm tại [`TESTING.md`](TESTING.md).
+
+## Tồn kho và cảnh báo hết hàng C6
+
+- `check_low_stock(variant_id)` chỉ được gọi ngay sau khi một transaction trừ kho (checkout C4) đã commit thành công, không nằm trong transaction đó — lỗi khi tạo cảnh báo không thể làm rollback hoặc fail đơn đã đặt.
+- Sinh cảnh báo mới chỉ khi `quantity < low_stock_threshold` **và** variant đó chưa có cảnh báo nào với `is_resolved=false`. Nhờ vậy nhiều lần checkout liên tiếp đưa tồn kho xuống dưới ngưỡng chỉ tạo đúng một cảnh báo đang mở cho mỗi variant.
+- `resolve_alerts_if_ok(variant_id)` chỉ được gọi ngay sau khi một transaction cộng kho (hủy đơn C5; nhận hàng C7 khi triển khai) đã commit thành công. Khi `quantity >= low_stock_threshold`, mọi cảnh báo `is_resolved=false` của variant đó được đặt `is_resolved=true`.
+- Đổi `low_stock_threshold` chỉ tính lại cờ `is_low` khi đọc (`quantity < low_stock_threshold`); không tự tạo hoặc tự giải quyết cảnh báo tại thời điểm đổi ngưỡng.
+- Mọi endpoint tồn kho/cảnh báo lấy `shop_id` từ `get_current_shop()` (SHOP_OWNER đã đăng nhập); sửa hoặc đọc variant thuộc shop khác trả `403`.
+
+Contract endpoint nằm tại [`API.md`](API.md#tồn-kho-và-cảnh-báo-hết-hàng). Test F4-28, F4-29 và test hoàn kho kèm giải quyết cảnh báo nằm tại [`TESTING.md`](TESTING.md).

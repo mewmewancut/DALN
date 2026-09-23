@@ -12,6 +12,7 @@ from app.models.inventory import Inventory
 from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.user import User
 from app.schemas.orders import CheckoutRequest, OrderItemResponse, OrderResponse
+from app.services import inventory_service
 
 
 def _order_response(order: Order) -> OrderResponse:
@@ -42,6 +43,7 @@ def _order_response(order: Order) -> OrderResponse:
 
 
 def checkout(db: Session, buyer: User, request: CheckoutRequest) -> OrderResponse:
+    deducted_variant_ids: list[int] = []
     try:
         # Serialize every cart mutation for this buyer. Without these locks,
         # two requests can read the same cart before either one clears it and
@@ -122,6 +124,7 @@ def checkout(db: Session, buyer: User, request: CheckoutRequest) -> OrderRespons
                 )
             )
             total += variant.price * cart_item.quantity
+            deducted_variant_ids.append(cart_item.variant_id)
 
         order.total_amount = total
         db.add(
@@ -144,4 +147,7 @@ def checkout(db: Session, buyer: User, request: CheckoutRequest) -> OrderRespons
         raise
 
     db.refresh(order)
+    # Check low-stock SAU khi commit — không để nó làm fail đơn đã đặt thành công.
+    for variant_id in deducted_variant_ids:
+        inventory_service.check_low_stock(db, variant_id)
     return _order_response(order)

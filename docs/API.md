@@ -1,9 +1,9 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Planning C0–C5 (auth, shop, catalog, giỏ hàng, checkout và state machine đơn hàng)
+**Phạm vi đã triển khai:** Planning C0–C6 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng và tồn kho/cảnh báo hết hàng)
 
-Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C6 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
+Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C7 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
 
 ## Auth
 
@@ -90,3 +90,17 @@ Danh sách trả `{items, total, page, page_size}`; mỗi item có ID, code, buy
 Các chuyển trạng thái hợp lệ là `PENDING → CONFIRMED → PREPARING → SHIPPING → DELIVERED`; shop có thể chuyển `PENDING` hoặc `CONFIRMED` sang `CANCELLED`. Buyer chỉ có thể hủy từ `PENDING`. Chuyển sai trả `400`; đọc hoặc sửa đơn của tài khoản/shop khác trả `403`; ID không tồn tại trả `404`.
 
 Mọi chuyển trạng thái khóa dòng đơn và ghi `order_status_history` trong cùng transaction. Hủy đơn hoàn lại tồn kho đúng một lần, đặt `cancelled_at` và `cancel_reason`. Giao thành công đặt `delivered_at`; đơn COD được chuyển `payment_status=PAID`. Hai thao tác đồng thời trên cùng đơn được tuần tự hóa, nên chỉ một transition từ trạng thái ban đầu có thể thành công.
+
+## Tồn kho và cảnh báo hết hàng
+
+Tất cả endpoint dưới đây yêu cầu token `SHOP_OWNER` và chỉ thao tác trên tồn kho của shop hiện tại (lấy từ database, không nhận `shop_id` từ client).
+
+| Method | Path | Request | Response thành công |
+|---|---|---|---|
+| GET | `/shop/inventory` | — | `200` với danh sách tồn kho mọi variant của shop |
+| PUT | `/shop/inventory/{variant_id}/threshold` | `{low_stock_threshold}` | `200` với dòng tồn kho đã cập nhật ngưỡng |
+| GET | `/shop/alerts` | — | `200` với danh sách cảnh báo `is_resolved=false` của shop |
+
+Mỗi dòng tồn kho gồm `{variant_id, product_id, product_name, size, color, sku, quantity, low_stock_threshold, is_low}`; `is_low = quantity < low_stock_threshold`. `low_stock_threshold` khi sửa phải là số nguyên không âm, sai kiểu hoặc âm trả `422`. Variant không tồn tại trả `404`; variant thuộc shop khác trả `403`.
+
+Mỗi cảnh báo gồm `{id, variant_id, product_name, size, color, quantity_at_alert, is_resolved, created_at}`, chỉ trả các cảnh báo chưa được giải quyết. Cảnh báo được tạo tự động ngay sau khi checkout trừ kho xuống dưới ngưỡng (không tạo cảnh báo trùng nếu đã có cảnh báo chưa giải quyết cho variant đó) và được đánh dấu `is_resolved=true` tự động khi tồn kho được cộng trở lại từ mức ngưỡng trở lên (hủy đơn hoàn kho; nhận hàng nhập kho theo Planning C7 khi triển khai). Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#tồn-kho-và-cảnh-báo-hết-hàng-c6).

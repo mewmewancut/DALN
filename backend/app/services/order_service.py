@@ -15,6 +15,7 @@ from app.schemas.orders import (
     OrderStatusHistoryResponse,
     OrderSummaryResponse,
 )
+from app.services import inventory_service
 
 ALLOWED_TRANSITIONS = {
     "PENDING": frozenset({"CONFIRMED", "CANCELLED"}),
@@ -180,6 +181,7 @@ def transition_order(
     shop_id: int | None = None,
     note: str | None = None,
 ) -> OrderDetailResponse:
+    restocked_variant_ids: list[int] = []
     try:
         order = db.scalar(
             select(Order)
@@ -229,6 +231,7 @@ def transition_order(
                 )
                 if result.rowcount != 1:
                     raise HTTPException(status_code=409, detail="Không thể hoàn kho cho đơn hàng")
+                restocked_variant_ids.append(item.variant_id)
             order.cancelled_at = now
             order.cancel_reason = note
         elif new_status == "DELIVERED":
@@ -250,6 +253,10 @@ def transition_order(
     except Exception:
         db.rollback()
         raise
+
+    # Resolve alert SAU khi cộng kho và commit — cùng nguyên tắc với check_low_stock.
+    for variant_id in restocked_variant_ids:
+        inventory_service.resolve_alerts_if_ok(db, variant_id)
 
     completed = _order_with_details(db, order_id)
     if completed is None:

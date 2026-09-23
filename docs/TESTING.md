@@ -1,7 +1,7 @@
 # Testing
 
 **Trạng thái:** In progress  
-**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2, giỏ hàng C3, checkout C4, state machine đơn hàng C5 và luồng API từ đăng ký đến đăng sản phẩm
+**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2, giỏ hàng C3, checkout C4, state machine đơn hàng C5, tồn kho/cảnh báo hết hàng C6 và luồng API từ đăng ký đến đăng sản phẩm
 
 Frontend D1 và phần đầu D2 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth và catalog.
 
@@ -86,5 +86,6 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - Giỏ hàng từ chối số lượng không hợp lệ, tài nguyên thiếu/ẩn, quyền truy cập của shop owner hoặc buyer khác và dữ liệu giá/shop/buyer do client gửi. Lỗi vượt tồn và lỗi commit đều giữ nguyên giỏ; test hai session kiểm tra các request thêm đồng thời.
 - Checkout C4/F2-12–17: giỏ rỗng trả `400`; checkout hợp lệ trừ đúng kho, xóa giỏ và ghi đúng một dòng lịch sử trạng thái; thiếu tồn kho rollback toàn bộ (không tạo đơn, không trừ kho, giỏ giữ nguyên); giá trong đơn giữ nguyên sau khi shop đổi giá; `total_amount` client gửi bị bỏ qua và tổng luôn tính từ giá database; test hai session xác nhận hai buyer checkout đồng thời trên cùng variant chỉ một đơn thành công khi kho chỉ đủ một đơn, đồng thời hai request trên cùng giỏ chỉ tạo đúng một đơn.
 - State machine C5/F3-18–24: chuỗi giao hàng đầy đủ ghi đủ history và thanh toán COD; chặn nhảy cóc/hủy sai trạng thái; buyer/shop chỉ truy cập đúng đơn; hủy hoàn kho đúng một lần; lỗi commit rollback trạng thái, history và tồn kho; race buyer hủy với shop xác nhận chỉ áp dụng một transition.
+- Tồn kho/cảnh báo C6/F4-28–29: danh sách tồn kho chỉ trả variant của shop hiện tại kèm cờ `is_low`; sửa ngưỡng tính lại `is_low`, từ chối shop khác (`403`), variant không tồn tại (`404`) và ngưỡng âm (`422`); checkout đưa tồn kho xuống dưới ngưỡng sinh đúng một cảnh báo, checkout tiếp theo vẫn dưới ngưỡng không sinh cảnh báo thứ hai; hủy đơn hoàn kho lên trên ngưỡng tự động giải quyết cảnh báo đang mở.
 
-Các test F1 phụ thuộc vào API admin/stats và test nghiệp vụ F4–F7 sẽ được bổ sung khi module tương ứng được triển khai.
+Các test F1 phụ thuộc vào API admin/stats và test nghiệp vụ F4-25–27, F4-30, F5–F7 sẽ được bổ sung khi module tương ứng (nhập hàng C7, review C8) được triển khai.
