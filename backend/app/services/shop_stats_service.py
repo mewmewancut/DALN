@@ -22,39 +22,31 @@ def _validate_range(from_date: date, to_date: date) -> None:
         raise HTTPException(status_code=400, detail="'from' phải nhỏ hơn hoặc bằng 'to'")
 
 
-def get_overview(db: Session, shop_id: int, from_date: date, to_date: date) -> ShopStatsOverview:
+def get_overview(
+    db: Session, from_date: date, to_date: date, *, shop_id: int | None = None
+) -> ShopStatsOverview:
     _validate_range(from_date, to_date)
     delivered_date = _vn_date(Order.delivered_at)
+    delivered_filters = [
+        Order.status == "DELIVERED",
+        delivered_date >= from_date,
+        delivered_date <= to_date,
+    ]
+    if shop_id is not None:
+        delivered_filters.append(Order.shop_id == shop_id)
     revenue, delivered_count = db.execute(
         select(func.coalesce(func.sum(Order.total_amount), 0), func.count()).where(
-            Order.shop_id == shop_id,
-            Order.status == "DELIVERED",
-            delivered_date >= from_date,
-            delivered_date <= to_date,
+            *delivered_filters
         )
     ).one()
 
     created_date = _vn_date(Order.created_at)
-    order_count = (
-        db.scalar(
-            select(func.count()).where(
-                Order.shop_id == shop_id,
-                created_date >= from_date,
-                created_date <= to_date,
-            )
-        )
-        or 0
-    )
+    created_filters = [created_date >= from_date, created_date <= to_date]
+    if shop_id is not None:
+        created_filters.append(Order.shop_id == shop_id)
+    order_count = db.scalar(select(func.count()).where(*created_filters)) or 0
     cancelled_count = (
-        db.scalar(
-            select(func.count()).where(
-                Order.shop_id == shop_id,
-                Order.status == "CANCELLED",
-                created_date >= from_date,
-                created_date <= to_date,
-            )
-        )
-        or 0
+        db.scalar(select(func.count()).where(*created_filters, Order.status == "CANCELLED")) or 0
     )
 
     return ShopStatsOverview(

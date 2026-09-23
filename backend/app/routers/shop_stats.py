@@ -21,7 +21,7 @@ def overview(
     from_date: Annotated[date, Query(alias="from")],
     to_date: Annotated[date, Query(alias="to")],
 ) -> ShopStatsOverview:
-    return shop_stats_service.get_overview(db, shop.id, from_date, to_date)
+    return shop_stats_service.get_overview(db, from_date, to_date, shop_id=shop.id)
 
 
 @router.get("/revenue-by-day", response_model=list[RevenueByDayItem])

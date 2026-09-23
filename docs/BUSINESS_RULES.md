@@ -1,7 +1,7 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Giỏ hàng C3, checkout C4, chuyển trạng thái đơn C5, tồn kho/cảnh báo hết hàng C6, supplier/nhập hàng C7, review C8 và số liệu thống kê shop C9 đã triển khai. Admin vẫn là **Planned** theo mục C10 trong [`PLANNING.md`](PLANNING.md).
+**Phạm vi:** Toàn bộ backend Planning C3–C10 (giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop và admin) đã triển khai.
 
 ## Giỏ hàng C3
 
@@ -83,3 +83,13 @@ Contract endpoint nằm tại [`API.md`](API.md#review). Test F5-31–34 nằm t
 - Mọi truy vấn ở C9 đều có điều kiện `shop_id = current_shop.id`; không có tham số `shop_id` nào được nhận từ client.
 
 Contract endpoint nằm tại [`API.md`](API.md#số-liệu-thống-kê-shop). Test F1-8 (số liệu chỉ ra đúng shop hiện tại) nằm tại [`TESTING.md`](TESTING.md).
+
+## Admin C10
+
+- Mọi endpoint admin đi qua `require_role('ADMIN')`; không có nghiệp vụ nào tự kiểm tra quyền riêng ngoài dependency chung ở `deps.py`.
+- Khóa tài khoản (`is_active=false`) chặn đăng nhập và mọi request xác thực tiếp theo (theo `get_current_user` đã có từ C0/C1) — vì vậy backend chặn riêng trường hợp admin tự đặt `is_active=false` cho chính `user_id` của mình (`400`), tránh admin tự khóa mất quyền truy cập của chính phiên đang dùng. Tự mở lại (`is_active=true`) cho chính mình không bị chặn vì không gây khóa quyền truy cập.
+- Khóa shop (`is_active=false`) không xóa hay sửa dữ liệu sản phẩm/đơn hàng liên quan; nó chỉ khiến điều kiện `Shop.is_active` sẵn có ở catalog công khai (C2) loại sản phẩm của shop đó khỏi `GET /products`/`GET /products/{id}`. Đơn hàng cũ của shop bị khóa vẫn giữ nguyên và vẫn xem được qua các endpoint đơn hàng hiện có.
+- `GET /admin/orders` và `GET /admin/stats/overview` tái sử dụng đúng logic truy vấn của C5 (`order_service.list_all_orders`) và C9 (`shop_stats_service.get_overview`) thay vì viết lại, chỉ khác là không ràng buộc `shop_id`; nhờ vậy định nghĩa metric và cấu trúc response luôn khớp với C9, không có nơi thứ hai định nghĩa lại doanh thu/AOV/tỷ lệ hủy.
+- Không có endpoint admin nào nhận trực tiếp bản ghi để sửa nhiều trường tùy ý; mỗi endpoint sửa đúng một cờ trạng thái (`is_active`) để tránh admin vô tình đổi dữ liệu nghiệp vụ khác (giá, tồn kho, trạng thái đơn) ngoài phạm vi quản trị.
+
+Contract endpoint nằm tại [`API.md`](API.md#admin).

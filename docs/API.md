@@ -1,9 +1,9 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Planning C0–C9 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review và số liệu thống kê shop)
+**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop và admin). Phần D (frontend) vẫn còn giới hạn ở D1 và phần đầu D2.
 
-Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C10 trở đi (admin) vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
+Swagger chạy tại `http://localhost:8000/docs`.
 
 ## Auth
 
@@ -163,3 +163,26 @@ Tất cả endpoint dưới đây yêu cầu token `SHOP_OWNER` và chỉ tính 
 - `top-products` cộng dồn `quantity`/`unit_price × quantity` trong `order_items` của các đơn `DELIVERED`, gộp theo `product_id` hiện tại của variant (không theo tên snapshot), toàn thời gian (không lọc theo `from`/`to`).
 
 Thiếu/sai token trả `401`; vai trò khác `SHOP_OWNER` trả `403`. Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#số-liệu-thống-kê-shop-c9).
+
+## Admin
+
+Tất cả endpoint dưới đây yêu cầu token `ADMIN`.
+
+| Method | Path | Request | Response thành công |
+|---|---|---|---|
+| GET | `/admin/users` | `role?`, `keyword?` (tìm trong email và họ tên), phân trang `page`, `page_size` | `200` với `{items, total, page, page_size}` |
+| PATCH | `/admin/users/{id}` | `{is_active}` | `200` với user đã sửa |
+| GET | `/admin/shops` | Phân trang `page`, `page_size` | `200` với `{items, total, page, page_size}` |
+| PATCH | `/admin/shops/{id}` | `{is_active}` | `200` với shop đã sửa |
+| GET | `/admin/orders` | `shop_id?`, `status?`, `from?`, `to?` (lọc theo ngày `created_at`), phân trang | `200` với `{items, total, page, page_size}`, không giới hạn theo shop |
+| GET | `/admin/stats/overview` | `from`, `to` (ngày, bắt buộc) | `200` với `{revenue, order_count, cancelled_count, cancel_rate, aov}` giống C9 nhưng tính trên toàn hệ thống |
+
+`AdminUserResponse` gồm `{id, email, full_name, role, is_active, created_at}`. Khóa tài khoản chính mình (`PATCH /admin/users/{id}` với `is_active=false` và `id` là chính admin đang gọi) trả `400`; mở lại chính mình vẫn cho phép. User không tồn tại trả `404`.
+
+`AdminShopResponse` gồm `{id, owner_id, name, description, is_active, created_at}`. Khóa shop (`is_active=false`) khiến toàn bộ sản phẩm của shop đó biến mất khỏi `GET /products` công khai (theo điều kiện `Shop.is_active` đã có sẵn ở C2), không cần đổi gì ở catalog. Shop không tồn tại trả `404`.
+
+`GET /admin/orders` dùng lại đúng schema `OrderSummaryResponse`/`OrderPage` của C5, chỉ khác là không giới hạn theo `shop_id` của người gọi — lọc `shop_id`, `status`, khoảng ngày `created_at` là tùy chọn, để trống sẽ trả toàn bộ hệ thống.
+
+`GET /admin/stats/overview` dùng lại đúng hàm tính metric của C9 (cùng định nghĩa `revenue`, `order_count`, `cancel_rate`, `aov`, cùng quy đổi giờ Việt Nam) nhưng không truyền điều kiện `shop_id`, nên tổng hợp trên toàn hệ thống. `from` phải nhỏ hơn hoặc bằng `to`, sai trả `400`.
+
+Thiếu/sai token trả `401`; vai trò khác `ADMIN` trả `403`. Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#admin-c10).

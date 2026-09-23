@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import func, select, update
@@ -152,6 +152,43 @@ def list_shop_orders(
         db,
         owner_filter=Order.shop_id == shop_id,
         status=status,
+        page=page,
+        page_size=page_size,
+    )
+
+
+def list_all_orders(
+    db: Session,
+    *,
+    shop_id: int | None,
+    status: str | None,
+    date_from: date | None,
+    date_to: date | None,
+    page: int,
+    page_size: int,
+) -> OrderPage:
+    filters = []
+    if shop_id is not None:
+        filters.append(Order.shop_id == shop_id)
+    if status is not None:
+        filters.append(Order.status == status)
+    if date_from is not None:
+        filters.append(func.date(Order.created_at) >= date_from)
+    if date_to is not None:
+        filters.append(func.date(Order.created_at) <= date_to)
+    total = db.scalar(select(func.count()).select_from(Order).where(*filters)) or 0
+    orders = list(
+        db.scalars(
+            select(Order)
+            .where(*filters)
+            .order_by(Order.created_at.desc(), Order.id.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+    )
+    return OrderPage(
+        items=[_summary(order) for order in orders],
+        total=total,
         page=page,
         page_size=page_size,
     )
