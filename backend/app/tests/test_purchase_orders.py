@@ -122,6 +122,29 @@ def test_create_purchase_order_rejects_other_shop_variant_and_supplier(
     )
     assert duplicate_variant.status_code == 422
 
+
+def test_create_purchase_order_rejects_nonexistent_supplier_and_variant_with_404(
+    db_session: Session, client: TestClient
+) -> None:
+    ctx = seed_shop(db_session)
+
+    assert (
+        client.post(
+            "/shop/purchase-orders",
+            json=po_body(999999999, ctx["variant"].id),
+            headers=ctx["headers"],
+        ).status_code
+        == 404
+    )
+    assert (
+        client.post(
+            "/shop/purchase-orders",
+            json=po_body(ctx["supplier"].id, 999999999),
+            headers=ctx["headers"],
+        ).status_code
+        == 404
+    )
+
     assert (
         client.post(
             "/shop/purchase-orders", json=po_body(ctx["supplier"].id, ctx["variant"].id)

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, Boolean, CheckConstraint, ForeignKey, Integer, false
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, ForeignKey, Index, Integer, false, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -45,6 +45,16 @@ class Inventory(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
 
 class LowStockAlert(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = "low_stock_alerts"
+    __table_args__ = (
+        # ⚠️ Chốt chặn cuối ở DB chống 2 checkout đồng thời cùng variant tạo 2 alert
+        # đang mở (đọc-rồi-ghi ở check_low_stock không đủ chống race).
+        Index(
+            "uq_low_stock_alerts_open_variant",
+            "variant_id",
+            unique=True,
+            postgresql_where=text("NOT is_resolved"),
+        ),
+    )
 
     variant_id: Mapped[int] = mapped_column(
         BigInteger,

@@ -128,7 +128,7 @@ Tất cả endpoint dưới đây yêu cầu token `SHOP_OWNER` và chỉ thao t
 | GET | `/shop/purchase-orders` | Filter `status`, phân trang `page`, `page_size` | `200` với `{items, total, page, page_size}` |
 | PATCH | `/shop/purchase-orders/{id}/status` | `{status}` | `200` với phiếu nhập sau khi chuyển trạng thái |
 
-`items` không được rỗng và không được trùng `variant_id` trong cùng request (`422` nếu vi phạm). Mọi `variant_id` phải thuộc shop hiện tại và `supplier_id` phải là nhà cung cấp của shop hiện tại, sai một trong hai trả `403`. Phiếu nhập trả `{id, shop_id, supplier_id, status, note, received_at, created_at, items}`; mỗi item có `{id, variant_id, quantity, unit_cost}`.
+`items` không được rỗng và không được trùng `variant_id` trong cùng request (`422` nếu vi phạm). Mọi `variant_id` phải thuộc shop hiện tại và `supplier_id` phải là nhà cung cấp của shop hiện tại: không tồn tại trả `404`, tồn tại nhưng thuộc shop khác trả `403`. Phiếu nhập trả `{id, shop_id, supplier_id, status, note, received_at, created_at, items}`; mỗi item có `{id, variant_id, quantity, unit_cost}`.
 
 Chuyển trạng thái hợp lệ là `DRAFT → ORDERED → RECEIVED`; `DRAFT` hoặc `ORDERED` có thể chuyển sang `CANCELLED`. `RECEIVED` và `CANCELLED` là trạng thái cuối. Chỉ khi chuyển sang `RECEIVED` mới cộng kho cho từng variant trong phiếu và đặt `received_at`; vì đây là trạng thái cuối nên gọi lại không cộng kho lần hai. Sau khi cộng kho và commit, backend tự động giải quyết cảnh báo tồn kho thấp cho các variant vừa nhập theo C6. Chuyển sai trạng thái trả `400`; phiếu của shop khác trả `403`; ID không tồn tại trả `404`. Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#supplier-và-nhập-hàng-c7).
 

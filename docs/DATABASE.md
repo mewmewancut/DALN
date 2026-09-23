@@ -120,13 +120,14 @@ erDiagram
 ### `low_stock_alerts`
 
 - Alert liên kết trực tiếp với variant và shop; mặc định chưa được xử lý.
-- Quy tắc chỉ có một alert chưa xử lý cho mỗi variant sẽ được bảo đảm bởi inventory service ở Planning C6.
+- ⚠️ Chỉ có tối đa một alert chưa xử lý (`is_resolved=false`) cho mỗi variant, enforce bằng partial unique index `uq_low_stock_alerts_open_variant ON low_stock_alerts (variant_id) WHERE NOT is_resolved` — chốt chặn cuối ở DB, không chỉ dựa vào kiểm tra "đã tồn tại chưa" ở `inventory_service.check_low_stock()` (kiểm tra ở service là đọc-rồi-ghi nên vẫn có thể thua race, index này là nơi thật sự chặn trùng).
 
 ## Migration
 
 - Migration nền tảng: `20260916_0001_foundation_models.py`.
 - Migration nghiệp vụ B7–B14: `20260922_0002_operational_models.py`.
 - Migration timestamp cho các bảng có cập nhật: `20260922_0003_add_mutable_timestamps.py`.
+- Migration ràng buộc một alert đang mở mỗi variant: `20260923_0004_low_stock_alert_unique_open.py`.
 
 ```powershell
 docker compose --env-file .env.example exec -T backend alembic upgrade head

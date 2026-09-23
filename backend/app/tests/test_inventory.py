@@ -1,15 +1,20 @@
 from collections.abc import Generator
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import create_engine, func, select, text
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
+from app.database import Base
 from app.deps import get_db
 from app.main import app
 from app.models import Category, Inventory, LowStockAlert, Product, ProductVariant, Shop
 from app.models.cart import CartItem
+from app.services import inventory_service
 from app.tests.test_catalog import user_with_token
 from app.tests.test_checkout import CHECKOUT_BODY, seed_cart
 
@@ -213,3 +218,101 @@ def test_cancel_order_restock_resolves_alert_when_above_threshold(
         )
         is True
     )
+
+
+def test_check_low_stock_never_raises_when_commit_fails(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx = seed_variant(db_session, quantity=1, threshold=5)
+
+    def fail_commit():
+        raise RuntimeError("simulated check_low_stock commit failure")
+
+    monkeypatch.setattr(db_session, "commit", fail_commit)
+    inventory_service.check_low_stock(db_session, ctx["variant"].id)
+
+
+def test_resolve_alerts_if_ok_never_raises_when_commit_fails(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ctx = seed_variant(db_session, quantity=10, threshold=5)
+    db_session.add(
+        LowStockAlert(variant_id=ctx["variant"].id, shop_id=ctx["shop"].id, quantity_at_alert=2)
+    )
+    db_session.commit()
+
+    def fail_commit():
+        raise RuntimeError("simulated resolve_alerts_if_ok commit failure")
+
+    monkeypatch.setattr(db_session, "commit", fail_commit)
+    inventory_service.resolve_alerts_if_ok(db_session, ctx["variant"].id)
+
+
+def test_concurrent_check_low_stock_creates_only_one_open_alert() -> None:
+    schema = f"low_stock_race_test_{uuid4().hex}"
+    control = create_engine(get_settings().test_database_url)
+    engine = None
+    try:
+        with control.begin() as connection:
+            connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+        engine = create_engine(
+            get_settings().test_database_url,
+            connect_args={"options": f"-csearch_path={schema}", "connect_timeout": 10},
+        )
+        Base.metadata.create_all(engine)
+        with Session(engine) as setup:
+            owner, _ = user_with_token(setup, "race-low-stock-owner@example.com", "SHOP_OWNER")
+            shop = Shop(owner_id=owner.id, name="Race Low Stock Shop")
+            category = Category(name="Race low stock category")
+            setup.add_all([shop, category])
+            setup.flush()
+            product = Product(
+                shop_id=shop.id,
+                category_id=category.id,
+                name="Áo race low stock",
+                base_price=100000,
+            )
+            setup.add(product)
+            setup.flush()
+            variant = ProductVariant(
+                product_id=product.id,
+                size="M",
+                color="Đen",
+                price=100000,
+                sku=f"race-low-stock-{uuid4().hex[:8]}",
+            )
+            setup.add(variant)
+            setup.flush()
+            setup.add(
+                Inventory(variant_id=variant.id, shop_id=shop.id, quantity=2, low_stock_threshold=5)
+            )
+            setup.commit()
+            variant_id = variant.id
+
+        barrier = Barrier(2)
+
+        def run_check_low_stock(_: int) -> None:
+            with Session(engine) as db:
+                db.execute(text("SET LOCAL lock_timeout = '5s'"))
+                barrier.wait(timeout=10)
+                inventory_service.check_low_stock(db, variant_id)
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            list(pool.map(run_check_low_stock, range(2)))
+
+        with Session(engine) as db:
+            open_alerts = db.scalar(
+                select(func.count())
+                .select_from(LowStockAlert)
+                .where(
+                    LowStockAlert.variant_id == variant_id,
+                    LowStockAlert.is_resolved.is_(False),
+                )
+            )
+            assert open_alerts == 1
+    finally:
+        if engine is not None:
+            engine.dispose()
+        with control.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
+        control.dispose()

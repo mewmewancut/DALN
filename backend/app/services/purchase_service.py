@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session, selectinload
 from app.models.catalog import ProductVariant
 from app.models.inventory import Inventory
 from app.models.purchase import PurchaseOrder, PurchaseOrderItem
-from app.models.supplier import Supplier
 from app.schemas.purchase import (
     PurchaseOrderCreate,
     PurchaseOrderItemResponse,
@@ -15,6 +14,7 @@ from app.schemas.purchase import (
     PurchaseOrderResponse,
 )
 from app.services import inventory_service
+from app.services.supplier_service import get_owned_supplier_or_403
 
 ALLOWED_TRANSITIONS = {
     "DRAFT": frozenset({"ORDERED", "CANCELLED"}),
@@ -57,9 +57,7 @@ def _with_items(db: Session, po_id: int) -> PurchaseOrder | None:
 def create_purchase_order(
     db: Session, shop_id: int, request: PurchaseOrderCreate
 ) -> PurchaseOrderResponse:
-    supplier = db.get(Supplier, request.supplier_id)
-    if supplier is None or supplier.shop_id != shop_id:
-        raise HTTPException(status_code=403, detail="Nhà cung cấp không thuộc shop của bạn")
+    supplier = get_owned_supplier_or_403(db, request.supplier_id, shop_id)
 
     variant_ids = [item.variant_id for item in request.items]
     variants_by_id = {
@@ -71,7 +69,9 @@ def create_purchase_order(
         for inventory in db.scalars(select(Inventory).where(Inventory.variant_id.in_(variant_ids)))
     }
     for variant_id in variant_ids:
-        if variant_id not in variants_by_id or inventory_shop_by_variant.get(variant_id) != shop_id:
+        if variant_id not in variants_by_id:
+            raise HTTPException(status_code=404, detail="Biến thể không tồn tại")
+        if inventory_shop_by_variant.get(variant_id) != shop_id:
             raise HTTPException(status_code=403, detail="Biến thể không thuộc shop của bạn")
 
     try:
