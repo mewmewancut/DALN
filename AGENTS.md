@@ -17,6 +17,7 @@ File này áp dụng cho toàn bộ repository. Mục tiêu là triển khai đ�
 3. Tạo thay đổi nhỏ nhất nhưng hoàn chỉnh. Tận dụng pattern hiện có; chỉ tách helper khi có logic thực sự lặp lại hoặc cần bảo vệ cùng một bất biến.
 4. Không refactor phần không liên quan, không dọn code tiện tay, không thêm dependency nếu chưa có nhu cầu cụ thể.
 5. Chạy test phù hợp, cập nhật tài liệu kỹ thuật liên quan, rồi xem lại toàn bộ diff trước khi báo hoàn thành.
+6. Không dồn nhiều hàm hoặc nhiều nhóm chức năng không liên quan vào một file. Khi một file phình to hoặc phải chứa nhiều trách nhiệm khác nhau, tách thành file riêng theo đúng cấu trúc thư mục đã có (mỗi router/service/schema/model một nhóm nghiệp vụ ở backend; mỗi page/component một file ở frontend) thay vì gộp thêm vào file cũ.
 
 ## 3. Kiến trúc và bảo mật backend
 

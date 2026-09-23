@@ -13,6 +13,6 @@ Buyer = Annotated[User, Depends(require_role("BUYER"))]
 Database = Annotated[Session, Depends(get_db)]
 
 
-@router.post("/checkout", response_model=OrderResponse, status_code=201)
+@router.post("/checkout", response_model=OrderResponse)
 def checkout(request: CheckoutRequest, buyer: Buyer, db: Database):
     return checkout_service.checkout(db, buyer, request)

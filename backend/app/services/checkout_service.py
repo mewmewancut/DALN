@@ -42,16 +42,25 @@ def _order_response(order: Order) -> OrderResponse:
 
 
 def checkout(db: Session, buyer: User, request: CheckoutRequest) -> OrderResponse:
-    cart = db.scalar(select(Cart).where(Cart.buyer_id == buyer.id))
-    if cart is None or cart.shop_id is None:
-        raise HTTPException(status_code=400, detail="Giỏ hàng đang trống")
-    cart_items = list(
-        db.scalars(select(CartItem).where(CartItem.cart_id == cart.id).order_by(CartItem.id))
-    )
-    if not cart_items:
-        raise HTTPException(status_code=400, detail="Giỏ hàng đang trống")
-
     try:
+        # Serialize every cart mutation for this buyer. Without these locks,
+        # two requests can read the same cart before either one clears it and
+        # create two orders when stock is sufficient for both.
+        db.execute(select(User.id).where(User.id == buyer.id).with_for_update()).one()
+        cart = db.scalar(
+            select(Cart)
+            .where(Cart.buyer_id == buyer.id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if cart is None or cart.shop_id is None:
+            raise HTTPException(status_code=400, detail="Giỏ hàng đang trống")
+        cart_items = list(
+            db.scalars(select(CartItem).where(CartItem.cart_id == cart.id).order_by(CartItem.id))
+        )
+        if not cart_items:
+            raise HTTPException(status_code=400, detail="Giỏ hàng đang trống")
+
         # Unique placeholder so two concurrent checkouts never contend on the
         # same `code` value before each order gets its own id-based code below.
         order = Order(

@@ -37,9 +37,13 @@ def _require_category(db: Session, category_id: int) -> None:
         raise HTTPException(status_code=404, detail="Danh mục không tồn tại")
 
 
+def _sku_component(value: str) -> str:
+    return value.replace("%", "%25").replace("-", "%2D")
+
+
 def _sku(product_id: int, size: str, color: str) -> str:
-    safe_size = size.replace("-", "_")
-    safe_color = color.replace("-", "_")
+    safe_size = _sku_component(size)
+    safe_color = _sku_component(color)
     sku = f"P{product_id}-{safe_size}-{safe_color}"
     if len(sku) > 50:
         raise HTTPException(status_code=400, detail="SKU vượt quá 50 ký tự")

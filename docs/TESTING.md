@@ -12,7 +12,7 @@ Frontend D1 và phần đầu D2 có test gắn token, xử lý `401`, điều h
 | Database | pytest + PostgreSQL test | Constraint, giá trị mặc định, timestamp, seed chạy lại không nhân đôi |
 | API và phân quyền | pytest + FastAPI TestClient | Auth, shop, catalog, giỏ hàng, lỗi nghiệp vụ, quyền sở hữu và rollback |
 | Đồng thời giỏ hàng | pytest + PostgreSQL, hai session/thread | Lần thêm đầu tiên cùng variant hoặc khác shop bảo toàn một giỏ/một shop, không mất số lượng |
-| Đồng thời checkout | pytest + PostgreSQL, hai session/thread | Hai checkout cùng lúc trên variant chỉ còn đúng 1 tồn kho: đúng một đơn thành công, kho về đúng 0, không âm |
+| Đồng thời checkout | pytest + PostgreSQL, hai session/thread | Hai buyer checkout cùng variant chỉ đủ cho một đơn không làm âm kho; hai request trên cùng giỏ không tạo hai đơn |
 | Luồng API | pytest + FastAPI TestClient | Đăng ký chủ shop → đăng nhập → tạo shop → đăng sản phẩm → buyer xem catalog; category được tạo trong fixture vì API admin chưa có |
 | Frontend | Vitest + jsdom | Axios token/`401`, điều hướng theo vai trò, form login/register, tìm kiếm/lọc/phân trang catalog, chọn variant và lỗi API |
 | Migration và cấu hình | Alembic + Docker Compose | Áp dụng migration và kiểm tra model khớp schema; kiểm tra Compose |
@@ -70,10 +70,11 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - Chạy seed lần hai không làm thay đổi số lượng bản ghi.
 - SKU của seed khớp `P{product_id}-{size}-{color}` và chạy lại với mốc ngày khác vẫn không nhân đôi đơn hàng.
 - Các bảng có luồng cập nhật nhận `updated_at` có timezone.
-- Auth: đăng ký thành công, email trùng, cấm role ADMIN; login đúng/sai mật khẩu; JWT chứa user ID, role và shop ID; `/auth/me` không lộ password hash.
+- Auth: đăng ký thành công, chuẩn hóa email về chữ thường, email trùng, cấm role ADMIN, từ chối mật khẩu quá 72 byte và trường ngoài contract; login đúng/sai mật khẩu; JWT chứa user ID, role và shop ID; `/auth/me` không lộ password hash.
 - Thiếu, sai, hết hạn token hoặc user bị khóa đều bị từ chối; dependency role và shop lấy quyền sở hữu từ database thay vì tin `shop_id` trong token.
 - API shop chỉ cho SHOP_OWNER tạo và sửa shop của mình; từ chối `owner_id` do client gửi và không cho tạo shop thứ hai.
 - Tạo sản phẩm cùng variant và inventory trong một transaction; variant trùng làm rollback toàn bộ; `shop_id` do client gửi bị từ chối.
+- SKU do catalog service sinh không va chạm khi size/color chứa dấu gạch ngang, dấu phần trăm hoặc dấu gạch dưới.
 - Shop khác không được sửa, ẩn sản phẩm hoặc quản lý variant; xóa sản phẩm là soft delete và có thể hiện lại qua `PUT`.
 - Catalog công khai lọc, sắp xếp, phân trang theo giá variant hoạt động; ẩn sản phẩm và shop không hoạt động; chi tiết có tồn kho và rating trung bình.
 - Luồng API nối đăng ký, đăng nhập, tạo shop, tạo sản phẩm, catalog công khai, chặn buyer sửa sản phẩm và soft delete.
@@ -82,6 +83,6 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - Chi tiết sản phẩm hiển thị giá/tồn kho đúng variant được chọn, xóa size khi đổi màu và báo lỗi sản phẩm không tồn tại.
 - Giỏ hàng C3/F2-10–11: xem giỏ rỗng, cộng dồn variant, chặn khác shop đúng error payload, giá/tồn kho hiện tại, sửa/xóa item và đặt lại shop khi giỏ rỗng.
 - Giỏ hàng từ chối số lượng không hợp lệ, tài nguyên thiếu/ẩn, quyền truy cập của shop owner hoặc buyer khác và dữ liệu giá/shop/buyer do client gửi. Lỗi vượt tồn và lỗi commit đều giữ nguyên giỏ; test hai session kiểm tra các request thêm đồng thời.
-- Checkout C4/F2-12–17: giỏ rỗng trả `400`; checkout hợp lệ trừ đúng kho, xóa giỏ và ghi đúng một dòng lịch sử trạng thái; thiếu tồn kho rollback toàn bộ (không tạo đơn, không trừ kho, giỏ giữ nguyên); giá trong đơn giữ nguyên sau khi shop đổi giá; `total_amount` luôn tính từ giá database và từ chối trường `total_amount` do client gửi (`422`); test hai session xác nhận hai checkout đồng thời trên cùng variant chỉ một đơn thành công, kho không âm.
+- Checkout C4/F2-12–17: giỏ rỗng trả `400`; checkout hợp lệ trừ đúng kho, xóa giỏ và ghi đúng một dòng lịch sử trạng thái; thiếu tồn kho rollback toàn bộ (không tạo đơn, không trừ kho, giỏ giữ nguyên); giá trong đơn giữ nguyên sau khi shop đổi giá; `total_amount` client gửi bị bỏ qua và tổng luôn tính từ giá database; test hai session xác nhận hai buyer checkout đồng thời trên cùng variant chỉ một đơn thành công khi kho chỉ đủ một đơn, đồng thời hai request trên cùng giỏ chỉ tạo đúng một đơn.
 
 Các test F1 phụ thuộc vào API admin/order/stats và test nghiệp vụ F3–F7 sẽ được bổ sung khi module tương ứng được triển khai.

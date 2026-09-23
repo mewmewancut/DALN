@@ -148,7 +148,10 @@ def test_register_and_login_are_case_insensitive_for_email(
         "full_name": "Case User",
         "role": "BUYER",
     }
-    assert client.post("/auth/register", json=payload).status_code == 201
+    registered = client.post("/auth/register", json=payload)
+    assert registered.status_code == 201
+    assert registered.json()["email"] == "case@example.com"
+    assert db_session.get(User, registered.json()["id"]).email == "case@example.com"
     assert (
         client.post("/auth/register", json={**payload, "email": "case@example.com"}).status_code
         == 400
@@ -157,6 +160,30 @@ def test_register_and_login_are_case_insensitive_for_email(
         "/auth/login", json={"email": "case@example.com", "password": "Secret@123"}
     )
     assert response.status_code == 200
+
+
+def test_auth_rejects_password_over_bcrypt_limit_and_unknown_fields(client: TestClient) -> None:
+    payload = {
+        "email": "long-password@example.com",
+        "password": "a" * 73,
+        "full_name": "Long Password",
+        "role": "BUYER",
+    }
+    assert client.post("/auth/register", json=payload).status_code == 422
+    assert (
+        client.post(
+            "/auth/register",
+            json={**payload, "email": "extra-field@example.com", "password": "Secret@123", "id": 1},
+        ).status_code
+        == 422
+    )
+    assert (
+        client.post(
+            "/auth/login",
+            json={"email": "missing@example.com", "password": "a" * 73},
+        ).status_code
+        == 422
+    )
 
 
 def test_shared_role_and_shop_dependencies(db_session: Session) -> None:

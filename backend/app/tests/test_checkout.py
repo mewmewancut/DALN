@@ -102,7 +102,7 @@ def test_checkout_success_deducts_stock_clears_cart_and_records_history(
 ) -> None:
     ctx = seed_cart(db_session, stock=5)
     response = client.post("/orders/checkout", json=CHECKOUT_BODY, headers=ctx["headers"])
-    assert response.status_code == 201
+    assert response.status_code == 200
     body = response.json()
     assert body["status"] == "PENDING"
     assert body["payment_status"] == "UNPAID"
@@ -157,7 +157,7 @@ def test_checkout_keeps_price_snapshot_after_shop_changes_price(
 ) -> None:
     ctx = seed_cart(db_session, stock=5)
     response = client.post("/orders/checkout", json=CHECKOUT_BODY, headers=ctx["headers"])
-    assert response.status_code == 201
+    assert response.status_code == 200
     original_unit_price = response.json()["items"][0]["unit_price"]
 
     ctx["variant"].price = 999999
@@ -173,9 +173,39 @@ def test_checkout_ignores_client_supplied_total_amount(
     db_session: Session, client: TestClient
 ) -> None:
     ctx = seed_cart(db_session, stock=5)
+    assert (
+        client.post(
+            "/orders/checkout",
+            json={**CHECKOUT_BODY, "shop_id": ctx["shop"].id},
+            headers=ctx["headers"],
+        ).status_code
+        == 422
+    )
     tampered = {**CHECKOUT_BODY, "total_amount": 1}
     response = client.post("/orders/checkout", json=tampered, headers=ctx["headers"])
-    assert response.status_code == 422
+    assert response.status_code == 200
+    assert response.json()["total_amount"] == int(ctx["variant"].price) * 2
+
+
+def test_checkout_mock_card_is_paid_and_requires_buyer_role(
+    db_session: Session, client: TestClient
+) -> None:
+    ctx = seed_cart(db_session, stock=5)
+    assert client.post("/orders/checkout", json=CHECKOUT_BODY).status_code == 401
+    assert (
+        client.post(
+            "/orders/checkout", json=CHECKOUT_BODY, headers=ctx["owner_headers"]
+        ).status_code
+        == 403
+    )
+    response = client.post(
+        "/orders/checkout",
+        json={**CHECKOUT_BODY, "payment_method": "MOCK_CARD"},
+        headers=ctx["headers"],
+    )
+    assert response.status_code == 200
+    assert response.json()["payment_status"] == "PAID"
+    assert db_session.get(Order, response.json()["id"]).payment_status == "PAID"
 
 
 def test_checkout_computes_total_from_database_prices(
@@ -183,7 +213,7 @@ def test_checkout_computes_total_from_database_prices(
 ) -> None:
     ctx = seed_cart(db_session, stock=5)
     response = client.post("/orders/checkout", json=CHECKOUT_BODY, headers=ctx["headers"])
-    assert response.status_code == 201
+    assert response.status_code == 200
     assert response.json()["total_amount"] == int(ctx["variant"].price) * 2
 
 
@@ -247,19 +277,96 @@ def test_concurrent_checkout_on_shared_stock_allows_only_one_winner() -> None:
                 barrier.wait(timeout=10)
                 try:
                     checkout(db, buyer, request)
-                    return 201
+                    return 200
                 except HTTPException as error:
                     return error.status_code
 
         with ThreadPoolExecutor(max_workers=2) as pool:
             results = list(pool.map(checkout_concurrently, buyer_ids))
 
-        assert sorted(results) == [201, 409]
+        assert sorted(results) == [200, 409]
         with Session(engine) as db:
             assert (
                 db.scalar(select(Inventory.quantity).where(Inventory.variant_id == variant_id)) == 0
             )
             assert db.scalar(select(func.count()).select_from(Order)) == 1
+    finally:
+        if engine is not None:
+            engine.dispose()
+        with control.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
+        control.dispose()
+
+
+def test_concurrent_checkout_on_same_cart_creates_only_one_order() -> None:
+    schema = f"same_cart_checkout_test_{uuid4().hex}"
+    control = create_engine(get_settings().test_database_url)
+    engine = None
+    try:
+        with control.begin() as connection:
+            connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+        engine = create_engine(
+            get_settings().test_database_url,
+            connect_args={"options": f"-csearch_path={schema}", "connect_timeout": 10},
+        )
+        Base.metadata.create_all(engine)
+        with Session(engine) as setup:
+            owner, _ = user_with_token(setup, "same-cart-owner@example.com", "SHOP_OWNER")
+            buyer, _ = user_with_token(setup, "same-cart-buyer@example.com", "BUYER")
+            shop = Shop(owner_id=owner.id, name="Same Cart Shop")
+            category = Category(name="Same cart category")
+            setup.add_all([shop, category])
+            setup.flush()
+            product = Product(
+                shop_id=shop.id,
+                category_id=category.id,
+                name="Áo same cart",
+                base_price=100000,
+            )
+            setup.add(product)
+            setup.flush()
+            variant = ProductVariant(
+                product_id=product.id,
+                size="M",
+                color="Đen",
+                price=150000,
+                sku=f"same-cart-{uuid4().hex[:8]}",
+            )
+            setup.add(variant)
+            setup.flush()
+            setup.add(Inventory(variant_id=variant.id, shop_id=shop.id, quantity=2))
+            cart = Cart(buyer_id=buyer.id, shop_id=shop.id)
+            setup.add(cart)
+            setup.flush()
+            setup.add(CartItem(cart_id=cart.id, variant_id=variant.id, quantity=1))
+            setup.commit()
+            buyer_id = buyer.id
+            variant_id = variant.id
+
+        barrier = Barrier(2)
+        request = CheckoutRequest(**CHECKOUT_BODY)
+
+        def checkout_same_cart():
+            with Session(engine) as db:
+                db.execute(text("SET LOCAL lock_timeout = '5s'"))
+                buyer = db.get(User, buyer_id)
+                barrier.wait(timeout=10)
+                try:
+                    checkout(db, buyer, request)
+                    return 200
+                except HTTPException as error:
+                    return error.status_code
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _: checkout_same_cart(), range(2)))
+
+        assert sorted(results) == [200, 400]
+        with Session(engine) as db:
+            assert (
+                db.scalar(select(Inventory.quantity).where(Inventory.variant_id == variant_id)) == 1
+            )
+            assert db.scalar(select(func.count()).select_from(Order)) == 1
+            assert db.scalar(select(func.count()).select_from(CartItem)) == 0
     finally:
         if engine is not None:
             engine.dispose()

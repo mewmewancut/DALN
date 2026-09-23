@@ -75,7 +75,7 @@ erDiagram
 
 - Variant thuộc một product.
 - Bộ `(product_id, size, color)` là duy nhất.
-- SKU là duy nhất, bắt buộc và có dạng `P{product_id}-{size}-{color}`; catalog service sinh SKU khi tạo variant.
+- SKU là duy nhất, bắt buộc và có dạng `P{product_id}-{size}-{color}`; catalog service percent-encode dấu `%` và `-` trong size/color trước khi ghép để tránh va chạm giữa các cặp thuộc tính khác nhau.
 - `price` dùng `NUMERIC(12,0)`.
 
 ### `inventory`

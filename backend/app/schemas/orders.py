@@ -1,10 +1,17 @@
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class CheckoutRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="before")
+    @classmethod
+    def discard_client_total(cls, value):
+        if isinstance(value, dict) and "total_amount" in value:
+            value = {key: item for key, item in value.items() if key != "total_amount"}
+        return value
 
     receiver_name: str = Field(min_length=1, max_length=255)
     receiver_phone: str = Field(min_length=1, max_length=20)

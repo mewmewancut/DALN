@@ -15,14 +15,12 @@ from app.schemas.auth import RegisterRequest
 def register_user(db: Session, request: RegisterRequest) -> User:
     if request.role not in ("BUYER", "SHOP_OWNER"):
         raise HTTPException(status_code=400, detail="Vai trò đăng ký không hợp lệ")
-    if (
-        db.scalar(select(User.id).where(func.lower(User.email) == request.email.lower()))
-        is not None
-    ):
+    normalized_email = request.email.lower()
+    if db.scalar(select(User.id).where(func.lower(User.email) == normalized_email)) is not None:
         raise HTTPException(status_code=400, detail="Email đã được sử dụng")
 
     user = User(
-        email=request.email,
+        email=normalized_email,
         password_hash=bcrypt.hashpw(request.password.encode(), bcrypt.gensalt()).decode(),
         full_name=request.full_name,
         role=request.role,

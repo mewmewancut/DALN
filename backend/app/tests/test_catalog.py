@@ -135,7 +135,7 @@ def test_product_creation_writes_variants_and_inventory_together(
     assert client.get(f"/products/{body['id']}").status_code == 200
 
 
-def test_variant_sku_is_collision_safe_when_size_or_color_contains_hyphen(
+def test_variant_sku_is_collision_safe_when_attributes_contain_sku_delimiters(
     db_session: Session, client: TestClient
 ) -> None:
     _, headers = user_with_token(db_session, "owner-sku@example.com", "SHOP_OWNER")
@@ -147,6 +147,8 @@ def test_variant_sku_is_collision_safe_when_size_or_color_contains_hyphen(
     payload["variants"] = [
         {"size": "S-M", "color": "Red", "price": 100000, "initial_quantity": 1},
         {"size": "S", "color": "M-Red", "price": 100000, "initial_quantity": 1},
+        {"size": "S_M", "color": "Red", "price": 100000, "initial_quantity": 1},
+        {"size": "S%2DM", "color": "Red", "price": 100000, "initial_quantity": 1},
     ]
     response = client.post("/products", json=payload, headers=headers)
     assert response.status_code == 201

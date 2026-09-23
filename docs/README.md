@@ -5,7 +5,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 ## Thứ tự đọc đề xuất
 
 1. [`PROPOSAL.md`](PROPOSAL.md) — mục tiêu, phạm vi và kết quả kỳ vọng của đề tài.
-2. [`PLANNING.md`](PLANNING.md) — đặc tả nghiệp vụ, kiến trúc dự kiến, timeline và quy trình thực hiện.
+2. [`PLANNING.md`](PLANNING.md) — đặc tả nghiệp vụ, kiến trúc dự kiến và quy trình thực hiện.
 3. Các tài liệu kỹ thuật bên dưới — mô tả trạng thái hệ thống đã được triển khai thực tế.
 
 ## Danh mục tài liệu
