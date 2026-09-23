@@ -1,9 +1,9 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Planning C0–C4 (auth, shop, catalog, giỏ hàng và checkout)
+**Phạm vi đã triển khai:** Planning C0–C5 (auth, shop, catalog, giỏ hàng, checkout và state machine đơn hàng)
 
-Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C5 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
+Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C6 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
 
 ## Auth
 
@@ -74,3 +74,19 @@ Frontend xử lý theo Planning C3: chỉ sau khi buyer xác nhận xóa giỏ m
 Response gồm `{id, code, shop_id, status, receiver_name, receiver_phone, shipping_address, payment_method, payment_status, total_amount, items}`. `code` sinh dạng `ORD-YYYYMMDD-{id}` theo ngày UTC. `items` là snapshot lúc đặt: `{id, variant_id, product_name, size, color, unit_price, quantity}`. Đơn mới luôn ở `status=PENDING`; `payment_status=PAID` ngay nếu `payment_method=MOCK_CARD`, ngược lại `UNPAID`.
 
 Giỏ rỗng hoặc buyer chưa có giỏ trả `400`. Nếu client gửi `total_amount`, backend bỏ trường này và vẫn tự tính tổng từ giá variant hiện tại trong database; các trường ngoài contract khác bị từ chối với `422`. Nếu bất kỳ item nào không đủ tồn kho, toàn bộ giao dịch rollback (không tạo đơn, không trừ kho item nào khác) và trả `409` với thông báo nêu rõ sản phẩm/size/màu thiếu hàng. Trừ kho dùng `UPDATE` có điều kiện nguyên tử nên hai buyer checkout đồng thời trên cùng variant chỉ một request thành công khi tồn kho chỉ đủ cho một đơn. Buyer và giỏ được khóa trước khi đọc item nên hai checkout đồng thời trên cùng giỏ không thể tạo đơn trùng. Sau khi tạo đơn thành công, giỏ hàng được xóa sạch và `cart.shop_id` đặt về `null`. Quy tắc transaction và tồn kho được mô tả tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#checkout-c4).
+
+## Đơn hàng và state machine
+
+| Method | Path | Quyền | Ghi chú |
+|---|---|---|---|
+| GET | `/orders/my` | BUYER | Danh sách đơn của buyer hiện tại; filter `status`, phân trang bằng `page`, `page_size` |
+| GET | `/orders/{id}` | BUYER/SHOP_OWNER/ADMIN | Buyer chỉ xem đơn của mình; shop chỉ xem đơn thuộc shop lấy từ database; admin xem mọi đơn |
+| GET | `/shop/orders` | SHOP_OWNER | Danh sách đơn thuộc shop hiện tại; filter `status`, phân trang |
+| PATCH | `/orders/{id}/status` | SHOP_OWNER | Body `{status, note?}`; chuyển trạng thái qua state machine |
+| POST | `/orders/{id}/cancel` | BUYER | Body `{reason}`; chỉ hủy đơn `PENDING` của chính buyer |
+
+Danh sách trả `{items, total, page, page_size}`; mỗi item có ID, code, buyer/shop, trạng thái, thanh toán, tổng tiền và thời gian tạo. Chi tiết trả thêm thông tin nhận hàng, item snapshot, thời điểm giao/hủy, lý do hủy và `status_history` theo thứ tự phát sinh.
+
+Các chuyển trạng thái hợp lệ là `PENDING → CONFIRMED → PREPARING → SHIPPING → DELIVERED`; shop có thể chuyển `PENDING` hoặc `CONFIRMED` sang `CANCELLED`. Buyer chỉ có thể hủy từ `PENDING`. Chuyển sai trả `400`; đọc hoặc sửa đơn của tài khoản/shop khác trả `403`; ID không tồn tại trả `404`.
+
+Mọi chuyển trạng thái khóa dòng đơn và ghi `order_status_history` trong cùng transaction. Hủy đơn hoàn lại tồn kho đúng một lần, đặt `cancelled_at` và `cancel_reason`. Giao thành công đặt `delivered_at`; đơn COD được chuyển `payment_status=PAID`. Hai thao tác đồng thời trên cùng đơn được tuần tự hóa, nên chỉ một transition từ trạng thái ban đầu có thể thành công.
