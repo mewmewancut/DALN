@@ -1,7 +1,7 @@
 # Testing
 
 **Trạng thái:** In progress  
-**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2, giỏ hàng C3, checkout C4, state machine đơn hàng C5, tồn kho/cảnh báo hết hàng C6, supplier/nhập hàng C7 và luồng API từ đăng ký đến đăng sản phẩm
+**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15, auth C1, catalog C2, giỏ hàng C3, checkout C4, state machine đơn hàng C5, tồn kho/cảnh báo hết hàng C6, supplier/nhập hàng C7, review C8 và luồng API từ đăng ký đến đăng sản phẩm
 
 Frontend D1 và phần đầu D2 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth và catalog.
 
@@ -89,5 +89,6 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - Tồn kho/cảnh báo C6/F4-28–29: danh sách tồn kho chỉ trả variant của shop hiện tại kèm cờ `is_low`; sửa ngưỡng tính lại `is_low`, từ chối shop khác (`403`), variant không tồn tại (`404`) và ngưỡng âm (`422`); checkout đưa tồn kho xuống dưới ngưỡng sinh đúng một cảnh báo, checkout tiếp theo vẫn dưới ngưỡng không sinh cảnh báo thứ hai; hủy đơn hoàn kho lên trên ngưỡng tự động giải quyết cảnh báo đang mở.
 - Supplier C7: CRUD giới hạn theo shop hiện tại; sửa tên rỗng (`null`) trả `400`; sửa/xóa nhà cung cấp shop khác trả `403`; xóa là soft delete và vẫn hiện trong danh sách quản lý với `is_active=false`.
 - Nhập hàng C7/F4-25–27, F4-30: tạo phiếu với variant hoặc supplier của shop khác trả `403`, không tạo phiếu; `items` trùng `variant_id` trả `422`; `DRAFT→ORDERED→RECEIVED` cộng đúng kho từng variant, đặt `received_at` và tự động giải quyết cảnh báo tồn kho thấp đang mở khi kho vượt ngưỡng; gọi `RECEIVED` lần hai trả `400` và kho không đổi; chuyển trạng thái sai (`RECEIVED` từ `DRAFT`, tiếp tục sau `CANCELLED`) trả `400`; đọc/sửa phiếu của shop khác trả `403`; danh sách phân trang và lọc đúng theo `status`, chỉ trả phiếu của shop hiện tại.
+- Review C8/F5-31–34: review khi đơn chưa `DELIVERED` trả `400`; review order item của buyer khác trả `403`; order item không tồn tại trả `404`; rating ngoài 1–5 trả `422`; review hợp lệ trả `200` và lưu đúng `product_id` suy từ variant; review lần hai cùng order item trả `400`; `GET /products/{id}/reviews` trả đúng tổng số, `rating_average` cập nhật ngay sau review mới và khớp với `rating_average` ở chi tiết sản phẩm; sản phẩm chưa có review trả `rating_average=null`; sản phẩm không tồn tại trả `404`.
 
-Các test F1 phụ thuộc vào API admin/stats và test nghiệp vụ F5–F7 sẽ được bổ sung khi module tương ứng (review C8, admin/stats) được triển khai.
+Các test F1 phụ thuộc vào API admin/stats sẽ được bổ sung khi module đó (C9–C10) được triển khai.

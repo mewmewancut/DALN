@@ -1,7 +1,7 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Giỏ hàng C3, checkout C4, chuyển trạng thái đơn C5, tồn kho/cảnh báo hết hàng C6 và supplier/nhập hàng C7 đã triển khai. Review vẫn là **Planned** theo mục C8 trong [`PLANNING.md`](PLANNING.md).
+**Phạm vi:** Giỏ hàng C3, checkout C4, chuyển trạng thái đơn C5, tồn kho/cảnh báo hết hàng C6, supplier/nhập hàng C7 và review C8 đã triển khai. Shop stats và admin vẫn là **Planned** theo các mục C9–C10 trong [`PLANNING.md`](PLANNING.md).
 
 ## Giỏ hàng C3
 
@@ -45,7 +45,7 @@ Contract endpoint và response nằm tại [`API.md`](API.md#đơn-hàng-và-sta
 
 - `check_low_stock(variant_id)` chỉ được gọi ngay sau khi một transaction trừ kho (checkout C4) đã commit thành công, không nằm trong transaction đó — lỗi khi tạo cảnh báo không thể làm rollback hoặc fail đơn đã đặt.
 - Sinh cảnh báo mới chỉ khi `quantity < low_stock_threshold` **và** variant đó chưa có cảnh báo nào với `is_resolved=false`. Nhờ vậy nhiều lần checkout liên tiếp đưa tồn kho xuống dưới ngưỡng chỉ tạo đúng một cảnh báo đang mở cho mỗi variant.
-- `resolve_alerts_if_ok(variant_id)` chỉ được gọi ngay sau khi một transaction cộng kho (hủy đơn C5; nhận hàng C7 khi triển khai) đã commit thành công. Khi `quantity >= low_stock_threshold`, mọi cảnh báo `is_resolved=false` của variant đó được đặt `is_resolved=true`.
+- `resolve_alerts_if_ok(variant_id)` chỉ được gọi ngay sau khi một transaction cộng kho (hủy đơn C5; nhận hàng C7) đã commit thành công. Khi `quantity >= low_stock_threshold`, mọi cảnh báo `is_resolved=false` của variant đó được đặt `is_resolved=true`.
 - Đổi `low_stock_threshold` chỉ tính lại cờ `is_low` khi đọc (`quantity < low_stock_threshold`); không tự tạo hoặc tự giải quyết cảnh báo tại thời điểm đổi ngưỡng.
 - Mọi endpoint tồn kho/cảnh báo lấy `shop_id` từ `get_current_shop()` (SHOP_OWNER đã đăng nhập); sửa hoặc đọc variant thuộc shop khác trả `403`.
 
@@ -61,3 +61,12 @@ Contract endpoint nằm tại [`API.md`](API.md#tồn-kho-và-cảnh-báo-hết-
 - Đọc/sửa phiếu nhập của shop khác trả `403`; ID không tồn tại trả `404`; chuyển sai trạng thái trả `400`.
 
 Contract endpoint nằm tại [`API.md`](API.md#nhà-cung-cấp) và [`API.md`](API.md#nhập-hàng). Test F4-25, F4-26, F4-27 nằm tại [`TESTING.md`](TESTING.md).
+
+## Review C8
+
+- Thứ tự kiểm tra khi tạo review, đúng theo Planning: order item tồn tại (`404`) → đơn của order item thuộc buyer hiện tại (`403`) → đơn ở trạng thái `DELIVERED` (`400`) → order item chưa có review (`400`). `reviews.order_item_id` có `UNIQUE` ở database (B13) làm chốt chặn cuối cùng nếu code kiểm tra sót, tránh race hai request review cùng lúc tạo hai dòng.
+- `product_id` của review lấy từ `order_item.variant.product_id` trong database, không nhận từ payload — buyer không thể tự gán review cho sản phẩm khác.
+- Rating trung bình sản phẩm không phải cột lưu sẵn; cả `GET /products/{id}` (C2) và `GET /products/{id}/reviews` (C8) đều tính trực tiếp bằng `AVG(rating)` trên bảng `reviews` tại thời điểm đọc, nên luôn nhất quán và tự động cập nhật ngay sau khi có review mới.
+- `GET /products/{id}/reviews` là endpoint public, không lọc theo trạng thái `is_active` của sản phẩm/shop (khác với catalog listing C2) vì review vẫn cần xem được từ trang chi tiết đơn hàng cũ; sản phẩm không tồn tại trả `404`.
+
+Contract endpoint nằm tại [`API.md`](API.md#review). Test F5-31–34 nằm tại [`TESTING.md`](TESTING.md).

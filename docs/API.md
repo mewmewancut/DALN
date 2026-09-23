@@ -1,9 +1,9 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Planning C0–C7 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng và supplier/nhập hàng)
+**Phạm vi đã triển khai:** Planning C0–C8 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng và review)
 
-Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C8 trở đi vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
+Swagger chạy tại `http://localhost:8000/docs`. Các endpoint nghiệp vụ từ C9 trở đi (shop stats, admin) vẫn là `Planned` trong [`PLANNING.md`](PLANNING.md#phần-c--backend-từng-endpoint--pseudocode-chỗ-khó).
 
 ## Auth
 
@@ -131,3 +131,14 @@ Tất cả endpoint dưới đây yêu cầu token `SHOP_OWNER` và chỉ thao t
 `items` không được rỗng và không được trùng `variant_id` trong cùng request (`422` nếu vi phạm). Mọi `variant_id` phải thuộc shop hiện tại và `supplier_id` phải là nhà cung cấp của shop hiện tại, sai một trong hai trả `403`. Phiếu nhập trả `{id, shop_id, supplier_id, status, note, received_at, created_at, items}`; mỗi item có `{id, variant_id, quantity, unit_cost}`.
 
 Chuyển trạng thái hợp lệ là `DRAFT → ORDERED → RECEIVED`; `DRAFT` hoặc `ORDERED` có thể chuyển sang `CANCELLED`. `RECEIVED` và `CANCELLED` là trạng thái cuối. Chỉ khi chuyển sang `RECEIVED` mới cộng kho cho từng variant trong phiếu và đặt `received_at`; vì đây là trạng thái cuối nên gọi lại không cộng kho lần hai. Sau khi cộng kho và commit, backend tự động giải quyết cảnh báo tồn kho thấp cho các variant vừa nhập theo C6. Chuyển sai trạng thái trả `400`; phiếu của shop khác trả `403`; ID không tồn tại trả `404`. Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#supplier-và-nhập-hàng-c7).
+
+## Review
+
+| Method | Path | Quyền | Request | Response thành công |
+|---|---|---|---|---|
+| POST | `/reviews` | BUYER | `order_item_id`, `rating` (1–5), `comment?` | `200` với review vừa tạo |
+| GET | `/products/{id}/reviews` | Public | Phân trang `page`, `page_size` | `200` với `{items, total, page, page_size, rating_average}` |
+
+Review trả `{id, order_item_id, product_id, buyer_id, rating, comment, created_at}`. Backend kiểm tra theo đúng thứ tự: order item tồn tại (`404` nếu không); đơn của order item thuộc buyer hiện tại (`403` nếu không); đơn phải ở trạng thái `DELIVERED` (`400` "Chỉ đánh giá sau khi nhận hàng" nếu chưa); order item chưa có review (`400`, có `UNIQUE(order_item_id)` ở database làm chốt chặn cuối nếu code check sót). `rating` ngoài khoảng 1–5 trả `422`.
+
+`GET /products/{id}/reviews` trả `rating_average=null` khi sản phẩm chưa có review nào; sản phẩm không tồn tại trả `404`. `rating_average` ở `GET /products/{id}` (C2) dùng cùng một truy vấn `AVG(rating)` nên luôn khớp với trang review. Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#review-c8).

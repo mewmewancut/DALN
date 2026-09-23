@@ -16,8 +16,8 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`PLANNING.md`](PLANNING.md) | Có sẵn | Kế hoạch và đặc tả triển khai |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | In progress | Thành phần backend/frontend đã chạy và ranh giới với phần còn planned |
 | [`DATABASE.md`](DATABASE.md) | Implemented | Schema, quan hệ, constraint, migration và seed data |
-| [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến giỏ hàng C3, checkout C4, state machine C5, tồn kho/cảnh báo C6 và supplier/nhập hàng C7; nghiệp vụ C8 còn planned |
-| [`API.md`](API.md) | In progress | Auth, shop, catalog, giỏ hàng, checkout, đơn hàng, tồn kho/cảnh báo, supplier/nhập hàng, role và error contract; các endpoint từ C8 còn planned |
+| [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến giỏ hàng C3, checkout C4, state machine C5, tồn kho/cảnh báo C6, supplier/nhập hàng C7 và review C8; shop stats/admin C9–C10 còn planned |
+| [`API.md`](API.md) | In progress | Auth, shop, catalog, giỏ hàng, checkout, đơn hàng, tồn kho/cảnh báo, supplier/nhập hàng, review, role và error contract; các endpoint từ C9 còn planned |
 | `DATA_PLATFORM.md` | Planned | Lakebase, Medallion, metric và data quality |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |
 | [`TESTING.md`](TESTING.md) | In progress | Các lớp test hiện có, hook pre-commit và hướng dẫn chạy |
