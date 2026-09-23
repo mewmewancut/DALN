@@ -8,7 +8,12 @@ from app.routers.cart import router as cart_router
 from app.routers.inventory import router as inventory_router
 from app.routers.orders import router as orders_router
 from app.routers.orders import shop_router as shop_orders_router
-from app.routers.products import category_router, product_router, variant_router
+from app.routers.products import (
+    category_router,
+    product_router,
+    shop_product_router,
+    variant_router,
+)
 from app.routers.purchase_orders import router as purchase_orders_router
 from app.routers.reviews import product_router as product_review_router
 from app.routers.reviews import router as reviews_router
@@ -39,6 +44,7 @@ app.include_router(product_review_router)
 app.include_router(shop_stats_router)
 app.include_router(shops_router)
 app.include_router(category_router)
+app.include_router(shop_product_router)
 app.include_router(product_router)
 app.include_router(variant_router)
 

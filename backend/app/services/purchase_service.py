@@ -57,7 +57,12 @@ def _with_items(db: Session, po_id: int) -> PurchaseOrder | None:
 def create_purchase_order(
     db: Session, shop_id: int, request: PurchaseOrderCreate
 ) -> PurchaseOrderResponse:
-    supplier = get_owned_supplier_or_403(db, request.supplier_id, shop_id)
+    supplier = get_owned_supplier_or_403(
+        db,
+        request.supplier_id,
+        shop_id,
+        require_active=True,
+    )
 
     variant_ids = [item.variant_id for item in request.items]
     variants_by_id = {

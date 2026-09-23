@@ -12,6 +12,15 @@ from app.schemas.inventory import InventoryItemResponse, LowStockAlertResponse
 logger = logging.getLogger(__name__)
 
 
+def _locked_inventory(db: Session, variant_id: int) -> Inventory | None:
+    return db.scalar(
+        select(Inventory)
+        .where(Inventory.variant_id == variant_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+
+
 def _inventory_item(
     inventory: Inventory, variant: ProductVariant, product: Product
 ) -> InventoryItemResponse:
@@ -94,7 +103,7 @@ def check_low_stock(db: Session, variant_id: int) -> None:
 
 
 def _check_low_stock(db: Session, variant_id: int) -> None:
-    inventory = db.scalar(select(Inventory).where(Inventory.variant_id == variant_id))
+    inventory = _locked_inventory(db, variant_id)
     if inventory is None or inventory.quantity >= inventory.low_stock_threshold:
         return
     exists = db.scalar(
@@ -131,7 +140,7 @@ def resolve_alerts_if_ok(db: Session, variant_id: int) -> None:
 
 
 def _resolve_alerts_if_ok(db: Session, variant_id: int) -> None:
-    inventory = db.scalar(select(Inventory).where(Inventory.variant_id == variant_id))
+    inventory = _locked_inventory(db, variant_id)
     if inventory is None or inventory.quantity < inventory.low_stock_threshold:
         return
     db.execute(

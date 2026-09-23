@@ -23,12 +23,20 @@ def list_suppliers(db: Session, shop_id: int) -> list[SupplierResponse]:
     return [_response(supplier) for supplier in suppliers]
 
 
-def get_owned_supplier_or_403(db: Session, supplier_id: int, shop_id: int) -> Supplier:
+def get_owned_supplier_or_403(
+    db: Session,
+    supplier_id: int,
+    shop_id: int,
+    *,
+    require_active: bool = False,
+) -> Supplier:
     supplier = db.get(Supplier, supplier_id)
     if supplier is None:
         raise HTTPException(status_code=404, detail="Nhà cung cấp không tồn tại")
     if supplier.shop_id != shop_id:
         raise HTTPException(status_code=403, detail="Nhà cung cấp không thuộc shop của bạn")
+    if require_active and not supplier.is_active:
+        raise HTTPException(status_code=400, detail="Nhà cung cấp đã ngừng hoạt động")
     return supplier
 
 

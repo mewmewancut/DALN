@@ -79,3 +79,10 @@ class ProductPage(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class ShopProductPage(BaseModel):
+    items: list[ProductDetail]
+    total: int
+    page: int
+    page_size: int

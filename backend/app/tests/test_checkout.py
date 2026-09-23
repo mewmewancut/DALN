@@ -109,6 +109,7 @@ def test_checkout_success_deducts_stock_clears_cart_and_records_history(
     assert body["total_amount"] == 150000 * 2
     assert len(body["items"]) == 1
     assert body["items"][0]["quantity"] == 2
+    assert body["items"][0]["review_id"] is None
 
     assert (
         db_session.scalar(
@@ -215,6 +216,35 @@ def test_checkout_computes_total_from_database_prices(
     response = client.post("/orders/checkout", json=CHECKOUT_BODY, headers=ctx["headers"])
     assert response.status_code == 200
     assert response.json()["total_amount"] == int(ctx["variant"].price) * 2
+
+
+@pytest.mark.parametrize("target", ["variant", "product", "shop"])
+def test_checkout_rejects_catalog_item_hidden_after_it_was_added(
+    target: str, db_session: Session, client: TestClient
+) -> None:
+    ctx = seed_cart(db_session, stock=5)
+    entity = {
+        "variant": ctx["variant"],
+        "product": ctx["product"],
+        "shop": ctx["shop"],
+    }[target]
+    entity.is_active = False
+    db_session.commit()
+
+    response = client.post("/orders/checkout", json=CHECKOUT_BODY, headers=ctx["headers"])
+
+    assert response.status_code == 409
+    assert "không còn bán" in response.json()["detail"]
+    assert db_session.scalar(select(func.count()).select_from(Order)) == 0
+    assert (
+        db_session.scalar(
+            select(Inventory.quantity).where(Inventory.variant_id == ctx["variant"].id)
+        )
+        == 5
+    )
+    assert (
+        db_session.scalar(select(CartItem.quantity).where(CartItem.cart_id == ctx["cart"].id)) == 2
+    )
 
 
 def test_concurrent_checkout_on_shared_stock_allows_only_one_winner() -> None:

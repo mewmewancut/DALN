@@ -10,6 +10,7 @@ from app.models.cart import Cart, CartItem
 from app.models.catalog import Product, ProductVariant
 from app.models.inventory import Inventory
 from app.models.order import Order, OrderItem, OrderStatusHistory
+from app.models.shop import Shop
 from app.models.user import User
 from app.schemas.orders import CheckoutRequest, OrderItemResponse, OrderResponse
 from app.services import inventory_service
@@ -36,6 +37,7 @@ def _order_response(order: Order) -> OrderResponse:
                 color=item.color,
                 unit_price=int(item.unit_price),
                 quantity=item.quantity,
+                review_id=None,
             )
             for item in order.items
         ],
@@ -88,17 +90,29 @@ def checkout(db: Session, buyer: User, request: CheckoutRequest) -> OrderRespons
             variant = db.scalar(
                 select(ProductVariant)
                 .join(Product)
-                .where(ProductVariant.id == cart_item.variant_id)
+                .join(Shop, Product.shop_id == Shop.id)
+                .where(
+                    ProductVariant.id == cart_item.variant_id,
+                    ProductVariant.is_active.is_(True),
+                    Product.is_active.is_(True),
+                    Product.shop_id == cart.shop_id,
+                    Shop.is_active.is_(True),
+                )
+                .with_for_update(read=True)
                 .execution_options(populate_existing=True)
             )
             if variant is None:
-                raise HTTPException(status_code=409, detail="Sản phẩm không còn tồn tại")
+                raise HTTPException(
+                    status_code=409,
+                    detail="Sản phẩm không còn bán hoặc shop đã bị khóa",
+                )
 
             # Trừ kho bằng UPDATE có điều kiện — atomic, chống race condition.
             result = db.execute(
                 update(Inventory)
                 .where(
                     Inventory.variant_id == cart_item.variant_id,
+                    Inventory.shop_id == cart.shop_id,
                     Inventory.quantity >= cart_item.quantity,
                 )
                 .values(quantity=Inventory.quantity - cart_item.quantity)

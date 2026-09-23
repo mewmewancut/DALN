@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.catalog import Category, Product, ProductVariant
 from app.models.inventory import Inventory
@@ -13,6 +13,7 @@ from app.schemas.catalog import (
     ProductPage,
     ProductSummary,
     ProductUpdate,
+    ShopProductPage,
     VariantCreate,
     VariantResponse,
     VariantUpdate,
@@ -175,19 +176,12 @@ def _rating_average(db: Session, product_id: int) -> float | None:
     return float(rating) if rating is not None else None
 
 
-def get_product_detail(db: Session, product_id: int, *, public: bool = True) -> ProductDetail:
-    product = db.get(Product, product_id)
-    if product is None or (public and (not product.is_active or not product.shop.is_active)):
-        raise HTTPException(status_code=404, detail="Sản phẩm không tồn tại")
-    variants = list(
-        db.scalars(
-            select(ProductVariant)
-            .where(ProductVariant.product_id == product.id)
-            .order_by(ProductVariant.id)
-        )
-    )
-    visible_variants = [v for v in variants if not public or v.is_active]
-    prices = [int(v.price) for v in variants if v.is_active]
+def _product_detail_response(
+    product: Product, *, public: bool, rating_average: float | None
+) -> ProductDetail:
+    variants = sorted(product.variants, key=lambda variant: variant.id)
+    visible_variants = [variant for variant in variants if not public or variant.is_active]
+    prices = [int(variant.price) for variant in variants if variant.is_active]
     return ProductDetail(
         id=product.id,
         shop_id=product.shop_id,
@@ -198,9 +192,79 @@ def get_product_detail(db: Session, product_id: int, *, public: bool = True) -> 
         image_url=product.image_url,
         base_price=product.base_price,
         price_from=min(prices) if prices else None,
-        rating_average=_rating_average(db, product.id),
+        rating_average=rating_average,
         is_active=product.is_active,
-        variants=[_variant_response(v) for v in visible_variants],
+        variants=[_variant_response(variant) for variant in visible_variants],
+    )
+
+
+def _product_load_options():
+    return (
+        joinedload(Product.shop),
+        selectinload(Product.variants).selectinload(ProductVariant.inventory),
+    )
+
+
+def get_product_detail(db: Session, product_id: int, *, public: bool = True) -> ProductDetail:
+    product = db.scalar(
+        select(Product).options(*_product_load_options()).where(Product.id == product_id)
+    )
+    if product is None or (public and (not product.is_active or not product.shop.is_active)):
+        raise HTTPException(status_code=404, detail="Sản phẩm không tồn tại")
+    return _product_detail_response(
+        product,
+        public=public,
+        rating_average=_rating_average(db, product.id),
+    )
+
+
+def list_shop_products(
+    db: Session,
+    shop_id: int,
+    *,
+    keyword: str | None,
+    is_active: bool | None,
+    page: int,
+    page_size: int,
+) -> ShopProductPage:
+    filters = [Product.shop_id == shop_id]
+    if keyword:
+        filters.append(Product.name.ilike(f"%{keyword}%"))
+    if is_active is not None:
+        filters.append(Product.is_active.is_(is_active))
+
+    total = db.scalar(select(func.count()).select_from(Product).where(*filters)) or 0
+    products = list(
+        db.scalars(
+            select(Product)
+            .options(*_product_load_options())
+            .where(*filters)
+            .order_by(Product.created_at.desc(), Product.id.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+    )
+    product_ids = [product.id for product in products]
+    ratings_by_product = {
+        product_id: float(rating)
+        for product_id, rating in db.execute(
+            select(Review.product_id, func.avg(Review.rating))
+            .where(Review.product_id.in_(product_ids))
+            .group_by(Review.product_id)
+        )
+    }
+    return ShopProductPage(
+        items=[
+            _product_detail_response(
+                product,
+                public=False,
+                rating_average=ratings_by_product.get(product.id),
+            )
+            for product in products
+        ],
+        total=total,
+        page=page,
+        page_size=page_size,
     )
 
 

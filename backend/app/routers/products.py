@@ -11,6 +11,7 @@ from app.schemas.catalog import (
     ProductDetail,
     ProductPage,
     ProductUpdate,
+    ShopProductPage,
     VariantCreate,
     VariantResponse,
     VariantUpdate,
@@ -21,6 +22,7 @@ from app.services.catalog_service import (
     get_product_detail,
     list_categories,
     list_products,
+    list_shop_products,
     remove_product,
     update_product,
     update_variant,
@@ -29,6 +31,7 @@ from app.services.catalog_service import (
 category_router = APIRouter(prefix="/categories", tags=["catalog"])
 product_router = APIRouter(prefix="/products", tags=["catalog"])
 variant_router = APIRouter(prefix="/variants", tags=["catalog"])
+shop_product_router = APIRouter(prefix="/shop/products", tags=["catalog"])
 
 
 @category_router.get("", response_model=list[CategoryResponse])
@@ -64,6 +67,25 @@ def products(
 @product_router.get("/{product_id}", response_model=ProductDetail)
 def product_detail(product_id: int, db: Annotated[Session, Depends(get_db)]) -> ProductDetail:
     return get_product_detail(db, product_id)
+
+
+@shop_product_router.get("", response_model=ShopProductPage)
+def shop_products(
+    shop: Annotated[Shop, Depends(get_current_shop)],
+    db: Annotated[Session, Depends(get_db)],
+    keyword: str | None = None,
+    is_active: bool | None = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+) -> ShopProductPage:
+    return list_shop_products(
+        db,
+        shop.id,
+        keyword=keyword,
+        is_active=is_active,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @product_router.post("", response_model=ProductDetail, status_code=status.HTTP_201_CREATED)

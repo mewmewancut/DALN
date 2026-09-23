@@ -1,16 +1,24 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
+import { useAuth } from "../auth/AuthContext.jsx";
 import SiteLayout from "../components/SiteLayout.jsx";
 import { formatCurrency } from "../components/formatCurrency.js";
+import { formatDateTime } from "../components/orderPresentation.js";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { session } = useAuth();
   const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState({ items: [], total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cartMessage, setCartMessage] = useState("");
+  const [adding, setAdding] = useState(false);
+  const [differentShop, setDifferentShop] = useState(null);
   const [color, setColor] = useState("");
   const [size, setSize] = useState("");
 
@@ -21,17 +29,31 @@ export default function ProductDetailPage() {
     setProduct(null);
     setColor("");
     setSize("");
-    client
-      .get(`/products/${id}`)
-      .then((response) => {
-        if (active) setProduct(response.data);
-      })
-      .catch((requestError) => {
+    async function loadProduct() {
+      try {
+        const response = await client.get(`/products/${id}`);
+        if (!active) return;
+        setProduct(response.data);
+        try {
+          const reviewResponse = await client.get(`/products/${id}/reviews`, {
+            params: { page: 1, page_size: 20 },
+          });
+          if (active) {
+            setReviews({
+              items: Array.isArray(reviewResponse.data.items) ? reviewResponse.data.items : [],
+              total: Number(reviewResponse.data.total) || 0,
+            });
+          }
+        } catch (requestError) {
+          if (active) setError(`Không tải được đánh giá: ${errorMessage(requestError)}`);
+        }
+      } catch (requestError) {
         if (active) setError(errorMessage(requestError));
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    }
+    loadProduct();
     return () => {
       active = false;
     };
@@ -45,6 +67,46 @@ export default function ProductDetailPage() {
   const selectedVariant = variants.find(
     (variant) => variant.color === color && variant.size === size,
   );
+
+  async function addSelectedVariant() {
+    if (!session) {
+      navigate("/login");
+      return;
+    }
+    setAdding(true);
+    setError("");
+    setCartMessage("");
+    try {
+      await client.post("/cart/items", { variant_id: selectedVariant.id, quantity: 1 });
+      setCartMessage("Đã thêm sản phẩm vào giỏ hàng.");
+    } catch (requestError) {
+      if (requestError.response?.status === 409 && requestError.response?.data?.current_shop) {
+        setDifferentShop({
+          message: errorMessage(requestError),
+          currentShop: requestError.response.data.current_shop,
+        });
+      } else {
+        setError(errorMessage(requestError));
+      }
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function replaceCart() {
+    setAdding(true);
+    setError("");
+    try {
+      await client.delete("/cart");
+      await client.post("/cart/items", { variant_id: selectedVariant.id, quantity: 1 });
+      setDifferentShop(null);
+      setCartMessage("Đã thay giỏ hàng và thêm sản phẩm.");
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+    } finally {
+      setAdding(false);
+    }
+  }
 
   return (
     <SiteLayout wide>
@@ -124,10 +186,14 @@ export default function ProductDetailPage() {
                     : "Hết hàng"}
                 </p>
               )}
-              <button type="button" disabled>
-                Thêm vào giỏ
+              <button
+                type="button"
+                disabled={!selectedVariant || selectedVariant.quantity <= 0 || adding}
+                onClick={addSelectedVariant}
+              >
+                {adding ? "Đang thêm..." : "Thêm vào giỏ"}
               </button>
-              <p className="muted">Tính năng giỏ hàng đang được hoàn thiện.</p>
+              {cartMessage && <p role="status">{cartMessage}</p>}
             </div>
           </div>
           <section className="reviews" aria-label="Đánh giá sản phẩm">
@@ -138,9 +204,43 @@ export default function ProductDetailPage() {
                 ? "Chưa có đánh giá"
                 : Number(product.rating_average).toFixed(1)}
             </p>
-            <p className="muted">Danh sách đánh giá sẽ khả dụng khi API review được triển khai.</p>
+            {reviews.items.length === 0 ? (
+              <p className="muted">Chưa có nhận xét nào.</p>
+            ) : (
+              <div className="review-list">
+                {reviews.items.map((review) => (
+                  <article key={review.id}>
+                    <strong>{review.rating}/5 sao</strong>
+                    <span>{formatDateTime(review.created_at)}</span>
+                    {review.comment && <p>{review.comment}</p>}
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         </>
+      )}
+      {differentShop && (
+        <div className="dialog-backdrop">
+          <section
+            className="dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Đổi shop trong giỏ"
+          >
+            <h2>Giỏ hàng đang có sản phẩm khác shop</h2>
+            <p>{differentShop.message}</p>
+            <p>Shop hiện tại: {differentShop.currentShop.name}</p>
+            <div className="dialog-actions">
+              <button type="button" onClick={() => setDifferentShop(null)}>
+                Giữ giỏ hiện tại
+              </button>
+              <button type="button" disabled={adding} onClick={replaceCart}>
+                Xóa giỏ và thêm
+              </button>
+            </div>
+          </section>
+        </div>
       )}
     </SiteLayout>
   );

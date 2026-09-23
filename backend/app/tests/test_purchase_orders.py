@@ -153,6 +153,23 @@ def test_create_purchase_order_rejects_nonexistent_supplier_and_variant_with_404
     )
 
 
+def test_create_purchase_order_rejects_inactive_supplier(
+    db_session: Session, client: TestClient
+) -> None:
+    ctx = seed_shop(db_session)
+    ctx["supplier"].is_active = False
+    db_session.commit()
+
+    response = client.post(
+        "/shop/purchase-orders",
+        json=po_body(ctx["supplier"].id, ctx["variant"].id),
+        headers=ctx["headers"],
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Nhà cung cấp đã ngừng hoạt động"
+
+
 def test_ordered_to_received_adds_stock_once_and_resolves_alert(
     db_session: Session, client: TestClient
 ) -> None:

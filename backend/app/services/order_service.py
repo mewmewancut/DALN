@@ -68,6 +68,7 @@ def _detail(order: Order) -> OrderDetailResponse:
                 color=item.color,
                 unit_price=int(item.unit_price),
                 quantity=item.quantity,
+                review_id=item.review.id if item.review is not None else None,
             )
             for item in order.items
         ],
@@ -88,7 +89,10 @@ def _detail(order: Order) -> OrderDetailResponse:
 def _order_with_details(db: Session, order_id: int) -> Order | None:
     return db.scalar(
         select(Order)
-        .options(selectinload(Order.items), selectinload(Order.status_history))
+        .options(
+            selectinload(Order.items).selectinload(OrderItem.review),
+            selectinload(Order.status_history),
+        )
         .where(Order.id == order_id)
         .execution_options(populate_existing=True)
     )

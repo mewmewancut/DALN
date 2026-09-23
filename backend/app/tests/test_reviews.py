@@ -82,6 +82,10 @@ def test_review_valid_then_duplicate_rejected_and_rating_average_updates(
     deliver_order(client, context)
     order_item_id = context["order"]["items"][0]["id"]
     product_id = context["product"].id
+    before_review = client.get(
+        f"/orders/{context['order']['id']}", headers=context["headers"]
+    ).json()
+    assert before_review["items"][0]["review_id"] is None
 
     created = client.post(
         "/reviews",
@@ -93,6 +97,10 @@ def test_review_valid_then_duplicate_rejected_and_rating_average_updates(
     assert body["product_id"] == product_id
     assert body["rating"] == 4
     assert body["buyer_id"] == context["buyer"].id
+    after_review = client.get(
+        f"/orders/{context['order']['id']}", headers=context["headers"]
+    ).json()
+    assert after_review["items"][0]["review_id"] == body["id"]
 
     duplicate = client.post(
         "/reviews",

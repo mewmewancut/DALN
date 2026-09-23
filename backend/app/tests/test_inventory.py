@@ -1,11 +1,11 @@
 from collections.abc import Generator
 from concurrent.futures import ThreadPoolExecutor
-from threading import Barrier
+from threading import Barrier, Event
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, func, select, text
+from sqlalchemy import create_engine, func, select, text, update
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -310,6 +310,129 @@ def test_concurrent_check_low_stock_creates_only_one_open_alert() -> None:
                 )
             )
             assert open_alerts == 1
+    finally:
+        if engine is not None:
+            engine.dispose()
+        with control.begin() as connection:
+            connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
+        control.dispose()
+
+
+def test_alert_resolution_serializes_with_concurrent_stock_decrement() -> None:
+    schema = f"alert_resolution_race_test_{uuid4().hex}"
+    control = create_engine(get_settings().test_database_url)
+    engine = None
+    try:
+        with control.begin() as connection:
+            connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+        engine = create_engine(
+            get_settings().test_database_url,
+            connect_args={"options": f"-csearch_path={schema}", "connect_timeout": 10},
+        )
+        Base.metadata.create_all(engine)
+        with Session(engine) as setup:
+            owner, _ = user_with_token(setup, "resolve-race-owner@example.com", "SHOP_OWNER")
+            shop = Shop(owner_id=owner.id, name="Resolve Race Shop")
+            category = Category(name="Resolve race category")
+            setup.add_all([shop, category])
+            setup.flush()
+            product = Product(
+                shop_id=shop.id,
+                category_id=category.id,
+                name="Áo resolve race",
+                base_price=100000,
+            )
+            setup.add(product)
+            setup.flush()
+            variant = ProductVariant(
+                product_id=product.id,
+                size="M",
+                color="Đen",
+                price=100000,
+                sku=f"resolve-race-{uuid4().hex[:8]}",
+            )
+            setup.add(variant)
+            setup.flush()
+            setup.add(
+                Inventory(
+                    variant_id=variant.id,
+                    shop_id=shop.id,
+                    quantity=5,
+                    low_stock_threshold=5,
+                )
+            )
+            setup.add(
+                LowStockAlert(
+                    variant_id=variant.id,
+                    shop_id=shop.id,
+                    quantity_at_alert=2,
+                )
+            )
+            setup.commit()
+            variant_id = variant.id
+
+        inventory_locked = Event()
+        release_resolver = Event()
+        decrement_started = Event()
+        decrement_finished = Event()
+
+        class PausingSession:
+            def __init__(self, session: Session):
+                self.session = session
+
+            def scalar(self, statement):
+                value = self.session.scalar(statement)
+                inventory_locked.set()
+                if not release_resolver.wait(timeout=10):
+                    raise TimeoutError("Không nhận được tín hiệu tiếp tục resolver")
+                return value
+
+            def __getattr__(self, name):
+                return getattr(self.session, name)
+
+        def resolve_open_alert() -> None:
+            with Session(engine) as db:
+                db.execute(text("SET LOCAL lock_timeout = '5s'"))
+                inventory_service.resolve_alerts_if_ok(PausingSession(db), variant_id)
+
+        def decrement_and_check_low_stock() -> None:
+            if not inventory_locked.wait(timeout=10):
+                raise TimeoutError("Resolver chưa khóa inventory")
+            with Session(engine) as db:
+                db.execute(text("SET LOCAL lock_timeout = '5s'"))
+                decrement_started.set()
+                db.execute(
+                    update(Inventory).where(Inventory.variant_id == variant_id).values(quantity=2)
+                )
+                db.commit()
+                decrement_finished.set()
+                inventory_service.check_low_stock(db, variant_id)
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            resolver = pool.submit(resolve_open_alert)
+            assert inventory_locked.wait(timeout=10)
+            decrement = pool.submit(decrement_and_check_low_stock)
+            assert decrement_started.wait(timeout=10)
+            assert not decrement_finished.wait(timeout=0.3)
+            release_resolver.set()
+            resolver.result(timeout=10)
+            decrement.result(timeout=10)
+
+        with Session(engine) as db:
+            assert (
+                db.scalar(select(Inventory.quantity).where(Inventory.variant_id == variant_id)) == 2
+            )
+            assert (
+                db.scalar(
+                    select(func.count())
+                    .select_from(LowStockAlert)
+                    .where(
+                        LowStockAlert.variant_id == variant_id,
+                        LowStockAlert.is_resolved.is_(False),
+                    )
+                )
+                == 1
+            )
     finally:
         if engine is not None:
             engine.dispose()

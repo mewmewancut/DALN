@@ -14,9 +14,20 @@ export default function SiteLayout({ children, wide = false }) {
           </Link>
           <nav aria-label="Tài khoản">
             {session ? (
-              <button type="button" onClick={logout}>
-                Đăng xuất
-              </button>
+              <>
+                {session.role === "BUYER" && (
+                  <>
+                    <Link to="/">Sản phẩm</Link>
+                    <Link to="/cart">Giỏ hàng</Link>
+                    <Link to="/orders">Đơn hàng</Link>
+                  </>
+                )}
+                {session.role === "SHOP_OWNER" && <Link to="/shop/dashboard">Quản lý shop</Link>}
+                {session.role === "ADMIN" && <Link to="/admin/dashboard">Quản trị</Link>}
+                <button type="button" onClick={logout}>
+                  Đăng xuất
+                </button>
+              </>
             ) : (
               <>
                 <Link to="/login">Đăng nhập</Link>

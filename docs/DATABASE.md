@@ -109,7 +109,7 @@ erDiagram
 - Trạng thái đơn, phương thức thanh toán và trạng thái thanh toán bị giới hạn theo Planning B10.
 - `order_items` lưu snapshot tên sản phẩm, size, màu và đơn giá; số lượng phải lớn hơn `0`.
 - Dòng lịch sử đầu tiên cho phép `from_status=NULL`; người thay đổi được liên kết với `users`.
-- State machine và việc bắt buộc ghi lịch sử trong cùng transaction sẽ được triển khai ở Planning C5.
+- State machine và việc bắt buộc ghi lịch sử trong cùng transaction được bảo đảm bởi `order_service.transition_order()` theo Planning C5.
 
 ### `reviews`
 
@@ -138,4 +138,4 @@ docker compose --env-file .env.example exec -T backend alembic current
 
 `python -m app.seed` tạo dữ liệu demo idempotent theo Planning B15. Mật khẩu được hash bằng bcrypt; SKU theo đúng định dạng của B5; đơn hàng mới được rải trong 30 ngày tính từ ngày chạy. Chạy lại, kể cả vào ngày khác, không nhân đôi dữ liệu.
 
-Các invariant cần transaction hoặc kiểm tra quyền sẽ được triển khai trong service tương ứng ở phần C.
+Các invariant cần transaction hoặc kiểm tra quyền đã được triển khai trong service tương ứng ở phần C; tài liệu chi tiết nằm trong [`BUSINESS_RULES.md`](BUSINESS_RULES.md).

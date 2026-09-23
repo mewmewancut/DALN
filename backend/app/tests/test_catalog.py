@@ -242,6 +242,64 @@ def test_owner_isolation_variant_updates_and_soft_delete(
     assert client.get(f"/products/{product_id}").status_code == 200
 
 
+def test_shop_product_list_includes_inactive_products_and_variants_for_owner(
+    db_session: Session, client: TestClient
+) -> None:
+    _, owner_headers = user_with_token(db_session, "owner-shop-list@example.com", "SHOP_OWNER")
+    _, other_headers = user_with_token(db_session, "other-shop-list@example.com", "SHOP_OWNER")
+    _, buyer_headers = user_with_token(db_session, "buyer-shop-list@example.com", "BUYER")
+    client.post("/shops", json={"name": "Shop list"}, headers=owner_headers)
+    client.post("/shops", json={"name": "Other shop list"}, headers=other_headers)
+    category = Category(name="Shop product list")
+    db_session.add(category)
+    db_session.flush()
+
+    active = client.post(
+        "/products",
+        json=product_payload(category.id, "Sản phẩm đang bán"),
+        headers=owner_headers,
+    ).json()
+    hidden = client.post(
+        "/products",
+        json=product_payload(category.id, "Sản phẩm đã ẩn"),
+        headers=owner_headers,
+    ).json()
+    other = client.post(
+        "/products",
+        json=product_payload(category.id, "Sản phẩm shop khác"),
+        headers=other_headers,
+    ).json()
+    client.put(
+        f"/variants/{hidden['variants'][0]['id']}",
+        json={"is_active": False},
+        headers=owner_headers,
+    )
+    client.delete(f"/products/{hidden['id']}", headers=owner_headers)
+
+    response = client.get("/shop/products", headers=owner_headers)
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 2
+    assert {item["id"] for item in body["items"]} == {active["id"], hidden["id"]}
+    hidden_item = next(item for item in body["items"] if item["id"] == hidden["id"])
+    assert hidden_item["is_active"] is False
+    assert len(hidden_item["variants"]) == 2
+    assert any(variant["is_active"] is False for variant in hidden_item["variants"])
+    assert other["id"] not in {item["id"] for item in body["items"]}
+
+    inactive = client.get(
+        "/shop/products",
+        params={"is_active": False, "keyword": "đã ẩn"},
+        headers=owner_headers,
+    )
+    assert inactive.status_code == 200
+    assert inactive.json()["total"] == 1
+    assert inactive.json()["items"][0]["id"] == hidden["id"]
+    assert client.get("/shop/products", headers=other_headers).json()["total"] == 1
+    assert client.get("/shop/products").status_code == 401
+    assert client.get("/shop/products", headers=buyer_headers).status_code == 403
+
+
 def test_public_search_filters_sort_pagination_and_rating(
     db_session: Session, client: TestClient
 ) -> None:

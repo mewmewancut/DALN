@@ -28,6 +28,7 @@ class OrderItemResponse(BaseModel):
     color: str
     unit_price: int
     quantity: int
+    review_id: int | None
 
 
 class OrderResponse(BaseModel):
