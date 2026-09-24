@@ -206,6 +206,30 @@ it("sửa và xóa item trong giỏ, đồng thời chặn số lượng vượt
   expect(container.textContent).toContain("Giỏ hàng đang trống");
 });
 
+it("không báo giỏ trống khi request tải giỏ hàng thất bại", async () => {
+  vi.spyOn(client, "get").mockRejectedValue({
+    response: { data: { detail: "Không tải được giỏ hàng" } },
+  });
+
+  await renderAt("/cart");
+
+  expect(container.querySelector('[role="alert"]').textContent).toBe("Không tải được giỏ hàng");
+  expect(container.textContent).not.toContain("Giỏ hàng đang trống");
+});
+
+it("không báo giỏ trống trên checkout khi request tải giỏ hàng thất bại", async () => {
+  vi.spyOn(client, "get").mockRejectedValue({
+    response: { data: { detail: "Không kiểm tra được giỏ hàng" } },
+  });
+
+  await renderAt("/checkout");
+
+  expect(container.querySelector('[role="alert"]').textContent).toBe(
+    "Không kiểm tra được giỏ hàng",
+  );
+  expect(container.textContent).not.toContain("Giỏ hàng đang trống, chưa thể thanh toán");
+});
+
 it("hiện lỗi thiếu hàng từ checkout rồi chuyển tới chi tiết đơn khi thử lại thành công", async () => {
   const get = vi.spyOn(client, "get").mockImplementation(async (url) => {
     if (url === "/cart") return { data: cart };
@@ -269,6 +293,68 @@ it("lọc đơn theo trạng thái và chỉ cho hủy đơn PENDING với lý d
   await fill("Lý do hủy", "Đổi ý");
   await click("Xác nhận hủy");
   expect(post).toHaveBeenCalledWith("/orders/7/cancel", { reason: "Đổi ý" });
+});
+
+it("khóa thao tác trong lúc đang gửi yêu cầu hủy đơn", async () => {
+  const pending = {
+    id: 7,
+    code: "ORD-PENDING",
+    status: "PENDING",
+    payment_method: "COD",
+    payment_status: "UNPAID",
+    total_amount: 120000,
+    created_at: "2026-09-23T01:00:00Z",
+  };
+  vi.spyOn(client, "get").mockResolvedValue({
+    data: { items: [pending], total: 1, page: 1, page_size: 20 },
+  });
+  let finishCancellation;
+  const post = vi.spyOn(client, "post").mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finishCancellation = resolve;
+      }),
+  );
+
+  await renderAt("/orders");
+  await click("Hủy đơn");
+  await fill("Lý do hủy", "Đổi ý");
+  await click("Xác nhận hủy");
+
+  expect(button("Đang hủy...").disabled).toBe(true);
+  expect(button("Giữ đơn").disabled).toBe(true);
+  expect(post).toHaveBeenCalledTimes(1);
+
+  await act(async () => finishCancellation({ data: { ...pending, status: "CANCELLED" } }));
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+});
+
+it("giữ danh sách và dialog khi yêu cầu hủy đơn thất bại", async () => {
+  const pending = {
+    id: 7,
+    code: "ORD-PENDING",
+    status: "PENDING",
+    payment_method: "COD",
+    payment_status: "UNPAID",
+    total_amount: 120000,
+    created_at: "2026-09-23T01:00:00Z",
+  };
+  vi.spyOn(client, "get").mockResolvedValue({
+    data: { items: [pending], total: 1, page: 1, page_size: 20 },
+  });
+  vi.spyOn(client, "post").mockRejectedValue({
+    response: { data: { detail: "Đơn không còn có thể hủy" } },
+  });
+
+  await renderAt("/orders");
+  await click("Hủy đơn");
+  await fill("Lý do hủy", "Đổi ý");
+  await click("Xác nhận hủy");
+
+  expect(container.querySelector('[role="alert"]').textContent).toBe("Đơn không còn có thể hủy");
+  expect(container.textContent).toContain("ORD-PENDING");
+  expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+  expect(button("Xác nhận hủy").disabled).toBe(false);
 });
 
 it("chỉ hiện form đánh giá cho item DELIVERED chưa review và cập nhật sau khi gửi", async () => {

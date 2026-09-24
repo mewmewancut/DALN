@@ -17,7 +17,8 @@ export default function CheckoutPage() {
   });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -27,7 +28,7 @@ export default function CheckoutPage() {
         if (active) setCart(response.data);
       })
       .catch((requestError) => {
-        if (active) setError(errorMessage(requestError));
+        if (active) setLoadError(errorMessage(requestError));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -44,12 +45,12 @@ export default function CheckoutPage() {
   async function submit(event) {
     event.preventDefault();
     setSubmitting(true);
-    setError("");
+    setSubmitError("");
     try {
       const response = await client.post("/orders/checkout", form);
       navigate(`/orders/${response.data.id}`, { replace: true });
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setSubmitError(errorMessage(requestError));
     } finally {
       setSubmitting(false);
     }
@@ -62,18 +63,18 @@ export default function CheckoutPage() {
       <p className="eyebrow">Hoàn tất đơn hàng</p>
       <h1>Thanh toán</h1>
       {loading && <p role="status">Đang kiểm tra giỏ hàng...</p>}
-      {error && (
+      {loadError && (
         <p className="form-error" role="alert">
-          {error}
+          {loadError}
         </p>
       )}
-      {!loading && !hasItems && (
+      {!loading && !loadError && !hasItems && (
         <div className="empty-state">
           <p>Giỏ hàng đang trống, chưa thể thanh toán.</p>
           <Link to="/cart">Quay lại giỏ hàng</Link>
         </div>
       )}
-      {!loading && hasItems && (
+      {!loading && !loadError && hasItems && (
         <div className="checkout-layout">
           <form className="form-stack" onSubmit={submit}>
             <label>
@@ -113,6 +114,11 @@ export default function CheckoutPage() {
                 <option value="MOCK_CARD">Thẻ mô phỏng</option>
               </select>
             </label>
+            {submitError && (
+              <p className="form-error" role="alert">
+                {submitError}
+              </p>
+            )}
             <button type="submit" disabled={submitting}>
               {submitting ? "Đang đặt hàng..." : "Đặt hàng"}
             </button>

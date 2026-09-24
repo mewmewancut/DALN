@@ -14,7 +14,8 @@ export default function CartPage() {
   const [quantities, setQuantities] = useState({});
   const [loading, setLoading] = useState(true);
   const [pendingItem, setPendingItem] = useState(null);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const applyCart = useCallback((nextCart) => {
     setCart(nextCart);
@@ -31,7 +32,7 @@ export default function CartPage() {
         if (active) applyCart(response.data);
       })
       .catch((requestError) => {
-        if (active) setError(errorMessage(requestError));
+        if (active) setLoadError(errorMessage(requestError));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -45,12 +46,12 @@ export default function CartPage() {
     const quantity = Number(quantities[item.id]);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > item.stock_quantity) return;
     setPendingItem(item.id);
-    setError("");
+    setActionError("");
     try {
       const response = await client.put(`/cart/items/${item.id}`, { quantity });
       applyCart(response.data);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setActionError(errorMessage(requestError));
     } finally {
       setPendingItem(null);
     }
@@ -58,12 +59,12 @@ export default function CartPage() {
 
   async function removeItem(itemId) {
     setPendingItem(itemId);
-    setError("");
+    setActionError("");
     try {
       const response = await client.delete(`/cart/items/${itemId}`);
       applyCart(response.data);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setActionError(errorMessage(requestError));
     } finally {
       setPendingItem(null);
     }
@@ -74,18 +75,23 @@ export default function CartPage() {
       <p className="eyebrow">Mua sắm</p>
       <h1>Giỏ hàng</h1>
       {loading && <p role="status">Đang tải giỏ hàng...</p>}
-      {error && (
+      {loadError && (
         <p className="form-error" role="alert">
-          {error}
+          {loadError}
         </p>
       )}
-      {!loading && cart.items.length === 0 && (
+      {actionError && (
+        <p className="form-error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {!loading && !loadError && cart.items.length === 0 && (
         <div className="empty-state">
           <p>Giỏ hàng đang trống.</p>
           <Link to="/">Tiếp tục mua sắm</Link>
         </div>
       )}
-      {!loading && cart.items.length > 0 && (
+      {!loading && !loadError && cart.items.length > 0 && (
         <>
           <h2>{cart.shop_name}</h2>
           <div className="cart-list">
@@ -153,7 +159,7 @@ export default function CartPage() {
           </div>
           <div className="cart-summary">
             <strong>Tổng cộng: {formatCurrency(cart.total_amount)}</strong>
-            <button type="button" onClick={() => navigate("/checkout")}>
+            <button className="primary-button" type="button" onClick={() => navigate("/checkout")}>
               Thanh toán
             </button>
           </div>

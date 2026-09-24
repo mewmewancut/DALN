@@ -174,6 +174,32 @@ it("tìm kiếm, lọc, sắp xếp và phân trang bằng query params; đổi 
   expect(get).toHaveBeenLastCalledWith("/products", {
     params: expect.objectContaining({ page: 1, keyword: "quần" }),
   });
+  expect(
+    [...container.querySelectorAll("button")].find((button) => button.textContent === "Xóa lọc"),
+  ).toBeDefined();
+  await act(async () =>
+    [...container.querySelectorAll("button")]
+      .find((button) => button.textContent === "Xóa lọc")
+      .click(),
+  );
+  expect(get).toHaveBeenLastCalledWith("/products", {
+    params: { sort: "newest", page: 1, page_size: 20 },
+  });
+});
+
+it("đóng mở bộ lọc catalog trên màn hình nhỏ bằng nút có trạng thái truy cập được", async () => {
+  vi.spyOn(client, "get").mockImplementation(async (url) => {
+    if (url === "/categories") return { data: [] };
+    return { data: { items: [], total: 0, page: 1, page_size: 20 } };
+  });
+  await renderAt("/");
+  const toggle = [...container.querySelectorAll("button")].find(
+    (button) => button.textContent === "Bộ lọc",
+  );
+  expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  await act(async () => toggle.click());
+  expect(toggle.getAttribute("aria-expanded")).toBe("true");
+  expect(container.querySelector("#catalog-filters").classList.contains("is-open")).toBe(true);
 });
 
 it("hiện trạng thái rỗng và lỗi khi tải catalog", async () => {

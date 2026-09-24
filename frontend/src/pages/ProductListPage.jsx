@@ -9,6 +9,7 @@ import { formatCurrency } from "../components/formatCurrency.js";
 const PAGE_SIZE = 20;
 
 export default function ProductListPage() {
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState({
     keyword: "",
     category_id: "",
@@ -66,14 +67,69 @@ export default function ProductListPage() {
     setFilters((previous) => ({ ...previous, [key]: value, page: 1 }));
   }
 
+  function resetFilters() {
+    setFilters({
+      keyword: "",
+      category_id: "",
+      min_price: "",
+      max_price: "",
+      sort: "newest",
+      page: 1,
+    });
+  }
+
   const totalPages = Math.max(1, Math.ceil(result.total / result.page_size));
+  const activeFilterCount = [
+    filters.keyword,
+    filters.category_id,
+    filters.min_price,
+    filters.max_price,
+  ].filter(Boolean).length;
 
   return (
     <SiteLayout wide>
-      <p className="eyebrow">Bộ sưu tập</p>
-      <h1>Khám phá thời trang</h1>
+      <header className="catalog-hero">
+        <div>
+          <p className="eyebrow">Bộ sưu tập chọn lọc</p>
+          <h1>Phong cách của bạn, lựa chọn của bạn.</h1>
+          <p className="catalog-lead">
+            Khám phá sản phẩm từ nhiều gian hàng, xem đúng giá và tồn kho của từng biến thể.
+          </p>
+        </div>
+        <div className="catalog-proof" aria-label="Thông tin catalog">
+          <strong>{result.total}</strong>
+          <span>sản phẩm đang hiển thị</span>
+        </div>
+      </header>
+      <div className="catalog-mobile-toolbar">
+        <button
+          type="button"
+          className="filter-toggle"
+          aria-expanded={filtersOpen}
+          aria-controls="catalog-filters"
+          onClick={() => setFiltersOpen((current) => !current)}
+        >
+          Bộ lọc{activeFilterCount ? ` (${activeFilterCount})` : ""}
+        </button>
+        <span>{result.total} sản phẩm</span>
+      </div>
       <div className="catalog-layout">
-        <aside className="catalog-filters" aria-label="Bộ lọc sản phẩm">
+        <aside
+          id="catalog-filters"
+          className={`catalog-filters${filtersOpen ? " is-open" : ""}`}
+          aria-label="Bộ lọc sản phẩm"
+        >
+          <div className="filter-heading">
+            <div>
+              <p className="eyebrow">Tinh chỉnh</p>
+              <h2>Bộ lọc</h2>
+            </div>
+            {activeFilterCount > 0 && (
+              <button type="button" className="text-button" onClick={resetFilters}>
+                Xóa lọc
+              </button>
+            )}
+          </div>
           <label>
             Tìm sản phẩm
             <input
@@ -120,26 +176,31 @@ export default function ProductListPage() {
               onChange={(event) => changeFilter("max_price", event.target.value)}
             />
           </label>
-          <label>
-            Sắp xếp
-            <select
-              value={filters.sort}
-              onChange={(event) => changeFilter("sort", event.target.value)}
-            >
-              <option value="newest">Mới nhất</option>
-              <option value="price_asc">Giá tăng dần</option>
-              <option value="price_desc">Giá giảm dần</option>
-            </select>
-          </label>
         </aside>
         <section className="catalog-results" aria-label="Danh sách sản phẩm">
-          <p>
-            {loading
-              ? "Đang tải sản phẩm..."
-              : error
-                ? "Không tải được sản phẩm"
-                : `${result.total} sản phẩm`}
-          </p>
+          <div className="results-heading">
+            <div>
+              <p className="eyebrow">Sản phẩm</p>
+              <strong>
+                {loading
+                  ? "Đang tải sản phẩm..."
+                  : error
+                    ? "Không tải được sản phẩm"
+                    : `${result.total} kết quả`}
+              </strong>
+            </div>
+            <label className="sort-field">
+              Sắp xếp
+              <select
+                value={filters.sort}
+                onChange={(event) => changeFilter("sort", event.target.value)}
+              >
+                <option value="newest">Mới nhất</option>
+                <option value="price_asc">Giá tăng dần</option>
+                <option value="price_desc">Giá giảm dần</option>
+              </select>
+            </label>
+          </div>
           {error ? (
             <p className="form-error" role="alert">
               {error}
@@ -151,21 +212,24 @@ export default function ProductListPage() {
             <div className="product-grid">
               {result.items.map((product) => (
                 <Link key={product.id} to={`/products/${product.id}`} className="product-card">
-                  {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} />
-                  ) : (
-                    <div className="product-image-placeholder">Chưa có ảnh</div>
-                  )}
+                  <div className="product-card-media">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} />
+                    ) : (
+                      <div className="product-image-placeholder">Chưa có ảnh</div>
+                    )}
+                    <span className="view-product">Xem chi tiết</span>
+                  </div>
                   <div className="product-card-body">
+                    <p className="product-shop">{product.shop_name}</p>
                     <h2>{product.name}</h2>
-                    <p>{product.shop_name}</p>
-                    <strong>
+                    <strong className="product-price">
                       {product.price_from == null
                         ? "Chưa có giá"
                         : `Từ ${formatCurrency(product.price_from)}`}
                     </strong>
-                    <p>
-                      ★{" "}
+                    <p className="product-rating">
+                      <span aria-hidden="true">★</span>{" "}
                       {product.rating_average == null
                         ? "Chưa có đánh giá"
                         : Number(product.rating_average).toFixed(1)}
@@ -184,7 +248,7 @@ export default function ProductListPage() {
               Trang trước
             </button>
             <span>
-              Trang {filters.page}/{totalPages}
+              <strong>{filters.page}</strong> / {totalPages}
             </span>
             <button
               type="button"

@@ -18,15 +18,18 @@ export default function OrdersPage() {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState({ items: [], total: 0, page: 1, page_size: PAGE_SIZE });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [cancelOrder, setCancelOrder] = useState(null);
   const [reason, setReason] = useState("");
+  const [cancelling, setCancelling] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError("");
+    setLoadError("");
+    setActionError("");
     const params = { page, page_size: PAGE_SIZE };
     if (status) params.status = status;
     client
@@ -35,7 +38,7 @@ export default function OrdersPage() {
         if (active) setResult(response.data);
       })
       .catch((requestError) => {
-        if (active) setError(errorMessage(requestError));
+        if (active) setLoadError(errorMessage(requestError));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -47,14 +50,18 @@ export default function OrdersPage() {
 
   async function confirmCancel(event) {
     event.preventDefault();
-    setError("");
+    if (cancelling) return;
+    setCancelling(true);
+    setActionError("");
     try {
       await client.post(`/orders/${cancelOrder.id}/cancel`, { reason });
       setCancelOrder(null);
       setReason("");
       setRefreshKey((value) => value + 1);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setActionError(errorMessage(requestError));
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -90,13 +97,18 @@ export default function OrdersPage() {
         ))}
       </div>
       {loading && <p role="status">Đang tải đơn hàng...</p>}
-      {error && (
+      {loadError && (
         <p className="form-error" role="alert">
-          {error}
+          {loadError}
         </p>
       )}
-      {!loading && !error && result.items.length === 0 && <p>Chưa có đơn hàng phù hợp.</p>}
-      {!loading && !error && (
+      {actionError && (
+        <p className="form-error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {!loading && !loadError && result.items.length === 0 && <p>Chưa có đơn hàng phù hợp.</p>}
+      {!loading && !loadError && (
         <div className="order-list">
           {result.items.map((order) => (
             <article className="order-card" key={order.id}>
@@ -116,6 +128,7 @@ export default function OrdersPage() {
                   onClick={() => {
                     setCancelOrder(order);
                     setReason("");
+                    setActionError("");
                   }}
                 >
                   Hủy đơn
@@ -154,10 +167,12 @@ export default function OrdersPage() {
                 />
               </label>
               <div className="dialog-actions">
-                <button type="button" onClick={() => setCancelOrder(null)}>
+                <button type="button" disabled={cancelling} onClick={() => setCancelOrder(null)}>
                   Giữ đơn
                 </button>
-                <button type="submit">Xác nhận hủy</button>
+                <button type="submit" disabled={cancelling}>
+                  {cancelling ? "Đang hủy..." : "Xác nhận hủy"}
+                </button>
               </div>
             </form>
           </section>

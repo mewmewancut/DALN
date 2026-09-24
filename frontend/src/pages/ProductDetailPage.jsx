@@ -110,9 +110,11 @@ export default function ProductDetailPage() {
 
   return (
     <SiteLayout wide>
-      <p>
-        <Link to="/">← Danh sách sản phẩm</Link>
-      </p>
+      <nav className="breadcrumb" aria-label="Điều hướng sản phẩm">
+        <Link to="/">Sản phẩm</Link>
+        <span aria-hidden="true">/</span>
+        <span>{product?.name ?? "Chi tiết"}</span>
+      </nav>
       {loading && <p role="status">Đang tải sản phẩm...</p>}
       {error && (
         <p className="form-error" role="alert">
@@ -122,17 +124,25 @@ export default function ProductDetailPage() {
       {product && (
         <>
           <div className="product-detail">
-            <div>
+            <div className="detail-media">
               {product.image_url ? (
                 <img className="detail-image" src={product.image_url} alt={product.name} />
               ) : (
                 <div className="product-image-placeholder">Chưa có ảnh</div>
               )}
             </div>
-            <div>
-              <p className="eyebrow">{product.shop_name}</p>
+            <div className="detail-content">
+              <div className="detail-meta">
+                <p className="eyebrow">{product.shop_name}</p>
+                <span className="rating-pill">
+                  <span aria-hidden="true">★</span>{" "}
+                  {product.rating_average == null
+                    ? "Chưa có đánh giá"
+                    : `${Number(product.rating_average).toFixed(1)} · ${reviews.total} đánh giá`}
+                </span>
+              </div>
               <h1>{product.name}</h1>
-              <p>{product.description}</p>
+              <p className="detail-description">{product.description}</p>
               <p className="detail-price">
                 {selectedVariant
                   ? formatCurrency(selectedVariant.price)
@@ -140,70 +150,84 @@ export default function ProductDetailPage() {
                     ? "Chưa có giá"
                     : `Từ ${formatCurrency(product.price_from)}`}
               </p>
-              <div className="variant-options">
-                <fieldset>
-                  <legend>Màu sắc</legend>
-                  {colors.length ? (
-                    colors.map((option) => (
-                      <button
-                        type="button"
-                        aria-pressed={color === option}
-                        key={option}
-                        onClick={() => {
-                          setColor(option);
-                          setSize("");
-                        }}
-                      >
-                        {option}
-                      </button>
-                    ))
-                  ) : (
-                    <span>Chưa có lựa chọn</span>
-                  )}
-                </fieldset>
-                <fieldset>
-                  <legend>Kích cỡ</legend>
-                  {sizes.length ? (
-                    sizes.map((option) => (
-                      <button
-                        type="button"
-                        aria-pressed={size === option}
-                        key={option}
-                        onClick={() => setSize(option)}
-                      >
-                        {option}
-                      </button>
-                    ))
-                  ) : (
-                    <span>Chọn màu trước</span>
-                  )}
-                </fieldset>
+              <div className="purchase-panel">
+                <div className="variant-options">
+                  <fieldset>
+                    <legend>Màu sắc</legend>
+                    {colors.length ? (
+                      colors.map((option) => (
+                        <button
+                          type="button"
+                          aria-pressed={color === option}
+                          key={option}
+                          onClick={() => {
+                            setColor(option);
+                            setSize("");
+                          }}
+                        >
+                          {option}
+                        </button>
+                      ))
+                    ) : (
+                      <span>Chưa có lựa chọn</span>
+                    )}
+                  </fieldset>
+                  <fieldset>
+                    <legend>Kích cỡ</legend>
+                    {sizes.length ? (
+                      sizes.map((option) => (
+                        <button
+                          type="button"
+                          aria-pressed={size === option}
+                          key={option}
+                          onClick={() => setSize(option)}
+                        >
+                          {option}
+                        </button>
+                      ))
+                    ) : (
+                      <span>Chọn màu trước</span>
+                    )}
+                  </fieldset>
+                </div>
+                {selectedVariant ? (
+                  <p
+                    className={`stock-pill${selectedVariant.quantity <= 0 ? " is-out" : ""}`}
+                    role="status"
+                  >
+                    {selectedVariant.quantity > 0
+                      ? `Còn ${selectedVariant.quantity} sản phẩm`
+                      : "Hết hàng"}
+                  </p>
+                ) : (
+                  <p className="selection-hint">Chọn màu và kích cỡ để kiểm tra tồn kho.</p>
+                )}
+                <button
+                  type="button"
+                  className="primary-button add-to-cart"
+                  disabled={!selectedVariant || selectedVariant.quantity <= 0 || adding}
+                  onClick={addSelectedVariant}
+                >
+                  {adding ? "Đang thêm..." : "Thêm vào giỏ"}
+                </button>
+                {cartMessage && (
+                  <p className="success-message" role="status">
+                    {cartMessage}
+                  </p>
+                )}
               </div>
-              {selectedVariant && (
-                <p role="status">
-                  {selectedVariant.quantity > 0
-                    ? `Còn ${selectedVariant.quantity} sản phẩm`
-                    : "Hết hàng"}
-                </p>
-              )}
-              <button
-                type="button"
-                disabled={!selectedVariant || selectedVariant.quantity <= 0 || adding}
-                onClick={addSelectedVariant}
-              >
-                {adding ? "Đang thêm..." : "Thêm vào giỏ"}
-              </button>
-              {cartMessage && <p role="status">{cartMessage}</p>}
             </div>
           </div>
           <section className="reviews" aria-label="Đánh giá sản phẩm">
-            <h2>Đánh giá</h2>
-            <p>
-              ★{" "}
-              {product.rating_average == null
-                ? "Chưa có đánh giá"
-                : Number(product.rating_average).toFixed(1)}
-            </p>
+            <div className="review-heading">
+              <div>
+                <p className="eyebrow">Từ người mua</p>
+                <h2>Đánh giá sản phẩm</h2>
+              </div>
+              <strong>
+                ★ {product.rating_average == null ? "—" : Number(product.rating_average).toFixed(1)}
+              </strong>
+            </div>
             {reviews.items.length === 0 ? (
               <p className="muted">Chưa có nhận xét nào.</p>
             ) : (
