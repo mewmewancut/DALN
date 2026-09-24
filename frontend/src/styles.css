@@ -400,11 +400,180 @@ button:disabled {
   box-shadow: 0 24px 70px rgb(0 0 0 / 25%);
 }
 
+.shop-layout {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: 32px;
+}
+
+.shop-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.shop-sidebar a {
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.shop-sidebar a.active {
+  background: #8c3f20;
+  color: #fff;
+}
+
+.shop-content h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+
+.toolbar,
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.toolbar label,
+.inline-form label {
+  min-width: 180px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #ded8cd;
+  border-radius: 12px;
+  background: #faf7f1;
+}
+
+.stat-card strong {
+  font-size: 1.4rem;
+}
+
+.alert-badge {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f4dddd;
+  color: #922c2c;
+  text-decoration: none;
+}
+
+.revenue-chart {
+  margin: 0;
+}
+
+.revenue-chart svg {
+  width: 100%;
+  height: auto;
+  border: 1px solid #ded8cd;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.chart-axis {
+  stroke: #bcb3a4;
+}
+
+.chart-line {
+  fill: none;
+  stroke: #8c3f20;
+  stroke-width: 2;
+}
+
+.chart-point {
+  fill: #8c3f20;
+}
+
+.revenue-chart figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: #6b625b;
+  font-size: 0.85rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #ded8cd;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.data-table input {
+  min-width: 90px;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.row-low td {
+  background: #f9e3e3;
+  color: #922c2c;
+}
+
+.low-label {
+  font-weight: 700;
+}
+
+.dialog-wide {
+  width: min(960px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.variant-editor {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.variant-editor legend {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.variant-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: 12px;
+}
+
 @media (max-width: 700px) {
   .card {
     padding: 24px;
   }
   .catalog-layout,
+  .shop-layout,
   .product-detail,
   .checkout-layout,
   .order-detail-grid {
@@ -417,6 +586,10 @@ button:disabled {
 
   .cart-actions {
     grid-column: 1 / -1;
+  }
+
+  .variant-row {
+    grid-template-columns: 1fr 1fr;
   }
 
   .order-card,

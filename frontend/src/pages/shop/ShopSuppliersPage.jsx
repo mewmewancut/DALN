@@ -1,0 +1,207 @@
+import { useEffect, useState } from "react";
+
+import client from "../../api/client.js";
+import { errorMessage } from "../../api/errorMessage.js";
+
+const EMPTY_FORM = { name: "", phone: "", address: "" };
+
+function supplierPayload(form) {
+  return {
+    name: form.name.trim(),
+    phone: form.phone.trim() || null,
+    address: form.address.trim() || null,
+  };
+}
+
+function SupplierFields({ form, onChange }) {
+  return (
+    <>
+      <label>
+        Tên nhà cung cấp
+        <input
+          value={form.name}
+          onChange={(event) => onChange({ ...form, name: event.target.value })}
+          required
+        />
+      </label>
+      <label>
+        Số điện thoại
+        <input
+          value={form.phone}
+          maxLength={20}
+          onChange={(event) => onChange({ ...form, phone: event.target.value })}
+        />
+      </label>
+      <label>
+        Địa chỉ
+        <input
+          value={form.address}
+          onChange={(event) => onChange({ ...form, address: event.target.value })}
+        />
+      </label>
+    </>
+  );
+}
+
+export default function ShopSuppliersPage() {
+  const [suppliers, setSuppliers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editing, setEditing] = useState(null);
+  const [pending, setPending] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    client
+      .get("/shop/suppliers")
+      .then((response) => {
+        if (active) setSuppliers(response.data);
+      })
+      .catch((requestError) => {
+        if (active) setError(errorMessage(requestError));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [refreshKey]);
+
+  async function run(key, request) {
+    setPending(key);
+    setError("");
+    try {
+      await request();
+      setRefreshKey((value) => value + 1);
+      return true;
+    } catch (requestError) {
+      setError(errorMessage(requestError));
+      return false;
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function createSupplier(event) {
+    event.preventDefault();
+    const ok = await run("new", () => client.post("/shop/suppliers", supplierPayload(form)));
+    if (ok) setForm(EMPTY_FORM);
+  }
+
+  async function saveEdit(event) {
+    event.preventDefault();
+    const ok = await run(editing.id, () =>
+      client.put(`/shop/suppliers/${editing.id}`, supplierPayload(editing.form)),
+    );
+    if (ok) setEditing(null);
+  }
+
+  return (
+    <>
+      <p className="eyebrow">Chủ shop</p>
+      <h1>Nhà cung cấp</h1>
+      <form className="inline-form" onSubmit={createSupplier} aria-label="Thêm nhà cung cấp">
+        <SupplierFields form={form} onChange={setForm} />
+        <button type="submit" disabled={pending === "new"}>
+          Thêm nhà cung cấp
+        </button>
+      </form>
+      {loading && <p role="status">Đang tải nhà cung cấp...</p>}
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      {!loading && !error && suppliers.length === 0 && <p>Chưa có nhà cung cấp.</p>}
+      {!loading && suppliers.length > 0 && (
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Tên</th>
+                <th>Số điện thoại</th>
+                <th>Địa chỉ</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {suppliers.map((supplier) => (
+                <tr key={supplier.id}>
+                  <td>{supplier.name}</td>
+                  <td>{supplier.phone ?? "—"}</td>
+                  <td>{supplier.address ?? "—"}</td>
+                  <td>{supplier.is_active ? "Đang hợp tác" : "Ngừng hợp tác"}</td>
+                  <td className="table-actions">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditing({
+                          id: supplier.id,
+                          form: {
+                            name: supplier.name,
+                            phone: supplier.phone ?? "",
+                            address: supplier.address ?? "",
+                          },
+                        })
+                      }
+                    >
+                      Sửa
+                    </button>
+                    {supplier.is_active ? (
+                      <button
+                        type="button"
+                        disabled={pending === supplier.id}
+                        onClick={() =>
+                          run(supplier.id, () => client.delete(`/shop/suppliers/${supplier.id}`))
+                        }
+                      >
+                        Ngừng hợp tác
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={pending === supplier.id}
+                        onClick={() =>
+                          run(supplier.id, () =>
+                            client.put(`/shop/suppliers/${supplier.id}`, { is_active: true }),
+                          )
+                        }
+                      >
+                        Khôi phục
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {editing && (
+        <div className="dialog-backdrop">
+          <section className="dialog" role="dialog" aria-modal="true" aria-label="Sửa nhà cung cấp">
+            <h2>Sửa nhà cung cấp</h2>
+            <form className="form-stack" onSubmit={saveEdit}>
+              <SupplierFields
+                form={editing.form}
+                onChange={(next) => setEditing({ ...editing, form: next })}
+              />
+              <div className="dialog-actions">
+                <button type="button" onClick={() => setEditing(null)}>
+                  Đóng
+                </button>
+                <button type="submit" disabled={pending === editing.id}>
+                  Lưu
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+    </>
+  );
+}

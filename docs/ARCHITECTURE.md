@@ -1,7 +1,7 @@
 # Architecture
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Nền tảng A–B, toàn bộ backend C0–C10, frontend D1 và toàn bộ luồng BUYER D2.
+**Phạm vi đã triển khai:** Nền tảng A–B, toàn bộ backend C0–C10, frontend D1, toàn bộ luồng BUYER D2 và giao diện SHOP_OWNER D3.
 
 ## Thành phần đang chạy
 
@@ -36,6 +36,6 @@ Số liệu thống kê shop C9 nằm trong `shop_stats_service.py`/`routers/sho
 
 Admin C10 nằm trong `admin_service.py`/`routers/admin.py`, dùng `require_role('ADMIN')` cho mọi endpoint. Thay vì viết lại truy vấn đơn hàng và thống kê, nó gọi lại `order_service.list_all_orders()` (thêm ở C5) và `shop_stats_service.get_overview()` với `shop_id=None`, nên phạm vi backend C0–C10 đã hoàn chỉnh theo Planning — phần còn lại của dự án là Phần D (frontend đầy đủ) và Phần E (data platform).
 
-Frontend D2 đã nối đủ API catalog, giỏ hàng, checkout, đơn hàng, hủy đơn và review cho BUYER. Giao diện SHOP_OWNER D3 (dashboard, sản phẩm, đơn hàng, tồn kho/alert, supplier và nhập hàng) và giao diện ADMIN D4 vẫn là **Planned**; dashboard shop/admin hiện vẫn là màn hình khung.
+Frontend D2 đã nối đủ API catalog, giỏ hàng, checkout, đơn hàng, hủy đơn và review cho BUYER. Frontend D3 gom các route `/shop/*` dưới một layout route: `RequireRole role="SHOP_OWNER"` bọc `ShopLayout`, layout này hiển thị sidebar và `<Outlet>` cho bảy trang `dashboard`, `products`, `orders`, `inventory`, `alerts`, `suppliers`, `purchase-orders` trong `src/pages/shop/`. Nếu phiên đăng nhập có `shop_id=null`, layout chỉ hiện form tạo shop (`POST /shops`) và cập nhật `shop_id` trong phiên sau khi tạo thành công; giá trị này chỉ dùng cho giao diện vì backend luôn lấy shop từ database. Dashboard gọi C9 với khoảng ngày mặc định 30 ngày gần nhất theo ngày trình duyệt và vẽ doanh thu theo ngày bằng SVG nội bộ (ngày không có đơn giao hiển thị 0), không thêm thư viện biểu đồ. Nút chuyển trạng thái đơn hàng và phiếu nhập lấy từ bảng ánh xạ phản chiếu đúng transition backend cho phép (`shopOrderActions.js`, `purchaseOrderPresentation.js`); tồn kho chỉ sửa ngưỡng, số lượng chỉ đổi qua đơn hàng hoặc phiếu nhập. Giao diện ADMIN D4 vẫn là **Planned**; dashboard admin hiện vẫn là màn hình khung.
 
 Lakebase và pipeline Bronze/Silver/Gold vẫn là **Planned** theo phần E của [`PLANNING.md`](PLANNING.md). Môi trường development hiện dùng PostgreSQL trong Docker Compose.

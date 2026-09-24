@@ -27,7 +27,17 @@ export function AuthProvider({ children }) {
     setSession(null);
   }
 
-  return <AuthContext.Provider value={{ session, login, logout }}>{children}</AuthContext.Provider>;
+  function setShopId(shopId) {
+    const nextSession = { ...session, shop_id: shopId };
+    saveSession(nextSession);
+    setSession(nextSession);
+  }
+
+  return (
+    <AuthContext.Provider value={{ session, login, logout, setShopId }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

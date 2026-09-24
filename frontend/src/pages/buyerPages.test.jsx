@@ -77,6 +77,7 @@ it("đăng nhập bằng API, lưu phiên và chuyển tới trang đúng vai tr
   const post = vi
     .spyOn(client, "post")
     .mockResolvedValue({ data: { access_token: "token", role: "SHOP_OWNER", shop_id: 2 } });
+  vi.spyOn(client, "get").mockResolvedValue({ data: [] });
   await renderAt("/login");
   await fill("Email", "owner@example.com");
   await fill("Mật khẩu", "secret");

@@ -1,7 +1,7 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop và admin). Frontend D1–D2 đã nối các contract cho luồng BUYER; D3–D4 vẫn đang planned.
+**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop và admin). Frontend D1–D3 đã nối các contract cho luồng BUYER và SHOP_OWNER; D4 (admin) vẫn đang planned.
 
 Swagger chạy tại `http://localhost:8000/docs`.
 

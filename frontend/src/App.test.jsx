@@ -2,9 +2,10 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import App from "./App.jsx";
+import client from "./api/client.js";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 
 let container;
@@ -15,6 +16,12 @@ beforeEach(() => {
   container = document.createElement("div");
   document.body.appendChild(container);
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+  vi.spyOn(client, "get").mockImplementation(async (url) => ({
+    data:
+      url === "/shop/stats/overview"
+        ? { revenue: 0, order_count: 0, cancelled_count: 0, cancel_rate: null, aov: null }
+        : [],
+  }));
 });
 
 afterEach(async () => {
@@ -23,6 +30,7 @@ afterEach(async () => {
     root = null;
   }
   container.remove();
+  vi.restoreAllMocks();
   delete globalThis.IS_REACT_ACT_ENVIRONMENT;
 });
 
@@ -30,7 +38,7 @@ async function renderAt(path, role = null, extra = null) {
   if (role) {
     localStorage.setItem(
       "fashion_auth",
-      JSON.stringify({ token: "test-token", role, shop_id: null }),
+      JSON.stringify({ token: "test-token", role, shop_id: role === "SHOP_OWNER" ? 7 : null }),
     );
   }
   root = createRoot(container);

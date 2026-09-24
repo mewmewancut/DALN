@@ -14,7 +14,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 |---|---|---|
 | [`PROPOSAL.md`](PROPOSAL.md) | Có sẵn | Mục tiêu và phạm vi đề tài |
 | [`PLANNING.md`](PLANNING.md) | Có sẵn | Kế hoạch và đặc tả triển khai |
-| [`ARCHITECTURE.md`](ARCHITECTURE.md) | In progress | Thành phần backend/frontend đã chạy và ranh giới với phần còn planned |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | In progress | Thành phần backend/frontend (BUYER, SHOP_OWNER) đã chạy và ranh giới với phần còn planned |
 | [`DATABASE.md`](DATABASE.md) | Implemented | Schema, quan hệ, constraint, migration và seed data |
 | [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến toàn bộ backend C3–C10: giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo, supplier/nhập hàng, review, số liệu thống kê shop và admin |
 | [`API.md`](API.md) | In progress | Toàn bộ endpoint backend C0–C10: auth, shop, catalog, giỏ hàng, checkout, đơn hàng, tồn kho/cảnh báo, supplier/nhập hàng, review, số liệu thống kê shop, admin, role và error contract |
