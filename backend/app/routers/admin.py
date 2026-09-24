@@ -49,10 +49,18 @@ def update_user(
 def shops(
     admin: Admin,
     db: Database,
+    keyword: str | None = None,
+    is_active: bool | None = None,
     page: Annotated[int, Query(ge=1)] = 1,
     page_size: Annotated[int, Query(ge=1, le=100)] = 20,
 ) -> AdminShopPage:
-    return admin_service.list_shops(db, page=page, page_size=page_size)
+    return admin_service.list_shops(
+        db,
+        keyword=keyword,
+        is_active=is_active,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.patch("/shops/{shop_id}", response_model=AdminShopResponse)

@@ -19,6 +19,7 @@ Sao chép `.env.example` thành `.env` trước khi dùng thông tin riêng trê
 - `JWT_SECRET`: khóa ký JWT HS256; phải thay giá trị mẫu bằng khóa bí mật dài ít nhất 32 byte ở môi trường không phải local.
 - `JWT_EXPIRE_MINUTES`: thời hạn token.
 - `VITE_API_URL`: địa chỉ backend mà frontend sử dụng.
+- `VITE_DATABRICKS_DASHBOARD_URL`, `VITE_DATABRICKS_GENIE_URL`: link Databricks AI/BI Dashboard và Genie space hiển thị trên dashboard admin. Để trống cho tới khi Planning E5–E6 được triển khai; khi trống, giao diện ghi "chưa được cấu hình". Vite nhúng giá trị lúc khởi động/build, nên cần khởi động lại service frontend sau khi đổi.
 
 PostgreSQL tạo `fashion_test` từ `backend/docker/postgres-init.sql` khi volume database được khởi tạo lần đầu.
 

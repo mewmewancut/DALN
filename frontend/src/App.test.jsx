@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useNavigate } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import App from "./App.jsx";
@@ -13,12 +13,13 @@ let root;
 
 beforeEach(() => {
   localStorage.clear();
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   container = document.createElement("div");
   document.body.appendChild(container);
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   vi.spyOn(client, "get").mockImplementation(async (url) => ({
     data:
-      url === "/shop/stats/overview"
+      url === "/shop/stats/overview" || url === "/admin/stats/overview"
         ? { revenue: 0, order_count: 0, cancelled_count: 0, cancel_rate: null, aov: null }
         : [],
   }));
@@ -68,6 +69,15 @@ function LoginTrigger() {
   );
 }
 
+function NavigationTrigger() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" id="test-navigation" onClick={() => navigate("/register")}>
+      Test navigation
+    </button>
+  );
+}
+
 it("chuyển người chưa đăng nhập khỏi trang shop", async () => {
   const text = await renderAt("/shop/dashboard");
   expect(text).toContain("Đăng nhập");
@@ -102,4 +112,14 @@ it("xóa phiên và rời trang được bảo vệ khi đăng xuất", async ()
   expect(container.textContent).toContain("Đăng nhập");
   expect(container.textContent).not.toContain("Tổng quan shop");
   expect(localStorage.getItem("fashion_auth")).toBeNull();
+});
+
+it("cuộn về đầu trang khi chuyển route", async () => {
+  const scrollTo = vi.mocked(window.scrollTo);
+  await renderAt("/login", null, <NavigationTrigger />);
+  scrollTo.mockClear();
+
+  await act(async () => container.querySelector("#test-navigation").click());
+
+  expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: "auto" });
 });

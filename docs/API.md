@@ -1,7 +1,7 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop và admin). Frontend D1–D3 đã nối các contract cho luồng BUYER và SHOP_OWNER; D4 (admin) vẫn đang planned.
+**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop và admin). Frontend D1–D4 đã nối các contract cho BUYER, SHOP_OWNER và ADMIN.
 
 Swagger chạy tại `http://localhost:8000/docs`.
 
@@ -175,7 +175,7 @@ Tất cả endpoint dưới đây yêu cầu token `ADMIN`.
 |---|---|---|---|
 | GET | `/admin/users` | `role?`, `keyword?` (tìm trong email và họ tên), phân trang `page`, `page_size` | `200` với `{items, total, page, page_size}` |
 | PATCH | `/admin/users/{id}` | `{is_active}` | `200` với user đã sửa |
-| GET | `/admin/shops` | Phân trang `page`, `page_size` | `200` với `{items, total, page, page_size}` |
+| GET | `/admin/shops` | `keyword?` (tìm theo tên), `is_active?`, phân trang `page`, `page_size` | `200` với `{items, total, page, page_size}` |
 | PATCH | `/admin/shops/{id}` | `{is_active}` | `200` với shop đã sửa |
 | GET | `/admin/orders` | `shop_id?`, `status?`, `from?`, `to?` (lọc theo ngày `created_at`), phân trang | `200` với `{items, total, page, page_size}`, không giới hạn theo shop |
 | GET | `/admin/stats/overview` | `from`, `to` (ngày, bắt buộc) | `200` với `{revenue, order_count, cancelled_count, cancel_rate, aov}` giống C9 nhưng tính trên toàn hệ thống |

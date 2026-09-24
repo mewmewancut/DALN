@@ -73,7 +73,11 @@ def test_lock_shop_hides_its_products_from_public_catalog(
     _, headers = admin_headers(db_session)
     ctx = seed_shop(db_session)
 
-    shops_listed = client.get("/admin/shops", headers=headers)
+    shops_listed = client.get(
+        "/admin/shops",
+        params={"keyword": ctx["shop"].name, "is_active": True},
+        headers=headers,
+    )
     assert shops_listed.status_code == 200
     assert ctx["shop"].id in [item["id"] for item in shops_listed.json()["items"]]
 
@@ -85,6 +89,14 @@ def test_lock_shop_hides_its_products_from_public_catalog(
     )
     assert locked.status_code == 200
     assert locked.json()["is_active"] is False
+
+    locked_filter = client.get(
+        "/admin/shops",
+        params={"keyword": ctx["shop"].name, "is_active": False},
+        headers=headers,
+    )
+    assert locked_filter.status_code == 200
+    assert [item["id"] for item in locked_filter.json()["items"]] == [ctx["shop"].id]
 
     after = client.get("/products", params={"shop_id": ctx["shop"].id})
     assert after.json()["total"] == 0

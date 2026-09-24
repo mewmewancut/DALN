@@ -12,6 +12,7 @@ let root;
 
 export function mountContainer() {
   localStorage.clear();
+  vi.spyOn(window, "scrollTo").mockImplementation(() => {});
   container = document.createElement("div");
   document.body.appendChild(container);
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;

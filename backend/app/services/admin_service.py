@@ -78,10 +78,28 @@ def _shop_response(shop: Shop) -> AdminShopResponse:
     )
 
 
-def list_shops(db: Session, *, page: int, page_size: int) -> AdminShopPage:
-    total = db.scalar(select(func.count()).select_from(Shop)) or 0
+def list_shops(
+    db: Session,
+    *,
+    keyword: str | None,
+    is_active: bool | None,
+    page: int,
+    page_size: int,
+) -> AdminShopPage:
+    filters = []
+    if keyword and (normalized_keyword := keyword.strip()):
+        filters.append(Shop.name.ilike(f"%{normalized_keyword}%"))
+    if is_active is not None:
+        filters.append(Shop.is_active == is_active)
+    total = db.scalar(select(func.count()).select_from(Shop).where(*filters)) or 0
     shops = list(
-        db.scalars(select(Shop).order_by(Shop.id).offset((page - 1) * page_size).limit(page_size))
+        db.scalars(
+            select(Shop)
+            .where(*filters)
+            .order_by(Shop.id)
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
     )
     return AdminShopPage(
         items=[_shop_response(shop) for shop in shops],

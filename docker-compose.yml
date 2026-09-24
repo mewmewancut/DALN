@@ -37,6 +37,8 @@ services:
       context: ./frontend
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+      VITE_DATABRICKS_DASHBOARD_URL: ${VITE_DATABRICKS_DASHBOARD_URL:-}
+      VITE_DATABRICKS_GENIE_URL: ${VITE_DATABRICKS_GENIE_URL:-}
     ports:
       - "5173:5173"
     volumes:
