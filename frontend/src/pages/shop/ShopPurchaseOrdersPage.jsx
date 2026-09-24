@@ -18,28 +18,45 @@ const PAGE_SIZE = 20;
 export default function ShopPurchaseOrdersPage() {
   const [suppliers, setSuppliers] = useState([]);
   const [variants, setVariants] = useState([]);
+  const [referencesLoading, setReferencesLoading] = useState(true);
+  const [referencesError, setReferencesError] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [result, setResult] = useState({ items: [], total: 0, page: 1, page_size: PAGE_SIZE });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [pendingId, setPendingId] = useState(null);
   const [receivedId, setReceivedId] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    setReferencesLoading(true);
+    setReferencesError("");
     Promise.all([client.get("/shop/suppliers"), client.get("/shop/inventory")])
       .then(([supplierResponse, inventoryResponse]) => {
-        setSuppliers(supplierResponse.data);
-        setVariants(inventoryResponse.data);
+        if (active) {
+          setSuppliers(supplierResponse.data);
+          setVariants(inventoryResponse.data);
+        }
       })
-      .catch((requestError) => setError(errorMessage(requestError)));
+      .catch((requestError) => {
+        if (active) setReferencesError(errorMessage(requestError));
+      })
+      .finally(() => {
+        if (active) setReferencesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError("");
+    setLoadError("");
+    setActionError("");
     const params = { page, page_size: PAGE_SIZE };
     if (status) params.status = status;
     client
@@ -48,7 +65,7 @@ export default function ShopPurchaseOrdersPage() {
         if (active) setResult(response.data);
       })
       .catch((requestError) => {
-        if (active) setError(errorMessage(requestError));
+        if (active) setLoadError(errorMessage(requestError));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -60,7 +77,7 @@ export default function ShopPurchaseOrdersPage() {
 
   async function changeStatus(purchaseOrder, nextStatus) {
     setPendingId(purchaseOrder.id);
-    setError("");
+    setActionError("");
     setReceivedId(null);
     try {
       await client.patch(`/shop/purchase-orders/${purchaseOrder.id}/status`, {
@@ -69,7 +86,7 @@ export default function ShopPurchaseOrdersPage() {
       if (nextStatus === "RECEIVED") setReceivedId(purchaseOrder.id);
       setRefreshKey((value) => value + 1);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setActionError(errorMessage(requestError));
     } finally {
       setPendingId(null);
     }
@@ -91,14 +108,22 @@ export default function ShopPurchaseOrdersPage() {
     <>
       <p className="eyebrow">Chủ shop</p>
       <h1>Nhập hàng</h1>
-      <PurchaseOrderForm
-        suppliers={suppliers}
-        variants={variants}
-        onCreated={() => {
-          setReceivedId(null);
-          setRefreshKey((value) => value + 1);
-        }}
-      />
+      {referencesLoading && <p role="status">Đang tải nhà cung cấp và biến thể...</p>}
+      {referencesError && (
+        <p className="form-error" role="alert">
+          Không thể mở form nhập hàng: {referencesError}
+        </p>
+      )}
+      {!referencesLoading && !referencesError && (
+        <PurchaseOrderForm
+          suppliers={suppliers}
+          variants={variants}
+          onCreated={() => {
+            setReceivedId(null);
+            setRefreshKey((value) => value + 1);
+          }}
+        />
+      )}
       <h2>Phiếu nhập</h2>
       <div className="status-tabs" aria-label="Lọc trạng thái phiếu nhập">
         <button type="button" aria-pressed={status === ""} onClick={() => selectStatus("")}>
@@ -122,13 +147,18 @@ export default function ShopPurchaseOrdersPage() {
         </p>
       )}
       {loading && <p role="status">Đang tải phiếu nhập...</p>}
-      {error && (
+      {loadError && (
         <p className="form-error" role="alert">
-          {error}
+          {loadError}
         </p>
       )}
-      {!loading && !error && result.items.length === 0 && <p>Chưa có phiếu nhập phù hợp.</p>}
-      {!loading && result.items.length > 0 && (
+      {actionError && (
+        <p className="form-error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {!loading && !loadError && result.items.length === 0 && <p>Chưa có phiếu nhập phù hợp.</p>}
+      {!loading && !loadError && result.items.length > 0 && (
         <div className="order-list">
           {result.items.map((purchaseOrder) => (
             <article className="order-box" key={purchaseOrder.id}>

@@ -207,6 +207,32 @@ it("danh sách sản phẩm của shop hiện cả sản phẩm đã ẩn, lọc
   expect(get).toHaveBeenLastCalledWith("/shop/products", {
     params: { page: 1, page_size: 20, is_active: "false" },
   });
+
+  get.mockRejectedValueOnce({ response: { data: { detail: "Không tải được sản phẩm" } } });
+  await fill("Trạng thái", "true");
+  expect(alertText()).toBe("Không tải được sản phẩm");
+  expect(rowContaining("Áo mẫu")).toBeUndefined();
+});
+
+it("không mở form sản phẩm khi danh mục tải thất bại", async () => {
+  signInAs("SHOP_OWNER", 7);
+  vi.spyOn(client, "get").mockImplementation(async (url, options) => {
+    if (url === "/categories") {
+      throw { response: { data: { detail: "Không tải được danh mục" } } };
+    }
+    if (url === "/shop/products") {
+      return {
+        data: { items: [activeProduct], total: 1, page: options.params.page, page_size: 20 },
+      };
+    }
+    throw new Error(`GET ${url} chưa được mock`);
+  });
+
+  await renderAt("/shop/products");
+
+  expect(alertText()).toContain("Không tải được danh mục: Không tải được danh mục");
+  expect(button("Thêm sản phẩm").disabled).toBe(true);
+  expect(button("Sửa", rowContaining("Áo mẫu")).disabled).toBe(true);
 });
 
 it("tạo sản phẩm gửi thông tin và toàn bộ biến thể trong một request", async () => {

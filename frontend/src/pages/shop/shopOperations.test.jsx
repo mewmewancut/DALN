@@ -107,6 +107,9 @@ it("đơn của shop chỉ hiện nút đúng các chuyển trạng thái backen
   expect(actionsOf("ORD-20260924-5")).toEqual([]);
   expect(actionsOf("ORD-20260924-6")).toEqual([]);
   expect(rowContaining("ORD-20260924-1").textContent).toContain("200.000 ₫");
+  const actionGroup = rowContaining("ORD-20260924-1").querySelector(".table-actions");
+  expect(actionGroup.tagName).toBe("DIV");
+  expect(actionGroup.parentElement.tagName).toBe("TD");
 });
 
 it("chuyển trạng thái, hủy có lý do, lọc theo trạng thái và hiện lỗi từ backend", async () => {
@@ -143,6 +146,11 @@ it("chuyển trạng thái, hủy có lý do, lọc theo trạng thái và hiệ
   patch.mockRejectedValueOnce({ response: { data: { detail: "Không thể chuyển trạng thái" } } });
   await click(button("Giao hàng", rowContaining("ORD-20260924-3")));
   expect(alertText()).toBe("Không thể chuyển trạng thái");
+
+  get.mockRejectedValueOnce({ response: { data: { detail: "Không tải được đơn hàng" } } });
+  await click(button("Đã giao", container.querySelector(".status-tabs")));
+  expect(alertText()).toBe("Không tải được đơn hàng");
+  expect(rowContaining("ORD-20260924-1")).toBeUndefined();
 });
 
 it("tồn kho tô đỏ dòng sắp hết và sửa ngưỡng inline theo response API", async () => {
@@ -173,6 +181,32 @@ it("tồn kho tô đỏ dòng sắp hết và sửa ngưỡng inline theo respon
   expect(rowContaining("P5-M-Đỏ").querySelector("input").value).toBe("6");
 });
 
+it("tồn kho tìm kiếm, lọc mức tồn và phân trang phía client", async () => {
+  const manyItems = Array.from({ length: 12 }, (_, index) => ({
+    ...inventory[index % inventory.length],
+    variant_id: index + 1,
+    product_id: index + 1,
+    product_name: `Sản phẩm ${index + 1}`,
+    sku: `SKU-${index + 1}`,
+    is_low: index % 2 === 0,
+  }));
+  routeGet({ "/shop/inventory": manyItems });
+  await renderAt("/shop/inventory");
+
+  expect(container.querySelectorAll("tbody tr")).toHaveLength(10);
+  await click(button("Trang sau"));
+  expect(rowContaining("SKU-12")).not.toBeUndefined();
+
+  await fill("Tìm sản phẩm hoặc SKU", "SKU-12");
+  expect(container.querySelectorAll("tbody tr")).toHaveLength(1);
+  expect(container.textContent).toContain("Trang 1/1");
+
+  await fill("Tìm sản phẩm hoặc SKU", "");
+  await fill("Mức tồn kho", "low");
+  expect(container.querySelectorAll("tbody tr")).toHaveLength(6);
+  expect(container.textContent).toContain("Tìm thấy 6 biến thể");
+});
+
 it("trang cảnh báo liệt kê cảnh báo đang mở hoặc báo không có cảnh báo", async () => {
   const get = routeGet({
     "/shop/alerts": [
@@ -199,6 +233,28 @@ it("trang cảnh báo liệt kê cảnh báo đang mở hoặc báo không có c
   get.mockResolvedValue({ data: [] });
   await renderAt("/shop/alerts");
   expect(container.textContent).toContain("Không có cảnh báo tồn kho nào đang mở.");
+});
+
+it("cảnh báo tồn kho có tìm kiếm và phân trang", async () => {
+  const alerts = Array.from({ length: 12 }, (_, index) => ({
+    id: index + 1,
+    variant_id: index + 1,
+    product_name: `Sản phẩm cảnh báo ${index + 1}`,
+    size: "M",
+    color: index % 2 === 0 ? "Đỏ" : "Xanh",
+    quantity_at_alert: index,
+    is_resolved: false,
+    created_at: "2026-09-24T03:00:00Z",
+  }));
+  routeGet({ "/shop/alerts": alerts });
+  await renderAt("/shop/alerts");
+
+  expect(container.querySelectorAll("tbody tr")).toHaveLength(10);
+  await click(button("Trang sau"));
+  expect(rowContaining("Sản phẩm cảnh báo 12")).not.toBeUndefined();
+  await fill("Tìm sản phẩm", "cảnh báo 3");
+  expect(container.querySelectorAll("tbody tr")).toHaveLength(1);
+  expect(rowContaining("Sản phẩm cảnh báo 3")).not.toBeUndefined();
 });
 
 it("nhà cung cấp: thêm, sửa, ngừng hợp tác (soft delete) và khôi phục", async () => {
@@ -237,6 +293,29 @@ it("nhà cung cấp: thêm, sửa, ngừng hợp tác (soft delete) và khôi ph
   });
   expect(dialog()).toBeNull();
   expect(get.mock.calls.length).toBe(5);
+});
+
+it("nhà cung cấp có tìm kiếm, lọc trạng thái và phân trang", async () => {
+  const manySuppliers = Array.from({ length: 12 }, (_, index) => ({
+    id: index + 1,
+    name: `Nhà cung cấp ${index + 1}`,
+    phone: `090${index}`,
+    address: index % 2 === 0 ? "Hà Nội" : "TP.HCM",
+    is_active: index % 2 === 0,
+  }));
+  routeGet({ "/shop/suppliers": manySuppliers });
+  await renderAt("/shop/suppliers");
+
+  expect(container.querySelectorAll("tbody tr")).toHaveLength(10);
+  await click(button("Trang sau"));
+  expect(rowContaining("Nhà cung cấp 12")).not.toBeUndefined();
+
+  await fill("Tìm nhà cung cấp", "Nhà cung cấp 2");
+  expect(container.querySelectorAll("tbody tr")).toHaveLength(1);
+  await fill("Tìm nhà cung cấp", "");
+  await fill("Trạng thái", "false");
+  expect(container.querySelectorAll("tbody tr")).toHaveLength(6);
+  expect(container.textContent).toContain("Tìm thấy 6 nhà cung cấp");
 });
 
 function purchaseOrder(id, status, overrides = {}) {
@@ -306,6 +385,58 @@ it("tạo phiếu nhập chỉ với nhà cung cấp đang hợp tác và chặn
   });
   expect(form.querySelectorAll(".variant-row")).toHaveLength(1);
   expect(field("Nhà cung cấp", { scope: form }).value).toBe("");
+});
+
+it("không mở form nhập hàng khi dữ liệu supplier hoặc inventory tải lỗi", async () => {
+  vi.spyOn(client, "get").mockImplementation(async (url, options) => {
+    if (url === "/shop/suppliers") {
+      throw { response: { data: { detail: "Không tải được nhà cung cấp" } } };
+    }
+    if (url === "/shop/inventory") return { data: inventory };
+    if (url === "/shop/purchase-orders") {
+      return {
+        data: { items: [], total: 0, page: options.params.page, page_size: 20 },
+      };
+    }
+    throw new Error(`GET ${url} chưa được mock`);
+  });
+
+  await renderAt("/shop/purchase-orders");
+
+  expect(alertText()).toContain("Không thể mở form nhập hàng: Không tải được nhà cung cấp");
+  expect(container.querySelector('form[aria-label="Tạo phiếu nhập"]')).toBeNull();
+  expect(container.textContent).toContain("Chưa có phiếu nhập phù hợp");
+});
+
+it("không giữ phiếu nhập cũ trên màn hình khi tải bộ lọc mới thất bại", async () => {
+  let purchaseRequest = 0;
+  vi.spyOn(client, "get").mockImplementation(async (url, options) => {
+    if (url === "/shop/suppliers") return { data: suppliers };
+    if (url === "/shop/inventory") return { data: inventory };
+    if (url === "/shop/purchase-orders") {
+      purchaseRequest += 1;
+      if (purchaseRequest > 1) {
+        throw { response: { data: { detail: "Không tải được phiếu nhập" } } };
+      }
+      return {
+        data: {
+          items: [purchaseOrder(1, "DRAFT")],
+          total: 1,
+          page: options.params.page,
+          page_size: 20,
+        },
+      };
+    }
+    throw new Error(`GET ${url} chưa được mock`);
+  });
+
+  await renderAt("/shop/purchase-orders");
+  expect(rowContaining("Phiếu #1 ·")).not.toBeUndefined();
+
+  await click(button("Nháp", container.querySelector(".status-tabs")));
+
+  expect(alertText()).toBe("Không tải được phiếu nhập");
+  expect(rowContaining("Phiếu #1 ·")).toBeUndefined();
 });
 
 it("phiếu nhập hiện nút theo trạng thái, nhận hàng xong có link sang tồn kho", async () => {

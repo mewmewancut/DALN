@@ -13,23 +13,38 @@ export default function ShopProductsPage() {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState({ items: [], total: 0, page: 1, page_size: PAGE_SIZE });
   const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [pendingId, setPendingId] = useState(null);
   const [dialog, setDialog] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    let active = true;
     client
       .get("/categories")
-      .then((response) => setCategories(response.data))
-      .catch((requestError) => setError(errorMessage(requestError)));
+      .then((response) => {
+        if (active) setCategories(response.data);
+      })
+      .catch((requestError) => {
+        if (active) setCategoriesError(errorMessage(requestError));
+      })
+      .finally(() => {
+        if (active) setCategoriesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError("");
+    setLoadError("");
+    setActionError("");
     const params = { page, page_size: PAGE_SIZE };
     if (keyword.trim()) params.keyword = keyword.trim();
     if (activeFilter) params.is_active = activeFilter;
@@ -39,7 +54,7 @@ export default function ShopProductsPage() {
         if (active) setResult(response.data);
       })
       .catch((requestError) => {
-        if (active) setError(errorMessage(requestError));
+        if (active) setLoadError(errorMessage(requestError));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -51,12 +66,12 @@ export default function ShopProductsPage() {
 
   async function toggleActive(product) {
     setPendingId(product.id);
-    setError("");
+    setActionError("");
     try {
       await client.put(`/products/${product.id}`, { is_active: !product.is_active });
       setRefreshKey((value) => value + 1);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setActionError(errorMessage(requestError));
     } finally {
       setPendingId(null);
     }
@@ -99,18 +114,32 @@ export default function ShopProductsPage() {
             <option value="false">Đã ẩn</option>
           </select>
         </label>
-        <button type="button" onClick={() => setDialog({ product: null })}>
+        <button
+          type="button"
+          disabled={categoriesLoading || !!categoriesError}
+          onClick={() => setDialog({ product: null })}
+        >
           Thêm sản phẩm
         </button>
       </div>
-      {loading && <p role="status">Đang tải sản phẩm...</p>}
-      {error && (
+      {categoriesError && (
         <p className="form-error" role="alert">
-          {error}
+          Không tải được danh mục: {categoriesError}
         </p>
       )}
-      {!loading && !error && result.items.length === 0 && <p>Chưa có sản phẩm phù hợp.</p>}
-      {!loading && result.items.length > 0 && (
+      {loading && <p role="status">Đang tải sản phẩm...</p>}
+      {loadError && (
+        <p className="form-error" role="alert">
+          {loadError}
+        </p>
+      )}
+      {actionError && (
+        <p className="form-error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {!loading && !loadError && result.items.length === 0 && <p>Chưa có sản phẩm phù hợp.</p>}
+      {!loading && !loadError && result.items.length > 0 && (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
@@ -133,17 +162,23 @@ export default function ShopProductsPage() {
                   <td>{product.variants.length}</td>
                   <td>{product.variants.reduce((sum, variant) => sum + variant.quantity, 0)}</td>
                   <td>{product.is_active ? "Đang bán" : "Đã ẩn"}</td>
-                  <td className="table-actions">
-                    <button type="button" onClick={() => setDialog({ product })}>
-                      Sửa
-                    </button>
-                    <button
-                      type="button"
-                      disabled={pendingId === product.id}
-                      onClick={() => toggleActive(product)}
-                    >
-                      {product.is_active ? "Ẩn" : "Hiện"}
-                    </button>
+                  <td>
+                    <div className="table-actions">
+                      <button
+                        type="button"
+                        disabled={categoriesLoading || !!categoriesError}
+                        onClick={() => setDialog({ product })}
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        type="button"
+                        disabled={pendingId === product.id}
+                        onClick={() => toggleActive(product)}
+                      >
+                        {product.is_active ? "Ẩn" : "Hiện"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

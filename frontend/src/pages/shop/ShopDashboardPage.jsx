@@ -3,14 +3,10 @@ import { Link } from "react-router";
 
 import client from "../../api/client.js";
 import { errorMessage } from "../../api/errorMessage.js";
+import DateRangeFields from "../../components/DateRangeFields.jsx";
 import { lastDays } from "../../components/dateRange.js";
-import { formatCurrency } from "../../components/formatCurrency.js";
 import RevenueChart from "../../components/RevenueChart.jsx";
-
-function formatRate(rate) {
-  if (rate == null) return "—";
-  return `${(rate * 100).toLocaleString("vi-VN", { maximumFractionDigits: 1 })}%`;
-}
+import StatCards from "../../components/StatCards.jsx";
 
 export default function ShopDashboardPage() {
   const [range, setRange] = useState(() => lastDays(30));
@@ -62,24 +58,7 @@ export default function ShopDashboardPage() {
       <p className="eyebrow">Chủ shop</p>
       <h1>Tổng quan shop</h1>
       <div className="toolbar">
-        <label>
-          Từ ngày
-          <input
-            type="date"
-            value={range.from}
-            onChange={(event) => setRange((current) => ({ ...current, from: event.target.value }))}
-            required
-          />
-        </label>
-        <label>
-          Đến ngày
-          <input
-            type="date"
-            value={range.to}
-            onChange={(event) => setRange((current) => ({ ...current, to: event.target.value }))}
-            required
-          />
-        </label>
+        <DateRangeFields range={range} onChange={setRange} />
       </div>
       {loading && <p role="status">Đang tải số liệu...</p>}
       {error && (
@@ -89,26 +68,7 @@ export default function ShopDashboardPage() {
       )}
       {!loading && data && (
         <>
-          <div className="stat-grid">
-            <article className="stat-card">
-              <span>Doanh thu</span>
-              <strong>{formatCurrency(data.overview.revenue)}</strong>
-            </article>
-            <article className="stat-card">
-              <span>Số đơn</span>
-              <strong>{data.overview.order_count}</strong>
-            </article>
-            <article className="stat-card">
-              <span>Tỷ lệ hủy</span>
-              <strong>{formatRate(data.overview.cancel_rate)}</strong>
-            </article>
-            <article className="stat-card">
-              <span>Giá trị đơn trung bình</span>
-              <strong>
-                {data.overview.aov == null ? "—" : formatCurrency(Math.round(data.overview.aov))}
-              </strong>
-            </article>
-          </div>
+          <StatCards overview={data.overview} />
           <Link to="/shop/alerts" className="alert-badge">
             Cảnh báo tồn kho: <strong>{data.alertCount}</strong>
           </Link>

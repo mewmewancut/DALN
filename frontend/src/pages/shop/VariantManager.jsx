@@ -93,23 +93,25 @@ export default function VariantManager({ product }) {
                   </td>
                   <td>{variant.quantity}</td>
                   <td>{variant.is_active ? "Đang bán" : "Đã ẩn"}</td>
-                  <td className="table-actions">
-                    <button
-                      type="button"
-                      disabled={
-                        pending === variant.id || invalidPrice || Number(price) === variant.price
-                      }
-                      onClick={() => updateVariant(variant, { price: Number(price) })}
-                    >
-                      Lưu giá
-                    </button>
-                    <button
-                      type="button"
-                      disabled={pending === variant.id}
-                      onClick={() => updateVariant(variant, { is_active: !variant.is_active })}
-                    >
-                      {variant.is_active ? "Ẩn" : "Hiện"}
-                    </button>
+                  <td>
+                    <div className="table-actions">
+                      <button
+                        type="button"
+                        disabled={
+                          pending === variant.id || invalidPrice || Number(price) === variant.price
+                        }
+                        onClick={() => updateVariant(variant, { price: Number(price) })}
+                      >
+                        Lưu giá
+                      </button>
+                      <button
+                        type="button"
+                        disabled={pending === variant.id}
+                        onClick={() => updateVariant(variant, { is_active: !variant.is_active })}
+                      >
+                        {variant.is_active ? "Ẩn" : "Hiện"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

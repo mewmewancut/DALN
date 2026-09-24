@@ -17,7 +17,8 @@ export default function ShopOrdersPage() {
   const [page, setPage] = useState(1);
   const [result, setResult] = useState({ items: [], total: 0, page: 1, page_size: PAGE_SIZE });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
   const [pendingId, setPendingId] = useState(null);
   const [cancelOrder, setCancelOrder] = useState(null);
   const [reason, setReason] = useState("");
@@ -26,7 +27,8 @@ export default function ShopOrdersPage() {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError("");
+    setLoadError("");
+    setActionError("");
     const params = { page, page_size: PAGE_SIZE };
     if (status) params.status = status;
     client
@@ -35,7 +37,7 @@ export default function ShopOrdersPage() {
         if (active) setResult(response.data);
       })
       .catch((requestError) => {
-        if (active) setError(errorMessage(requestError));
+        if (active) setLoadError(errorMessage(requestError));
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -47,7 +49,7 @@ export default function ShopOrdersPage() {
 
   async function changeStatus(order, nextStatus, note) {
     setPendingId(order.id);
-    setError("");
+    setActionError("");
     try {
       const body = { status: nextStatus };
       if (note) body.note = note;
@@ -55,7 +57,7 @@ export default function ShopOrdersPage() {
       setCancelOrder(null);
       setRefreshKey((value) => value + 1);
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      setActionError(errorMessage(requestError));
     } finally {
       setPendingId(null);
     }
@@ -88,13 +90,18 @@ export default function ShopOrdersPage() {
         ))}
       </div>
       {loading && <p role="status">Đang tải đơn hàng...</p>}
-      {error && (
+      {loadError && (
         <p className="form-error" role="alert">
-          {error}
+          {loadError}
         </p>
       )}
-      {!loading && !error && result.items.length === 0 && <p>Chưa có đơn hàng phù hợp.</p>}
-      {!loading && result.items.length > 0 && (
+      {actionError && (
+        <p className="form-error" role="alert">
+          {actionError}
+        </p>
+      )}
+      {!loading && !loadError && result.items.length === 0 && <p>Chưa có đơn hàng phù hợp.</p>}
+      {!loading && !loadError && result.items.length > 0 && (
         <div className="table-wrap">
           <table className="data-table">
             <thead>
@@ -121,24 +128,26 @@ export default function ShopOrdersPage() {
                       {orderStatusLabel(order.status)}
                     </span>
                   </td>
-                  <td className="table-actions">
-                    {shopOrderActions(order.status).map((action) => (
-                      <button
-                        type="button"
-                        key={action.status}
-                        disabled={pendingId === order.id}
-                        onClick={() => {
-                          if (action.status === "CANCELLED") {
-                            setCancelOrder(order);
-                            setReason("");
-                          } else {
-                            changeStatus(order, action.status);
-                          }
-                        }}
-                      >
-                        {action.label}
-                      </button>
-                    ))}
+                  <td>
+                    <div className="table-actions">
+                      {shopOrderActions(order.status).map((action) => (
+                        <button
+                          type="button"
+                          key={action.status}
+                          disabled={pendingId === order.id}
+                          onClick={() => {
+                            if (action.status === "CANCELLED") {
+                              setCancelOrder(order);
+                              setReason("");
+                            } else {
+                              changeStatus(order, action.status);
+                            }
+                          }}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
                   </td>
                 </tr>
               ))}
