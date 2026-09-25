@@ -6,7 +6,8 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 
 1. [`PROPOSAL.md`](PROPOSAL.md) — mục tiêu, phạm vi và kết quả kỳ vọng của đề tài.
 2. [`PLANNING.md`](PLANNING.md) — đặc tả nghiệp vụ, kiến trúc dự kiến và quy trình thực hiện.
-3. Các tài liệu kỹ thuật bên dưới — mô tả trạng thái hệ thống đã được triển khai thực tế.
+3. [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) — hướng dẫn cài đặt và chạy local/demo từ đầu cho người mới.
+4. Các tài liệu kỹ thuật bên dưới — mô tả trạng thái hệ thống đã được triển khai thực tế.
 
 ## Danh mục tài liệu
 
@@ -19,6 +20,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến toàn bộ backend C3–C10: giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo, supplier/nhập hàng, review, số liệu thống kê shop và admin |
 | [`API.md`](API.md) | In progress | Toàn bộ endpoint backend C0–C10: auth, shop, catalog, giỏ hàng, checkout, đơn hàng, tồn kho/cảnh báo, supplier/nhập hàng, review, số liệu thống kê shop, admin, role và error contract |
 | `DATA_PLATFORM.md` | Planned | Lakebase, Medallion, metric và data quality |
+| [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) | Implemented | Cài đặt Docker, cấu hình, migration, seed, kiểm tra và xử lý lỗi local/demo từ đầu |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |
 | [`TESTING.md`](TESTING.md) | In progress | Các lớp test hiện có, hook pre-commit và hướng dẫn chạy |
 
