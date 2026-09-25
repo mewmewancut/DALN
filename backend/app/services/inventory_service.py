@@ -64,6 +64,14 @@ def update_threshold(
     inventory.low_stock_threshold = threshold
     db.commit()
     db.refresh(inventory)
+
+    # Đồng bộ cảnh báo khi Shop Owner thay đổi ngưỡng tồn kho.
+    if inventory.quantity < inventory.low_stock_threshold:
+        check_low_stock(db, variant_id)
+    else:
+        resolve_alerts_if_ok(db, variant_id)
+
+    db.refresh(inventory)
     variant = db.get(ProductVariant, variant_id)
     product = db.get(Product, variant.product_id)
     return _inventory_item(inventory, variant, product)

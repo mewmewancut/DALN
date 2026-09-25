@@ -144,6 +144,63 @@ def test_update_threshold_recomputes_is_low_and_checks_ownership(
         == 422
     )
 
+def test_update_threshold_creates_and_resolves_low_stock_alert(
+    db_session: Session, client: TestClient
+) -> None:
+    ctx = seed_variant(db_session, quantity=10, threshold=5)
+    variant_id = ctx["variant"].id
+
+    # Tăng ngưỡng lên 15:
+    # tồn kho 10 < 15 -> phải tạo cảnh báo.
+    response = client.put(
+        f"/shop/inventory/{variant_id}/threshold",
+        json={"low_stock_threshold": 15},
+        headers=ctx["owner_headers"],
+    )
+
+    assert response.status_code == 200
+    assert response.json()["is_low"] is True
+
+    alerts = client.get(
+        "/shop/alerts",
+        headers=ctx["owner_headers"],
+    )
+
+    assert alerts.status_code == 200
+    assert len(alerts.json()) == 1
+    assert alerts.json()[0]["variant_id"] == variant_id
+    assert alerts.json()[0]["quantity_at_alert"] == 10
+    assert alerts.json()[0]["is_resolved"] is False
+
+    # Hạ ngưỡng xuống 5:
+    # tồn kho 10 >= 5 -> cảnh báo phải được đóng.
+    response = client.put(
+        f"/shop/inventory/{variant_id}/threshold",
+        json={"low_stock_threshold": 5},
+        headers=ctx["owner_headers"],
+    )
+
+    assert response.status_code == 200
+    assert response.json()["is_low"] is False
+
+    alerts = client.get(
+        "/shop/alerts",
+        headers=ctx["owner_headers"],
+    )
+
+    assert alerts.status_code == 200
+    assert alerts.json() == []
+
+    assert (
+        db_session.scalar(
+            select(LowStockAlert.is_resolved).where(
+                LowStockAlert.variant_id == variant_id
+            )
+        )
+        is True
+    )
+
+
 
 def test_checkout_below_threshold_creates_single_alert_until_resolved(
     db_session: Session, client: TestClient
