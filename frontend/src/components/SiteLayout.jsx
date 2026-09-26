@@ -1,9 +1,12 @@
-import { Link } from "react-router";
+import { Link, NavLink } from "react-router";
 
 import { useAuth } from "../auth/AuthContext.jsx";
 
 export default function SiteLayout({ children, wide = false }) {
   const { session, logout } = useAuth();
+
+  const navClassName = ({ isActive }) =>
+    `site-nav-link${isActive ? " active" : ""}`;
 
   return (
     <div className="site-frame">
@@ -11,42 +14,74 @@ export default function SiteLayout({ children, wide = false }) {
         <span>Marketplace thời trang Việt</span>
         <span>Giá và tồn kho theo từng biến thể</span>
       </div>
+
       <main className="shell">
         <section className={`card${wide ? " card-wide" : ""}`}>
           <header className="site-header">
-            <Link to="/" className="brand">
+            <Link to="/" className="brand" aria-label="Fashion Marketplace - Trang chủ">
               <span className="brand-mark" aria-hidden="true">
                 F
               </span>
+
               <span>
                 Fashion
                 <small>Marketplace</small>
               </span>
             </Link>
-            <nav aria-label="Tài khoản">
+
+            <nav className="site-nav" aria-label="Điều hướng tài khoản">
               {session ? (
                 <>
                   {session.role === "BUYER" && (
                     <>
-                      <Link to="/">Sản phẩm</Link>
-                      <Link to="/cart">Giỏ hàng</Link>
-                      <Link to="/orders">Đơn hàng</Link>
+                      <NavLink to="/" end className={navClassName}>
+                        Sản phẩm
+                      </NavLink>
+
+                      <NavLink to="/cart" className={navClassName}>
+                        Giỏ hàng
+                      </NavLink>
+
+                      <NavLink to="/orders" className={navClassName}>
+                        Đơn hàng
+                      </NavLink>
                     </>
                   )}
-                  {session.role === "SHOP_OWNER" && <Link to="/shop/dashboard">Quản lý shop</Link>}
-                  {session.role === "ADMIN" && <Link to="/admin/dashboard">Quản trị</Link>}
-                  <button type="button" onClick={logout}>
+
+                  {session.role === "SHOP_OWNER" && (
+                    <NavLink to="/shop" className={navClassName}>
+                      Quản lý shop
+                    </NavLink>
+                  )}
+
+                  {session.role === "ADMIN" && (
+                    <NavLink to="/admin" className={navClassName}>
+                      Quản trị
+                    </NavLink>
+                  )}
+
+                  <button
+                    type="button"
+                    className="site-nav-logout"
+                    onClick={logout}
+                  >
                     Đăng xuất
                   </button>
                 </>
               ) : (
                 <>
-                  <Link to="/login">Đăng nhập</Link>
-                  <Link to="/register">Đăng ký</Link>
+                  <NavLink to="/login" className={navClassName}>
+                    Đăng nhập
+                  </NavLink>
+
+                  <NavLink to="/register" className={navClassName}>
+                    Đăng ký
+                  </NavLink>
                 </>
               )}
             </nav>
           </header>
+
           {children}
         </section>
       </main>

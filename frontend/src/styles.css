@@ -147,6 +147,60 @@ body {
   text-transform: uppercase;
 }
 
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.site-nav-link {
+  position: relative;
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 14px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.site-nav-link:hover {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.site-nav-link.active {
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 6px 16px rgb(36 35 33 / 14%);
+}
+
+.site-nav-link.active:hover {
+  background: var(--ink);
+  color: #fff;
+}
+
+.site-nav-logout {
+  min-height: 40px;
+  margin-left: 4px;
+  padding: 9px 14px;
+  border-color: #d8d3ca;
+  color: var(--muted);
+}
+
+.site-nav-logout:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: #fbede8;
+  color: var(--accent-dark);
+}
+
 button {
   min-height: 40px;
   padding: 9px 15px;
@@ -877,22 +931,44 @@ button:disabled {
   gap: 6px;
   padding: 10px;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  background: var(--surface-soft);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f7f4ee 0%, var(--surface-soft) 100%);
+  box-shadow: 0 10px 28px rgb(42 38 31 / 5%);
 }
 
 .shop-sidebar a {
+  position: relative;
   padding: 11px 13px;
-  border-radius: 9px;
+  border: 1px solid transparent;
+  border-radius: 10px;
   color: var(--ink);
   font-size: 0.9rem;
   font-weight: 700;
   text-decoration: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.shop-sidebar a:hover {
+  border-color: rgb(222 219 212 / 85%);
+  background: rgb(255 255 255 / 72%);
+  transform: translateX(2px);
 }
 
 .shop-sidebar a.active {
+  border-color: var(--ink);
   background: var(--ink);
   color: #fff;
+  box-shadow: 0 7px 18px rgb(36 35 33 / 14%);
+}
+
+.shop-sidebar a.active:hover {
+  background: var(--ink);
+  transform: none;
 }
 
 .shop-content h1 {
