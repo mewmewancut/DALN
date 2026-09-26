@@ -1131,6 +1131,113 @@ button:disabled {
   align-items: end;
   gap: 12px;
 }
+/* ===== Management tables polish ===== */
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.data-table {
+  min-width: 980px;
+  table-layout: auto;
+}
+
+.data-table th,
+.data-table td {
+  padding: 14px 16px;
+}
+
+.data-table td {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.data-table tbody tr {
+  transition: background 160ms ease;
+}
+
+/* Mã đơn, ngày, tiền và trạng thái không bị bẻ thành nhiều dòng. */
+.data-table th:first-child,
+.data-table td:first-child,
+.data-table td:nth-child(4),
+.data-table td:nth-child(5),
+.data-table td:last-child {
+  white-space: nowrap;
+}
+
+/* Tên shop có đủ không gian để đọc. */
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  min-width: 170px;
+}
+
+/* Cột thanh toán rộng hơn, tránh hiển thị quá chật. */
+.data-table th:nth-child(6),
+.data-table td:nth-child(6) {
+  min-width: 150px;
+  white-space: nowrap;
+}
+
+/* Toolbar quản trị rõ ràng và cân đối hơn. */
+.toolbar {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+
+.toolbar .text-button {
+  margin-bottom: 10px;
+}
+
+/* Thanh cuộn ngang dễ nhận biết hơn khi bảng rộng. */
+.table-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+
+.table-wrap::-webkit-scrollbar-thumb {
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: #c9c5bd;
+}
+
+.table-wrap::-webkit-scrollbar-track {
+  background: #fff;
+}
+
+/* ===== Management layout: laptop / tablet ===== */
+
+@media (max-width: 1100px) {
+  .shop-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .shop-sidebar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .shop-sidebar a {
+    flex: 1 1 auto;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .shop-content {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .toolbar > label {
+    flex: 1 1 220px;
+    max-width: none;
+  }
+}
 
 @media (max-width: 700px) {
   .announcement-bar {
