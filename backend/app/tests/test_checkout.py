@@ -25,6 +25,7 @@ from app.models import (
     ProductVariant,
     Shop,
     User,
+    UserAddress,
 )
 from app.schemas.orders import CheckoutRequest
 from app.services.checkout_service import checkout
@@ -95,6 +96,49 @@ def test_checkout_empty_cart_returns_400(db_session: Session, client: TestClient
     db_session.commit()
     response = client.post("/orders/checkout", json=CHECKOUT_BODY, headers=headers)
     assert response.status_code == 400
+
+
+def test_checkout_keeps_address_snapshot_after_saved_address_changes(
+    db_session: Session, client: TestClient
+) -> None:
+    data = seed_cart(db_session)
+    address = UserAddress(
+        user_id=data["buyer"].id,
+        label="Nhà riêng",
+        receiver_name="Nguyễn An",
+        receiver_phone="0900000000",
+        province_code="01",
+        province_name="Thành phố Hà Nội",
+        commune_code="00004",
+        commune_name="Phường Ba Đình",
+        address_detail="12 Đội Cấn",
+        is_default=True,
+    )
+    db_session.add(address)
+    db_session.commit()
+    snapshot = f"{address.address_detail}, {address.commune_name}, {address.province_name}"
+
+    response = client.post(
+        "/orders/checkout",
+        json={
+            "receiver_name": address.receiver_name,
+            "receiver_phone": address.receiver_phone,
+            "shipping_address": snapshot,
+            "payment_method": "COD",
+        },
+        headers=data["headers"],
+    )
+    assert response.status_code == 200
+    order = db_session.get(Order, response.json()["id"])
+    assert order is not None
+
+    address.address_detail = "99 địa chỉ mới"
+    db_session.delete(address)
+    db_session.commit()
+    db_session.refresh(order)
+    assert order.shipping_address == snapshot
+    assert order.receiver_name == "Nguyễn An"
+    assert order.receiver_phone == "0900000000"
 
 
 def test_checkout_success_deducts_stock_clears_cart_and_records_history(

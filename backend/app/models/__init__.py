@@ -1,5 +1,6 @@
 """SQLAlchemy models exposed for metadata discovery and migrations."""
 
+from app.models.address import UserAddress
 from app.models.auth import AuthToken
 from app.models.cart import Cart, CartItem
 from app.models.catalog import Category, Product, ProductVariant
@@ -14,6 +15,7 @@ from app.models.user import User
 __all__ = [
     "Category",
     "AuthToken",
+    "UserAddress",
     "Cart",
     "CartItem",
     "Inventory",

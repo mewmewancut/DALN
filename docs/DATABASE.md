@@ -1,7 +1,7 @@
 # Database
 
 **Trạng thái:** Implemented
-**Phạm vi đã triển khai:** Planning B1–B15
+**Phạm vi đã triển khai:** Planning B1–B15 và P1 hồ sơ/sổ địa chỉ
 
 Tài liệu này mô tả schema vận hành đã được triển khai trong SQLAlchemy và Alembic. Đặc tả đầy đủ, bao gồm các bảng chưa triển khai, nằm trong [`PLANNING.md`](PLANNING.md#phần-b--database-từng-bảng-từng-cột).
 
@@ -18,6 +18,7 @@ Tài liệu này mô tả schema vận hành đã được triển khai trong SQ
 ```mermaid
 erDiagram
     USERS ||--o| SHOPS : owns
+    USERS ||--o{ USER_ADDRESSES : saves
     SHOPS ||--o{ PRODUCTS : sells
     CATEGORIES ||--o{ PRODUCTS : classifies
     PRODUCTS ||--o{ PRODUCT_VARIANTS : has
@@ -53,6 +54,7 @@ erDiagram
 - Mật khẩu chỉ lưu ở cột `password_hash`; seed data và authentication dùng bcrypt.
 - `email_verified_at` là `NULL` cho tài khoản mới và được set UTC sau khi xác minh; user có từ trước migration và user seed được đánh dấu đã xác minh.
 - `auth_version` là số nguyên mặc định `0`, tăng sau mỗi lần reset mật khẩu để JWT cũ mất hiệu lực.
+- `phone` và `avatar_url` là thông tin hồ sơ tùy chọn; avatar chỉ lưu URL, không lưu file.
 - Role chỉ nhận `BUYER`, `SHOP_OWNER` hoặc `ADMIN`.
 - `is_active` mặc định là `true`.
 
@@ -61,6 +63,14 @@ erDiagram
 - Lưu token xác minh email và reset mật khẩu theo `purpose`; CHECK chỉ nhận `VERIFY_EMAIL`, `RESET_PASSWORD`.
 - Chỉ lưu `token_hash` SHA-256 duy nhất, cùng `expires_at`, `used_at`; token gốc không được lưu.
 - FK `user_id` dùng `ON DELETE CASCADE`; index `(user_id, purpose)` phục vụ thay thế token cũ.
+
+### `user_addresses`
+
+- Mỗi địa chỉ thuộc một user và bị xóa cascade khi user bị xóa; service chỉ cho role `BUYER` sử dụng.
+- Lưu mã và snapshot tên của Tỉnh/Thành phố cùng Xã/Phường/Đặc khu; không có cột quận/huyện.
+- `address_detail` giữ phần số nhà/đường/thôn/ấp/khu phố do buyer nhập. Receiver và số điện thoại là dữ liệu riêng của từng địa chỉ.
+- Partial unique index `uq_user_addresses_default_user ON user_addresses (user_id) WHERE is_default` bảo đảm mỗi user có tối đa một địa chỉ mặc định. Service khóa dòng user khi đếm, tạo, đổi hoặc xóa địa chỉ.
+- Order tiếp tục giữ snapshot độc lập trong `orders`; không đọc địa chỉ giao hàng lịch sử từ bảng này.
 
 ### `shops`
 
@@ -137,6 +147,7 @@ erDiagram
 - Migration timestamp cho các bảng có cập nhật: `20260922_0003_add_mutable_timestamps.py`.
 - Migration ràng buộc một alert đang mở mỗi variant: `20260923_0004_low_stock_alert_unique_open.py`.
 - Migration xác minh email và reset mật khẩu: `20260927_0005_add_email_auth_flows.py`.
+- Migration hồ sơ và sổ địa chỉ: `20260927_0006_add_profiles_and_addresses.py`.
 
 ```powershell
 docker compose --env-file .env.example exec -T backend alembic upgrade head

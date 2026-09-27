@@ -6,6 +6,7 @@ from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.cart import router as cart_router
 from app.routers.inventory import router as inventory_router
+from app.routers.locations import router as locations_router
 from app.routers.orders import router as orders_router
 from app.routers.orders import shop_router as shop_orders_router
 from app.routers.products import (
@@ -20,6 +21,7 @@ from app.routers.reviews import router as reviews_router
 from app.routers.shop_stats import router as shop_stats_router
 from app.routers.shops import router as shops_router
 from app.routers.suppliers import router as suppliers_router
+from app.routers.users import router as users_router
 
 settings = get_settings()
 
@@ -33,6 +35,8 @@ app.add_middleware(
 )
 app.include_router(admin_router)
 app.include_router(auth_router)
+app.include_router(locations_router)
+app.include_router(users_router)
 app.include_router(cart_router)
 app.include_router(orders_router)
 app.include_router(shop_orders_router)

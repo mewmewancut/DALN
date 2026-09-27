@@ -73,6 +73,7 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - SKU của seed khớp `P{product_id}-{size}-{color}` và chạy lại với mốc ngày khác vẫn không nhân đôi đơn hàng.
 - Các bảng có luồng cập nhật nhận `updated_at` có timezone.
 - Auth: mật khẩu 8–72 byte được bcrypt hash; tài khoản mới bị chặn login trước xác minh; token xác minh/reset hết hạn, dùng một lần và token resend thay thế token cũ; response forgot không lộ email tồn tại; cooldown trả `429`; reset đổi mật khẩu và vô hiệu JWT cũ qua `auth_version`; lỗi SMTP đăng ký vẫn giữ account để resend; `/auth/me` không lộ hash.
+- Hồ sơ/sổ địa chỉ P1: kiểm tra dữ liệu local đúng 34 tỉnh và 3.321 xã với mã duy nhất/hierarchy 2 cấp; endpoint địa danh lọc đúng tỉnh; mọi role đọc/sửa profile nhưng không sửa email/role; BUYER CRUD địa chỉ, ownership/role, mã tỉnh–xã, tối đa 10, tự tạo/đổi/xóa mặc định. Frontend kiểm tra tìm địa danh không dấu, reset xã khi đổi tỉnh, chỉ gửi mã đã chọn và checkout tự điền/đổi snapshot từ sổ địa chỉ.
 - Email service: test fake SMTP xác nhận STARTTLS, App Password và link token nằm trong fragment; kiểm tra cả subject, bản text, template HTML, CTA, link dự phòng, thời hạn và hướng dẫn bảo mật của ba loại email. Toàn bộ API test dùng fake email sender nên không phụ thuộc Gmail/network.
 - Thiếu, sai, hết hạn token hoặc user bị khóa đều bị từ chối; dependency role và shop lấy quyền sở hữu từ database thay vì tin `shop_id` trong token.
 - API shop chỉ cho SHOP_OWNER tạo và sửa shop của mình; từ chối `owner_id` do client gửi và không cho tạo shop thứ hai.
@@ -102,4 +103,4 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 
 - Frontend ADMIN D4: vai trò khác không vào được `/admin/*`; dashboard gọi `/admin/stats/overview` với khoảng 30 ngày mặc định, hiện 4 chỉ số, sidebar đủ bốn trang và lỗi API khi khoảng ngày sai; link Databricks Dashboard/Genie chỉ xuất hiện (mở tab mới, `rel="noreferrer"`) khi biến môi trường có giá trị, ngược lại ghi "chưa được cấu hình"; trang người dùng gửi filter `role`/`keyword`, khóa/mở theo response và giữ nguyên dòng khi backend từ chối tự khóa; trang shop gửi `keyword`/`is_active` cùng tham số phân trang phía server, xóa được bộ lọc, khóa/mở theo response và hiện lỗi; trang đơn toàn hệ thống tải danh sách shop cho bộ lọc, gửi đúng `shop_id`/`status`/`from`/`to` và hiện tên shop.
 
-Toàn bộ backend Planning C0–C10 và frontend D1–D4 đã có test. Phần còn lại là data platform (E) và Docker/demo (G).
+Toàn bộ backend Planning C0–C10, P1 hồ sơ/sổ địa chỉ và frontend D1–D4 đã có test. Phần còn lại là data platform (E) và Docker/demo (G).

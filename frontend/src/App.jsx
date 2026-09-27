@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 
 import { useAuth } from "./auth/AuthContext.jsx";
 import RequireRole from "./auth/RequireRole.jsx";
+import RequireAuth from "./auth/RequireAuth.jsx";
 import { homeForRole } from "./auth/session.js";
 import AdminLayout from "./components/AdminLayout.jsx";
 import ShopLayout from "./components/ShopLayout.jsx";
@@ -18,6 +19,7 @@ import OrderDetailPage from "./pages/OrderDetailPage.jsx";
 import OrdersPage from "./pages/OrdersPage.jsx";
 import ProductDetailPage from "./pages/ProductDetailPage.jsx";
 import ProductListPage from "./pages/ProductListPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import VerificationPendingPage from "./pages/VerificationPendingPage.jsx";
@@ -129,6 +131,14 @@ export default function App() {
         <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route
+          path="/account/profile"
+          element={
+            <RequireAuth>
+              <ProfilePage />
+            </RequireAuth>
+          }
+        />
         <Route
           path="/shop"
           element={

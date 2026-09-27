@@ -9,6 +9,8 @@ import SiteLayout from "../components/SiteLayout.jsx";
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const [cart, setCart] = useState(null);
+  const [addresses, setAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
   const [form, setForm] = useState({
     receiver_name: "",
     receiver_phone: "",
@@ -22,10 +24,32 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     let active = true;
-    client
-      .get("/cart")
-      .then((response) => {
-        if (active) setCart(response.data);
+    Promise.all([
+      client.get("/cart"),
+      client.get("/users/me/profile"),
+      client.get("/users/me/addresses"),
+    ])
+      .then(([cartResponse, profileResponse, addressResponse]) => {
+        if (!active) return;
+        setCart(cartResponse.data);
+        setAddresses(addressResponse.data);
+        const preferred =
+          addressResponse.data.find((address) => address.is_default) ?? addressResponse.data[0];
+        if (preferred) {
+          setSelectedAddressId(String(preferred.id));
+          setForm((current) => ({
+            ...current,
+            receiver_name: preferred.receiver_name,
+            receiver_phone: preferred.receiver_phone,
+            shipping_address: `${preferred.address_detail}, ${preferred.commune_name}, ${preferred.province_name}`,
+          }));
+        } else {
+          setForm((current) => ({
+            ...current,
+            receiver_name: profileResponse.data.full_name ?? "",
+            receiver_phone: profileResponse.data.phone ?? "",
+          }));
+        }
       })
       .catch((requestError) => {
         if (active) setLoadError(errorMessage(requestError));
@@ -40,6 +64,19 @@ export default function CheckoutPage() {
 
   function changeField(event) {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function chooseAddress(event) {
+    const nextId = event.target.value;
+    setSelectedAddressId(nextId);
+    const address = addresses.find((item) => String(item.id) === nextId);
+    if (!address) return;
+    setForm((current) => ({
+      ...current,
+      receiver_name: address.receiver_name,
+      receiver_phone: address.receiver_phone,
+      shipping_address: `${address.address_detail}, ${address.commune_name}, ${address.province_name}`,
+    }));
   }
 
   async function submit(event) {
@@ -77,6 +114,19 @@ export default function CheckoutPage() {
       {!loading && !loadError && hasItems && (
         <div className="checkout-layout">
           <form className="form-stack" onSubmit={submit}>
+            {addresses.length > 0 && (
+              <label>
+                Địa chỉ đã lưu
+                <select value={selectedAddressId} onChange={chooseAddress}>
+                  {addresses.map((address) => (
+                    <option value={address.id} key={address.id}>
+                      {address.label}
+                      {address.is_default ? " (Mặc định)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label>
               Người nhận
               <input

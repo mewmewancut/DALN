@@ -47,7 +47,6 @@ export default function SiteLayout({ children, wide = false }) {
                       </NavLink>
                     </>
                   )}
-
                   {session.role === "SHOP_OWNER" && (
                     <NavLink to="/shop" className={navClassName}>
                       Quản lý shop
@@ -59,6 +58,10 @@ export default function SiteLayout({ children, wide = false }) {
                       Quản trị
                     </NavLink>
                   )}
+
+                  <NavLink to="/account/profile" className={navClassName}>
+                    Hồ sơ
+                  </NavLink>
 
                   <button
                     type="button"

@@ -1,7 +1,7 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Toàn bộ backend Planning C1–C10 đã triển khai.
+**Phạm vi:** Toàn bộ backend Planning C1–C10 và P1 hồ sơ/sổ địa chỉ đã triển khai.
 
 ## Tài khoản và email C1
 
@@ -12,6 +12,14 @@
 - Gmail App Password chỉ ở `.env`; không ghi secret, token gốc hay mật khẩu vào code, log hoặc database.
 
 Contract và mã lỗi nằm tại [`API.md`](API.md#auth); cấu hình Gmail nằm tại [`DEVELOPMENT.md`](DEVELOPMENT.md#email-gmail-cho-local).
+
+## Hồ sơ và sổ địa chỉ P1
+
+- Mọi role đã đăng nhập được sửa họ tên, số điện thoại và avatar URL; email, role, trạng thái tài khoản không nằm trong request update.
+- Backend dùng bộ dữ liệu local 2 cấp có version: Tỉnh/Thành phố → Xã/Phường/Đặc khu. Client gửi mã, backend kiểm tra quan hệ và tự lưu snapshot tên; không có quận/huyện và không gọi dịch vụ ngoài lúc chạy.
+- Chỉ BUYER có sổ địa chỉ, tối đa 10 dòng. Mọi thao tác ghi khóa dòng user để tuần tự hóa việc đếm và đổi mặc định; partial unique index là chốt chặn cuối cho quy tắc tối đa một mặc định.
+- Địa chỉ đầu tiên tự là mặc định. Đặt lại cùng địa chỉ là no-op an toàn. Xóa địa chỉ mặc định sẽ chọn địa chỉ được tạo sớm nhất còn lại.
+- Checkout ghép địa chỉ đã chọn thành `address_detail, commune_name, province_name` và gửi theo contract snapshot hiện có. Order không tham chiếu `user_addresses`, vì vậy thay đổi sổ địa chỉ không sửa lịch sử đơn.
 
 ## Giỏ hàng C3
 

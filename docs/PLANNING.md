@@ -120,6 +120,8 @@ Tất cả bảng có `id` kiểu `BIGSERIAL PRIMARY KEY` (trừ khi ghi khác),
 | is_active | BOOLEAN | DEFAULT true — admin khóa tài khoản thì set false |
 | email_verified_at | TIMESTAMPTZ | NULL khi chưa xác minh; có giá trị sau khi dùng liên kết xác minh hợp lệ |
 | auth_version | INT | NOT NULL DEFAULT 0 — tăng sau khi đổi mật khẩu để vô hiệu hóa JWT cũ |
+| phone | VARCHAR(20) | NULL — số điện thoại hồ sơ, không thay thế bước xác minh email |
+| avatar_url | TEXT | NULL — URL ảnh đại diện; local không làm upload file |
 
 ### B1a. `auth_tokens`
 
@@ -132,6 +134,32 @@ Tất cả bảng có `id` kiểu `BIGSERIAL PRIMARY KEY` (trừ khi ghi khác),
 | used_at | TIMESTAMPTZ | NULL; set khi token đã được dùng hoặc bị thay thế |
 
 Token xác minh email có hạn 8 giờ; token đặt lại mật khẩu có hạn 30 phút. Mỗi lần cấp token mới phải vô hiệu hóa token chưa dùng cùng mục đích của user.
+
+### B1b. `user_addresses`
+
+| Cột | Kiểu | Ràng buộc |
+|---|---|---|
+| user_id | BIGINT | FK → users.id, NOT NULL, ON DELETE CASCADE |
+| label | VARCHAR(50) | NOT NULL — ví dụ Nhà riêng, Công ty |
+| receiver_name | VARCHAR(255) | NOT NULL |
+| receiver_phone | VARCHAR(20) | NOT NULL |
+| province_code | VARCHAR(2) | NOT NULL — mã Tỉnh/Thành phố theo Quyết định 19/2025/QĐ-TTg |
+| province_name | VARCHAR(100) | NOT NULL — snapshot tên chính thức tại lúc lưu |
+| commune_code | VARCHAR(5) | NOT NULL — mã Xã/Phường/Đặc khu thuộc tỉnh đã chọn |
+| commune_name | VARCHAR(100) | NOT NULL — snapshot tên chính thức tại lúc lưu |
+| address_detail | TEXT | NOT NULL — số nhà, đường, thôn/ấp/khu phố, tòa nhà... do người dùng nhập |
+| is_default | BOOLEAN | NOT NULL DEFAULT false |
+| updated_at | TIMESTAMPTZ | |
+
+📌 QUYẾT ĐỊNH SỔ ĐỊA CHỈ:
+
+- Chỉ BUYER được quản lý sổ địa chỉ; tối đa 10 địa chỉ mỗi tài khoản.
+- Mô hình hành chính dùng đúng 2 cấp hiện hành: Tỉnh/Thành phố → Xã/Phường/Đặc khu; không lưu quận/huyện.
+- Client chỉ gửi mã hành chính. Backend kiểm tra quan hệ tỉnh–xã và tự lấy tên từ bộ dữ liệu đóng gói trong repository; không gọi API ngoài khi chạy.
+- Địa chỉ đầu tiên tự thành mặc định. Mỗi buyer có tối đa một địa chỉ mặc định, được bảo vệ thêm bằng partial unique index ở database.
+- Đổi mặc định phải idempotent và thực hiện trong một transaction. Xóa địa chỉ mặc định thì địa chỉ cũ nhất còn lại được chọn thay thế.
+- Đơn hàng vẫn lưu snapshot tại `orders.shipping_address`, `receiver_name`, `receiver_phone`; sửa hoặc xóa sổ địa chỉ không làm thay đổi đơn cũ.
+- Bộ dữ liệu hành chính theo Quyết định 19/2025/QĐ-TTg, hiệu lực 01/07/2025: 34 đơn vị cấp tỉnh và 3.321 đơn vị cấp xã. Dữ liệu có metadata nguồn và phiên bản để có thể cập nhật có kiểm soát.
 
 ### B2. `shops`
 
@@ -351,6 +379,22 @@ Script phải tạo (idempotent — chạy lại không nhân đôi, dùng kiể
 - Token là chuỗi ngẫu nhiên đủ mạnh, chỉ lưu SHA-256 trong DB, dùng một lần và được tiêu thụ nguyên tử.
 - Quên mật khẩu chỉ gửi mail cho tài khoản active đã xác minh. Đặt lại mật khẩu thành công tăng `auth_version`, làm JWT cũ hết hiệu lực và không tự đăng nhập.
 - Resend/forgot áp dụng cooldown 60 giây và tối đa 5 lần/giờ theo email + IP; đăng ký và thử token cũng có giới hạn theo IP. Giới hạn local lưu trong bộ nhớ, khi triển khai nhiều instance phải thay bằng kho dùng chung.
+
+### C1b. Router `users.py` + `locations.py` — hồ sơ và sổ địa chỉ
+
+| Method + Path | Ai gọi | Ghi chú |
+|---|---|---|
+| GET `/users/me/profile` | đã login | trả email, role, trạng thái cùng full_name, phone, avatar_url |
+| PATCH `/users/me/profile` | đã login | chỉ sửa full_name, phone, avatar_url; email/role/status là read-only |
+| GET `/locations/provinces` | public | danh sách 34 Tỉnh/Thành phố từ dữ liệu local |
+| GET `/locations/communes?province_code=...` | public | danh sách Xã/Phường/Đặc khu của đúng tỉnh; 400 nếu mã tỉnh sai |
+| GET `/users/me/addresses` | BUYER | mặc định đứng đầu, sau đó theo thời gian tạo |
+| POST `/users/me/addresses` | BUYER | tạo địa chỉ; địa chỉ đầu tiên tự thành mặc định; 400 khi đạt 10 địa chỉ |
+| PATCH `/users/me/addresses/{id}` | BUYER sở hữu | sửa thông tin; mã hành chính luôn được kiểm tra lại |
+| PUT `/users/me/addresses/{id}/default` | BUYER sở hữu | đặt mặc định, gọi lại không phát sinh thay đổi ngoài ý muốn |
+| DELETE `/users/me/addresses/{id}` | BUYER sở hữu | hard delete; nếu xóa mặc định thì tự chọn địa chỉ cũ nhất còn lại |
+
+Mọi thao tác ghi sổ địa chỉ khóa dòng user trước khi đếm hoặc đổi mặc định để tránh vượt giới hạn và tránh hai địa chỉ mặc định khi request đồng thời. Tài nguyên không tồn tại hoặc không thuộc user hiện tại đều trả 404 để không lộ dữ liệu người khác.
 
 ### C2. Router `shops.py` + `products.py` (catalog)
 
@@ -613,6 +657,9 @@ Mọi query ở C9 đều có `WHERE shop_id = current_shop.id`.
 | `/checkout` | Đặt hàng | form người nhận + địa chỉ; chọn COD / MOCK_CARD; bấm đặt → gọi API → nếu 409 hết hàng thì hiện đúng thông báo sản phẩm nào thiếu → thành công thì sang trang đơn hàng |
 | `/orders` | Đơn của tôi | tab theo status; mỗi đơn: code, ngày, tổng, trạng thái (badge màu), nút "Hủy đơn" **chỉ hiện khi PENDING** |
 | `/orders/:id` | Chi tiết đơn | items (snapshot), timeline trạng thái từ order_status_history, nút "Đánh giá" cho từng item **chỉ khi DELIVERED và chưa review** |
+| `/account/profile` | Hồ sơ và địa chỉ | mọi role sửa họ tên, điện thoại, avatar URL; BUYER có thêm CRUD sổ địa chỉ. Tỉnh/Thành phố và Xã/Phường/Đặc khu dùng combobox có thể gõ tìm kiếm không phân biệt dấu; đổi tỉnh xóa xã đã chọn; chỉ giá trị chính thức mới được lưu |
+
+Trang `/checkout` tải hồ sơ và sổ địa chỉ cùng giỏ hàng, tự chọn địa chỉ mặc định và cho đổi địa chỉ đã lưu. Chuỗi snapshot gửi theo contract cũ có dạng `address_detail, commune_name, province_name`; không gửi `address_id` và không tạo FK từ order. Khi buyer chưa có địa chỉ lưu, form nhập tay hiện tại vẫn dùng được. Avatar chỉ preview/fallback tại trang hồ sơ, chưa đưa vào navbar toàn hệ thống.
 
 ### D3. Trang SHOP_OWNER (layout riêng có sidebar)
 
@@ -742,6 +789,13 @@ Viết pytest trong `backend/app/tests/`, dùng DB test riêng. Đây là danh s
 | 9e | JWT cấp trước khi đổi mật khẩu | 401 sau khi reset do `auth_version` thay đổi |
 | 9f | Mật khẩu dưới 8 ký tự hoặc trên 72 byte | 422 |
 | 9g | Vượt cooldown/rate limit auth email | 429; không gửi thêm mail |
+| 9h | Bộ dữ liệu hành chính local | đúng 34 tỉnh, 3.321 xã; mã duy nhất, đúng độ dài và mọi xã thuộc tỉnh hợp lệ |
+| 9i | Profile GET/PATCH | mọi role đọc được; chỉ trường cho phép được sửa; dữ liệu không hợp lệ trả 422 |
+| 9j | CRUD địa chỉ bằng BUYER | đúng ownership; role khác 403; mã tỉnh/xã sai quan hệ bị từ chối |
+| 9k | Quy tắc mặc định và giới hạn | địa chỉ đầu tự mặc định; đổi/xóa mặc định đúng; tối đa 10; request đổi mặc định đồng thời vẫn chỉ có một dòng mặc định |
+| 9l | Sửa/xóa địa chỉ sau checkout | snapshot người nhận, điện thoại và địa chỉ của đơn cũ không đổi |
+
+Frontend phải test tìm tỉnh/xã không phân biệt dấu, reset xã khi đổi tỉnh, không cho lưu lựa chọn tự do, CRUD/đặt mặc định, và checkout tự điền/đổi địa chỉ/có fallback khi sổ địa chỉ trống.
 
 ### F2. Giỏ hàng & checkout
 

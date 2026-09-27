@@ -233,6 +233,10 @@ it("không báo giỏ trống trên checkout khi request tải giỏ hàng thấ
 it("hiện lỗi thiếu hàng từ checkout rồi chuyển tới chi tiết đơn khi thử lại thành công", async () => {
   const get = vi.spyOn(client, "get").mockImplementation(async (url) => {
     if (url === "/cart") return { data: cart };
+    if (url === "/users/me/profile") {
+      return { data: { full_name: "", phone: null } };
+    }
+    if (url === "/users/me/addresses") return { data: [] };
     if (url === "/orders/9") return { data: deliveredOrder };
     throw new Error(`Unexpected GET ${url}`);
   });

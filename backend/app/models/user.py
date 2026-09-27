@@ -1,13 +1,14 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String, text, true
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String, Text, text, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.common import CreatedAtMixin, IdMixin, UpdatedAtMixin
 
 if TYPE_CHECKING:
+    from app.models.address import UserAddress
     from app.models.auth import AuthToken
     from app.models.cart import Cart
     from app.models.order import Order, OrderStatusHistory
@@ -27,6 +28,8 @@ class User(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    phone: Mapped[str | None] = mapped_column(String(20))
+    avatar_url: Mapped[str | None] = mapped_column(Text)
     role: Mapped[str] = mapped_column(String(20), nullable=False)
     is_active: Mapped[bool] = mapped_column(
         Boolean,
@@ -50,6 +53,10 @@ class User(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     )
     reviews: Mapped[list["Review"]] = relationship(back_populates="buyer")
     auth_tokens: Mapped[list["AuthToken"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    addresses: Mapped[list["UserAddress"]] = relationship(
         back_populates="user",
         cascade="all, delete-orphan",
     )

@@ -1,7 +1,7 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10 (auth, shop, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop và admin). Frontend D1–D4 đã nối các contract cho BUYER, SHOP_OWNER và ADMIN.
+**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10 và P1 hồ sơ/sổ địa chỉ. Frontend D1–D4 đã nối các contract cho BUYER, SHOP_OWNER và ADMIN.
 
 Swagger chạy tại `http://localhost:8000/docs`.
 
@@ -22,6 +22,24 @@ Mật khẩu phải có ít nhất 8 ký tự, không quá 72 byte, chỉ lưu d
 Token xác minh có hạn 8 giờ, token reset có hạn 30 phút. Token gốc chỉ xuất hiện trong link fragment `#token=...`; API nhận token qua body POST và database chỉ lưu SHA-256. Resend và forgot luôn trả cùng một thông báo cho email tồn tại/không tồn tại, có cooldown 60 giây và tối đa 5 yêu cầu/giờ theo email + IP. Giới hạn này lưu trong bộ nhớ, phù hợp local một backend instance.
 
 JWT được ký bằng HS256 với `JWT_SECRET`, hết hạn theo `JWT_EXPIRE_MINUTES`. Payload gồm `sub` (user ID dạng chuỗi), `role`, `shop_id`, `auth_version` và `exp` (UTC). Reset mật khẩu tăng `auth_version`, khiến JWT đã cấp trước đó trả `401`. Các dependency luôn tải user và shop từ database khi phân quyền; giá trị `role` và `shop_id` trong token không được dùng làm nguồn xác thực quyền sở hữu. `require_role(...)` trả `403` khi sai role; `get_current_shop` trả `403` khi shop owner chưa có shop.
+
+## Hồ sơ, địa danh và sổ địa chỉ
+
+| Method | Path | Quyền | Ghi chú |
+|---|---|---|---|
+| GET | `/users/me/profile` | Đã đăng nhập | Đọc hồ sơ, gồm email/role/status read-only |
+| PATCH | `/users/me/profile` | Đã đăng nhập | Chỉ nhận `full_name`, `phone`, `avatar_url` |
+| GET | `/locations/provinces` | Public | Trả 34 Tỉnh/Thành phố từ dữ liệu local |
+| GET | `/locations/communes?province_code=01` | Public | Trả đơn vị cấp xã thuộc tỉnh; mã tỉnh sai trả `400` |
+| GET | `/users/me/addresses` | BUYER | Mặc định đứng đầu, sau đó theo thời gian tạo |
+| POST | `/users/me/addresses` | BUYER | Tạo địa chỉ, tối đa 10; địa chỉ đầu tự mặc định |
+| PATCH | `/users/me/addresses/{id}` | BUYER sở hữu | Sửa địa chỉ; mã tỉnh–xã được kiểm tra lại |
+| PUT | `/users/me/addresses/{id}/default` | BUYER sở hữu | Đặt mặc định, idempotent |
+| DELETE | `/users/me/addresses/{id}` | BUYER sở hữu | Xóa; nếu là mặc định thì chọn địa chỉ cũ nhất còn lại |
+
+Body tạo địa chỉ gồm `label`, `receiver_name`, `receiver_phone`, `province_code` (2 chữ số), `commune_code` (5 chữ số), `address_detail`, `is_default`. Client không được gửi tên hành chính; backend tự suy ra tên chính thức từ `backend/app/data/vn_admin_units_2025.json`. Tài nguyên không thuộc buyer hiện tại trả `404`. Role khác BUYER gọi sổ địa chỉ nhận `403`.
+
+Frontend checkout chỉ dùng địa chỉ đã lưu để tự điền `receiver_name`, `receiver_phone`, `shipping_address`; request `/orders/checkout` không nhận `address_id`. Vì vậy đơn hàng giữ snapshot và không đổi khi địa chỉ được sửa hoặc xóa sau đó.
 
 ## Shop và catalog
 
