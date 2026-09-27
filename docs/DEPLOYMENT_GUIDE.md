@@ -119,6 +119,15 @@ DATABASE_URL=postgresql+psycopg://fashion:fashion@localhost:5432/fashion
 TEST_DATABASE_URL=postgresql+psycopg://fashion:fashion@localhost:5432/fashion_test
 JWT_SECRET=thay-bang-chuoi-bi-mat-dai-it-nhat-32-ky-tu
 JWT_EXPIRE_MINUTES=60
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=your-project-account@gmail.com
+SMTP_APP_PASSWORD=thay-bang-google-app-password
+EMAIL_FROM_NAME=Fashion E-Commerce
+FRONTEND_PUBLIC_URL=http://localhost:5173
+VERIFY_EMAIL_EXPIRE_MINUTES=480
+RESET_PASSWORD_EXPIRE_MINUTES=30
+SMTP_TIMEOUT_SECONDS=10
 VITE_API_URL=http://localhost:8000
 VITE_DATABRICKS_DASHBOARD_URL=
 VITE_DATABRICKS_GENIE_URL=
@@ -128,9 +137,12 @@ Quy tắc quan trọng:
 
 - Với local/demo, có thể giữ tài khoản PostgreSQL mẫu.
 - Thay `JWT_SECRET` bằng một chuỗi ngẫu nhiên dài ít nhất 32 ký tự.
+- Điền Gmail và Google App Password thật vào `.env`; không dùng mật khẩu Gmail thông thường.
 - Không thêm khoảng trắng hai bên dấu `=`.
 - Giữ hai URL Databricks trống vì Dashboard và Genie chưa được triển khai.
 - Không commit `.env`. File này có thể chứa bí mật và đã được `.gitignore` loại trừ.
+
+Để tạo Google App Password: bật 2-Step Verification, mở mục App Passwords của Google Account, tạo mật khẩu dành riêng cho project rồi sao chép chuỗi 16 ký tự vào `SMTP_APP_PASSWORD`. Google có thể không hiện mục này với một số tài khoản tổ chức hoặc chế độ bảo vệ nâng cao. Tham khảo [Google App Passwords](https://support.google.com/accounts/answer/185833) và [SMTP Gmail](https://support.google.com/a/answer/176600). Link xác minh/reset dùng `localhost`, nên phải mở trên chính máy đang chạy frontend.
 
 Kiểm tra Docker Compose đọc được cấu hình:
 
@@ -483,8 +495,9 @@ docker compose --env-file .env up --build -d frontend
 
 1. Kiểm tra đã chạy seed ở phần 8.
 2. Kiểm tra đúng chữ hoa/thường trong mật khẩu.
-3. Xem log backend.
-4. Chạy lại seed; script không nhân đôi dữ liệu.
+3. Tài khoản đăng ký qua giao diện phải mở link xác minh trước; tài khoản seed đã được xác minh sẵn.
+4. Xem log backend.
+5. Chạy lại seed; script không nhân đôi dữ liệu.
 
 ```powershell
 docker compose --env-file .env exec -T backend python -m app.seed
@@ -499,6 +512,14 @@ docker compose --env-file .env up --build -d frontend
 ```
 
 Sau đó tải lại trang bằng `Ctrl+F5`.
+
+### 14.9. Không nhận được email xác minh hoặc reset
+
+1. Kiểm tra `SMTP_USERNAME` là địa chỉ Gmail đầy đủ và `SMTP_APP_PASSWORD` là App Password, không phải mật khẩu tài khoản.
+2. Kiểm tra tài khoản đã bật 2-Step Verification và App Password chưa bị thu hồi.
+3. Xem thư mục Spam và log backend: `docker compose --env-file .env logs --tail 100 backend`.
+4. Sau khi sửa `.env`, chạy `docker compose --env-file .env up -d --force-recreate backend` rồi dùng nút gửi lại. Nút resend có cooldown 60 giây.
+5. Nếu mở link trên thiết bị khác, `localhost` sẽ trỏ tới thiết bị đó. Với cấu hình local, hãy mở email trên chính máy đang chạy frontend.
 
 ## 15. Trạng thái triển khai Databricks
 
@@ -535,6 +556,7 @@ Vì vậy không đưa cấu hình này trực tiếp lên Internet. Production 
 - [ ] `docker info` chạy thành công.
 - [ ] Repository đã clone và PowerShell đang ở thư mục gốc.
 - [ ] `.env` đã tạo; `JWT_SECRET` đã thay.
+- [ ] Gmail App Password đã cấu hình và thử nhận email xác minh thật.
 - [ ] `docker compose ... config --quiet` pass.
 - [ ] Ba service đều `Up`; database `healthy`.
 - [ ] Migration lên revision mới nhất.

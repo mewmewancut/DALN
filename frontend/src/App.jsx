@@ -12,12 +12,16 @@ import AdminShopsPage from "./pages/admin/AdminShopsPage.jsx";
 import AdminUsersPage from "./pages/admin/AdminUsersPage.jsx";
 import CartPage from "./pages/CartPage.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import OrderDetailPage from "./pages/OrderDetailPage.jsx";
 import OrdersPage from "./pages/OrdersPage.jsx";
 import ProductDetailPage from "./pages/ProductDetailPage.jsx";
 import ProductListPage from "./pages/ProductListPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
+import VerificationPendingPage from "./pages/VerificationPendingPage.jsx";
+import VerifyEmailPage from "./pages/VerifyEmailPage.jsx";
 import ShopAlertsPage from "./pages/shop/ShopAlertsPage.jsx";
 import ShopDashboardPage from "./pages/shop/ShopDashboardPage.jsx";
 import ShopInventoryPage from "./pages/shop/ShopInventoryPage.jsx";
@@ -121,6 +125,10 @@ export default function App() {
             </GuestRoute>
           }
         />
+        <Route path="/verify-email-sent" element={<VerificationPendingPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route
           path="/shop"
           element={

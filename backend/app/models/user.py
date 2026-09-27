@@ -1,12 +1,14 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, String, true
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String, text, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.common import CreatedAtMixin, IdMixin, UpdatedAtMixin
 
 if TYPE_CHECKING:
+    from app.models.auth import AuthToken
     from app.models.cart import Cart
     from app.models.order import Order, OrderStatusHistory
     from app.models.review import Review
@@ -32,6 +34,13 @@ class User(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
         default=True,
         server_default=true(),
     )
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    auth_version: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default=text("0"),
+    )
 
     shop: Mapped["Shop | None"] = relationship(back_populates="owner", uselist=False)
     cart: Mapped["Cart | None"] = relationship(back_populates="buyer", uselist=False)
@@ -40,3 +49,7 @@ class User(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
         back_populates="changed_by_user"
     )
     reviews: Mapped[list["Review"]] = relationship(back_populates="buyer")
+    auth_tokens: Mapped[list["AuthToken"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )

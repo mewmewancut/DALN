@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, EmailStr, Field
 
 
 def _validate_bcrypt_password(password: str) -> str:
@@ -11,7 +12,7 @@ def _validate_bcrypt_password(password: str) -> str:
 
 BcryptPassword = Annotated[
     str,
-    Field(min_length=1),
+    Field(min_length=8),
     AfterValidator(_validate_bcrypt_password),
 ]
 
@@ -19,7 +20,7 @@ BcryptPassword = Annotated[
 class RegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    email: str = Field(min_length=1, max_length=255)
+    email: EmailStr = Field(max_length=255)
     password: BcryptPassword
     full_name: str = Field(min_length=1, max_length=255)
     role: str
@@ -28,7 +29,7 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    email: str = Field(min_length=1, max_length=255)
+    email: EmailStr = Field(max_length=255)
     password: BcryptPassword
 
 
@@ -36,13 +37,34 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    email: str
+    email: EmailStr
     full_name: str
     role: str
     is_active: bool
+    email_verified_at: datetime | None
 
 
 class LoginResponse(BaseModel):
     access_token: str
     role: str
     shop_id: int | None
+
+
+class TokenRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    token: str = Field(min_length=32, max_length=255)
+
+
+class EmailRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: EmailStr = Field(max_length=255)
+
+
+class ResetPasswordRequest(TokenRequest):
+    new_password: BcryptPassword
+
+
+class MessageResponse(BaseModel):
+    message: str

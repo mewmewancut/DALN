@@ -118,6 +118,20 @@ Tất cả bảng có `id` kiểu `BIGSERIAL PRIMARY KEY` (trừ khi ghi khác),
 | full_name | VARCHAR(255) | NOT NULL |
 | role | VARCHAR(20) | NOT NULL, CHECK role IN ('BUYER','SHOP_OWNER','ADMIN') |
 | is_active | BOOLEAN | DEFAULT true — admin khóa tài khoản thì set false |
+| email_verified_at | TIMESTAMPTZ | NULL khi chưa xác minh; có giá trị sau khi dùng liên kết xác minh hợp lệ |
+| auth_version | INT | NOT NULL DEFAULT 0 — tăng sau khi đổi mật khẩu để vô hiệu hóa JWT cũ |
+
+### B1a. `auth_tokens`
+
+| Cột | Kiểu | Ràng buộc |
+|---|---|---|
+| user_id | BIGINT | FK → users.id, NOT NULL, ON DELETE CASCADE |
+| purpose | VARCHAR(20) | CHECK IN ('VERIFY_EMAIL','RESET_PASSWORD') |
+| token_hash | VARCHAR(64) | UNIQUE, NOT NULL — chỉ lưu SHA-256 của token, không lưu token gốc |
+| expires_at | TIMESTAMPTZ | NOT NULL |
+| used_at | TIMESTAMPTZ | NULL; set khi token đã được dùng hoặc bị thay thế |
+
+Token xác minh email có hạn 8 giờ; token đặt lại mật khẩu có hạn 30 phút. Mỗi lần cấp token mới phải vô hiệu hóa token chưa dùng cùng mục đích của user.
 
 ### B2. `shops`
 
@@ -310,7 +324,7 @@ Script phải tạo (idempotent — chạy lại không nhân đôi, dùng kiể
 ### C0. Chuẩn chung
 
 - Response lỗi thống nhất: `{"detail": "thông báo"}` với HTTP code đúng: 400 (sai nghiệp vụ), 401 (chưa đăng nhập), 403 (sai quyền), 404 (không tồn tại), 409 (xung đột, ví dụ hết hàng).
-- JWT payload: `{"sub": user_id, "role": role, "shop_id": shop_id_hoặc_null}`.
+- JWT payload: `{"sub": user_id, "role": role, "shop_id": shop_id_hoặc_null, "auth_version": auth_version}`. Backend đối chiếu `auth_version` trong JWT với database để vô hiệu hóa phiên cũ sau khi đổi mật khẩu.
 - `deps.py` viết sẵn 3 dependency và **mọi router dùng lại**, không tự viết check quyền lẻ tẻ:
   - `get_current_user` — decode JWT, load user, 401 nếu fail.
   - `require_role("SHOP_OWNER")` — 403 nếu role sai.
@@ -321,9 +335,22 @@ Script phải tạo (idempotent — chạy lại không nhân đôi, dùng kiể
 
 | Method + Path | Ai gọi | Body | Trả về | Lỗi |
 |---|---|---|---|---|
-| POST `/auth/register` | public | email, password, full_name, role ('BUYER'\|'SHOP_OWNER') | user (không có hash) | 400 email trùng; 400 nếu role='ADMIN' (admin chỉ tạo bằng seed) |
-| POST `/auth/login` | public | email, password | `{access_token, role, shop_id}` | 401 sai email/pass; 403 tài khoản bị khóa |
+| POST `/auth/register` | public | email, password (8–72 byte), full_name, role ('BUYER'\|'SHOP_OWNER') | user (không có hash) và gửi email xác minh | 400 email trùng; 400 nếu role='ADMIN'; 429 gửi quá nhiều; 503 gửi email lỗi |
+| POST `/auth/verify-email` | public | token | message | 400 token sai/hết hạn/đã dùng; 429 thử quá nhiều |
+| POST `/auth/resend-verification` | public | email | message chung, không tiết lộ email có tồn tại | 429 gửi quá nhiều; 503 gửi email lỗi |
+| POST `/auth/login` | public | email, password | `{access_token, role, shop_id}` | 401 sai email/pass; 403 tài khoản bị khóa hoặc email chưa xác minh |
+| POST `/auth/forgot-password` | public | email | message chung, không tiết lộ email có tồn tại | 429 gửi quá nhiều; 503 gửi email lỗi |
+| POST `/auth/reset-password` | public | token, new_password (8–72 byte) | message | 400 token sai/hết hạn/đã dùng; 429 thử quá nhiều |
 | GET `/auth/me` | đã login | — | thông tin user hiện tại | 401 |
+
+📌 QUYẾT ĐỊNH AUTH EMAIL:
+
+- Dùng Gmail SMTP cho môi trường local, cấu hình bằng biến môi trường và Google App Password; không lưu secret trong repository.
+- Link email trỏ tới frontend local và đặt token trong URL fragment (`#token=...`); frontend xóa fragment rồi gửi token bằng body của request POST. Không đổi trạng thái bằng GET và không đặt token trong query string.
+- Tài khoản mới chưa được đăng nhập cho đến khi xác minh email. Tài khoản seed và tài khoản tồn tại trước migration được xem là đã xác minh.
+- Token là chuỗi ngẫu nhiên đủ mạnh, chỉ lưu SHA-256 trong DB, dùng một lần và được tiêu thụ nguyên tử.
+- Quên mật khẩu chỉ gửi mail cho tài khoản active đã xác minh. Đặt lại mật khẩu thành công tăng `auth_version`, làm JWT cũ hết hiệu lực và không tự đăng nhập.
+- Resend/forgot áp dụng cooldown 60 giây và tối đa 5 lần/giờ theo email + IP; đăng ký và thử token cũng có giới hạn theo IP. Giới hạn local lưu trong bộ nhớ, khi triển khai nhiều instance phải thay bằng kho dùng chung.
 
 ### C2. Router `shops.py` + `products.py` (catalog)
 
@@ -708,6 +735,13 @@ Viết pytest trong `backend/app/tests/`, dùng DB test riêng. Đây là danh s
 | 7 | Shop A xem đơn của shop B | 403 |
 | 8 | Shop A xem `/shop/stats` → chỉ ra số của shop A | so sánh với dữ liệu seed |
 | 9 | Buyer xem đơn của buyer khác | 403 |
+| 9a | Tài khoản mới login trước khi xác minh | 403; không cấp JWT |
+| 9b | Xác minh email bằng token hợp lệ rồi login | 200; token xác minh không dùng lại được |
+| 9c | Resend/forgot với email tồn tại và không tồn tại | response giống nhau; chỉ gửi khi đủ điều kiện |
+| 9d | Đặt lại mật khẩu bằng token hợp lệ | mật khẩu cũ sai, mật khẩu mới đúng, token không dùng lại được |
+| 9e | JWT cấp trước khi đổi mật khẩu | 401 sau khi reset do `auth_version` thay đổi |
+| 9f | Mật khẩu dưới 8 ký tự hoặc trên 72 byte | 422 |
+| 9g | Vượt cooldown/rate limit auth email | 429; không gửi thêm mail |
 
 ### F2. Giỏ hàng & checkout
 

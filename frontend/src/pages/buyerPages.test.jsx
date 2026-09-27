@@ -80,11 +80,11 @@ it("đăng nhập bằng API, lưu phiên và chuyển tới trang đúng vai tr
   vi.spyOn(client, "get").mockResolvedValue({ data: [] });
   await renderAt("/login");
   await fill("Email", "owner@example.com");
-  await fill("Mật khẩu", "secret");
+  await fill("Mật khẩu", "secret123");
   await submit();
   expect(post).toHaveBeenCalledWith("/auth/login", {
     email: "owner@example.com",
-    password: "secret",
+    password: "secret123",
   });
   expect(container.textContent).toContain("Tổng quan shop");
   expect(JSON.parse(localStorage.getItem("fashion_auth"))).toEqual({
@@ -100,28 +100,29 @@ it("hiện lỗi xác thực từ API và giữ form để thử lại", async (
   });
   await renderAt("/login");
   await fill("Email", "buyer@example.com");
-  await fill("Mật khẩu", "wrong");
+  await fill("Mật khẩu", "wrongpass");
   await submit();
   expect(container.querySelector('[role="alert"]').textContent).toBe("Sai email hoặc mật khẩu");
   expect(container.querySelector('input[type="email"]').value).toBe("buyer@example.com");
   expect(localStorage.getItem("fashion_auth")).toBeNull();
 });
 
-it("đăng ký chủ shop và chuyển sang đăng nhập với thông báo thành công", async () => {
+it("đăng ký chủ shop và chuyển sang trang chờ xác minh email", async () => {
   const post = vi.spyOn(client, "post").mockResolvedValue({ data: { id: 9 } });
   await renderAt("/register");
   await fill("Họ và tên", "Nguyễn An");
   await fill("Email", "an@example.com");
-  await fill("Mật khẩu", "secret");
+  await fill("Mật khẩu", "secret123");
   await fill("Loại tài khoản", "SHOP_OWNER");
   await submit();
   expect(post).toHaveBeenCalledWith("/auth/register", {
     full_name: "Nguyễn An",
     email: "an@example.com",
-    password: "secret",
+    password: "secret123",
     role: "SHOP_OWNER",
   });
-  expect(container.querySelector('[role="status"]').textContent).toContain("Đăng ký thành công");
+  expect(container.textContent).toContain("Kiểm tra email của bạn");
+  expect(container.querySelector('input[type="email"]').value).toBe("an@example.com");
 });
 
 it("hiện lỗi đăng ký, kể cả lỗi validation dạng danh sách", async () => {
@@ -131,10 +132,21 @@ it("hiện lỗi đăng ký, kể cả lỗi validation dạng danh sách", asyn
   await renderAt("/register");
   await fill("Họ và tên", "Nguyễn An");
   await fill("Email", "an@example.com");
-  await fill("Mật khẩu", "secret");
+  await fill("Mật khẩu", "secret123");
   await submit();
   expect(container.querySelector('[role="alert"]').textContent).toBe("Email đã tồn tại");
   expect(container.textContent).toContain("Tạo tài khoản");
+});
+
+it("đăng ký vẫn chuyển tới resend khi tài khoản đã tạo nhưng SMTP lỗi", async () => {
+  vi.spyOn(client, "post").mockRejectedValue({ response: { status: 503 } });
+  await renderAt("/register");
+  await fill("Họ và tên", "Nguyễn An");
+  await fill("Email", "smtp@example.com");
+  await fill("Mật khẩu", "secret123");
+  await submit();
+  expect(container.textContent).toContain("Tài khoản đã được tạo nhưng email chưa gửi được");
+  expect(container.querySelector('input[type="email"]').value).toBe("smtp@example.com");
 });
 
 it("tìm kiếm, lọc, sắp xếp và phân trang bằng query params; đổi filter về trang 1", async () => {

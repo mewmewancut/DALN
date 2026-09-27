@@ -44,11 +44,14 @@ def get_current_user(
         if "shop_id" not in payload:
             raise unauthorized
         user_id = int(payload["sub"])
+        token_auth_version = int(payload.get("auth_version", 0))
     except (jwt.PyJWTError, KeyError, TypeError, ValueError):
         raise unauthorized from None
 
     user = db.get(User, user_id)
     if user is None:
+        raise unauthorized
+    if token_auth_version != user.auth_version:
         raise unauthorized
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Tài khoản đã bị khóa")

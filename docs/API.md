@@ -9,13 +9,19 @@ Swagger chạy tại `http://localhost:8000/docs`.
 
 | Method | Path | Quyền | Request | Response thành công |
 |---|---|---|---|---|
-| POST | `/auth/register` | Public | `email`, `password`, `full_name`, `role` (`BUYER` hoặc `SHOP_OWNER`) | `201` với `id`, `email`, `full_name`, `role`, `is_active` |
+| POST | `/auth/register` | Public | `email`, `password`, `full_name`, `role` (`BUYER` hoặc `SHOP_OWNER`) | `201` với user chưa xác minh và gửi email xác minh |
+| POST | `/auth/verify-email` | Public | `token` | Xác minh email bằng token một lần |
+| POST | `/auth/resend-verification` | Public | `email` | Thông báo chung, gửi token mới nếu tài khoản đủ điều kiện |
 | POST | `/auth/login` | Public | `email`, `password` | `200` với `access_token`, `role`, `shop_id` (`null` nếu chưa có shop) |
+| POST | `/auth/forgot-password` | Public | `email` | Thông báo chung, gửi link reset nếu tài khoản đủ điều kiện |
+| POST | `/auth/reset-password` | Public | `token`, `new_password` | Đổi mật khẩu và thu hồi JWT cũ |
 | GET | `/auth/me` | Bearer token | — | `200` với thông tin user như response đăng ký |
 
-Mật khẩu chỉ được lưu dưới dạng bcrypt hash và không xuất hiện trong response. Email đăng ký được chuẩn hóa về chữ thường; mật khẩu đăng ký/đăng nhập dài quá giới hạn 72 byte của bcrypt hoặc body có trường ngoài contract bị từ chối với `422`. Đăng ký email trùng hoặc role `ADMIN` trả `400`; sai thông tin đăng nhập trả `401`; tài khoản bị khóa trả `403`. Thiếu, sai hoặc hết hạn token khi gọi `/auth/me` trả `401`. Response lỗi dùng dạng `{"detail": "..."}`.
+Mật khẩu phải có ít nhất 8 ký tự, không quá 72 byte, chỉ lưu dưới dạng bcrypt hash và không xuất hiện trong response. Email phải đúng định dạng và được chuẩn hóa về chữ thường. Tài khoản mới có `email_verified_at=null` và login trả `403` cho tới khi xác minh. Đăng ký email trùng hoặc role `ADMIN` trả `400`; sai thông tin đăng nhập trả `401`; tài khoản bị khóa hoặc chưa xác minh trả `403`. Token email sai, hết hạn hoặc đã dùng trả `400`; vượt giới hạn gửi/thử trả `429`. Nếu gửi mail đăng ký lỗi, account chưa xác minh vẫn được giữ để người dùng có thể resend và endpoint trả `503`.
 
-JWT được ký bằng HS256 với `JWT_SECRET`, hết hạn theo `JWT_EXPIRE_MINUTES`. Payload gồm `sub` (user ID dạng chuỗi), `role`, `shop_id` và `exp` (UTC). Các dependency luôn tải user và shop từ database khi phân quyền; giá trị `role` và `shop_id` trong token không được dùng làm nguồn xác thực quyền sở hữu. `require_role(...)` trả `403` khi sai role; `get_current_shop` trả `403` khi shop owner chưa có shop.
+Token xác minh có hạn 8 giờ, token reset có hạn 30 phút. Token gốc chỉ xuất hiện trong link fragment `#token=...`; API nhận token qua body POST và database chỉ lưu SHA-256. Resend và forgot luôn trả cùng một thông báo cho email tồn tại/không tồn tại, có cooldown 60 giây và tối đa 5 yêu cầu/giờ theo email + IP. Giới hạn này lưu trong bộ nhớ, phù hợp local một backend instance.
+
+JWT được ký bằng HS256 với `JWT_SECRET`, hết hạn theo `JWT_EXPIRE_MINUTES`. Payload gồm `sub` (user ID dạng chuỗi), `role`, `shop_id`, `auth_version` và `exp` (UTC). Reset mật khẩu tăng `auth_version`, khiến JWT đã cấp trước đó trả `401`. Các dependency luôn tải user và shop từ database khi phân quyền; giá trị `role` và `shop_id` trong token không được dùng làm nguồn xác thực quyền sở hữu. `require_role(...)` trả `403` khi sai role; `get_current_shop` trả `403` khi shop owner chưa có shop.
 
 ## Shop và catalog
 

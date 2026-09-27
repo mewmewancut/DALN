@@ -1,7 +1,7 @@
 # Testing
 
 **Trạng thái:** In progress  
-**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15 và toàn bộ backend C0–C10 (auth, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop, admin) cùng luồng API từ đăng ký đến đăng sản phẩm
+**Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15 và toàn bộ backend C0–C10 (auth gồm xác minh email/reset mật khẩu, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop, admin) cùng luồng API từ đăng ký đã xác minh đến đăng sản phẩm
 
 Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth, catalog, toàn bộ luồng buyer từ giỏ hàng tới review, toàn bộ trang quản lý của chủ shop và các trang admin.
 
@@ -72,15 +72,16 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - Chạy seed lần hai không làm thay đổi số lượng bản ghi.
 - SKU của seed khớp `P{product_id}-{size}-{color}` và chạy lại với mốc ngày khác vẫn không nhân đôi đơn hàng.
 - Các bảng có luồng cập nhật nhận `updated_at` có timezone.
-- Auth: đăng ký thành công, chuẩn hóa email về chữ thường, email trùng, cấm role ADMIN, từ chối mật khẩu quá 72 byte và trường ngoài contract; login đúng/sai mật khẩu; JWT chứa user ID, role và shop ID; `/auth/me` không lộ password hash.
+- Auth: mật khẩu 8–72 byte được bcrypt hash; tài khoản mới bị chặn login trước xác minh; token xác minh/reset hết hạn, dùng một lần và token resend thay thế token cũ; response forgot không lộ email tồn tại; cooldown trả `429`; reset đổi mật khẩu và vô hiệu JWT cũ qua `auth_version`; lỗi SMTP đăng ký vẫn giữ account để resend; `/auth/me` không lộ hash.
+- Email service: test fake SMTP xác nhận STARTTLS, App Password và link token nằm trong fragment; kiểm tra cả subject, bản text, template HTML, CTA, link dự phòng, thời hạn và hướng dẫn bảo mật của ba loại email. Toàn bộ API test dùng fake email sender nên không phụ thuộc Gmail/network.
 - Thiếu, sai, hết hạn token hoặc user bị khóa đều bị từ chối; dependency role và shop lấy quyền sở hữu từ database thay vì tin `shop_id` trong token.
 - API shop chỉ cho SHOP_OWNER tạo và sửa shop của mình; từ chối `owner_id` do client gửi và không cho tạo shop thứ hai.
 - Tạo sản phẩm cùng variant và inventory trong một transaction; variant trùng làm rollback toàn bộ; `shop_id` do client gửi bị từ chối.
 - SKU do catalog service sinh không va chạm khi size/color chứa dấu gạch ngang, dấu phần trăm hoặc dấu gạch dưới.
 - Shop khác không được sửa, ẩn sản phẩm hoặc quản lý variant; xóa sản phẩm là soft delete và có thể hiện lại qua `PUT`.
 - Catalog công khai lọc, sắp xếp, phân trang theo giá variant hoạt động; ẩn sản phẩm và shop không hoạt động; chi tiết có tồn kho và rating trung bình. Danh sách quản lý shop chỉ trả sản phẩm thuộc shop hiện tại nhưng giữ cả product/variant đã ẩn, hỗ trợ lọc và phân trang; buyer/khách không gọi được.
-- Luồng API nối đăng ký, đăng nhập, tạo shop, tạo sản phẩm, catalog công khai, chặn buyer sửa sản phẩm và soft delete.
-- Frontend gửi đúng body login/register, điều hướng sau auth, hiển thị lỗi API và giữ lỗi `401` của login trên form.
+- Luồng API nối đăng ký, xác minh email, đăng nhập, tạo shop, tạo sản phẩm, catalog công khai, chặn buyer sửa sản phẩm và soft delete.
+- Frontend gửi đúng body login/register/verify/resend/forgot/reset, điều hướng tới trang chờ email, kiểm tra xác nhận mật khẩu, hiển thị lỗi API và link resend khi email chưa xác minh.
 - Frontend gọi lại catalog với query params khi đổi bộ lọc hoặc trang, về trang 1 khi đổi filter, hiển thị trạng thái rỗng/lỗi và giá từ API.
 - Chi tiết sản phẩm hiển thị giá/tồn kho đúng variant được chọn, xóa size khi đổi màu và báo lỗi sản phẩm không tồn tại.
 - Frontend thêm đúng `variant_id` vào giỏ; khi nhận `CART_DIFFERENT_SHOP` chỉ gọi xóa giỏ và thêm lại sau khi buyer xác nhận. Trang giỏ chặn số lượng vượt `stock_quantity`, gửi đúng body cập nhật, xóa item và cập nhật tổng tiền/trạng thái rỗng từ response API.

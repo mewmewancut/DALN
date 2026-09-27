@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router";
+import { Link } from "react-router";
 
 import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
@@ -8,21 +8,23 @@ import SiteLayout from "../components/SiteLayout.jsx";
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [unverified, setUnverified] = useState(false);
   const [pending, setPending] = useState(false);
 
   async function submit(event) {
     event.preventDefault();
     setError("");
+    setUnverified(false);
     setPending(true);
     try {
       const response = await client.post("/auth/login", { email, password });
       login(response.data);
     } catch (requestError) {
       setError(errorMessage(requestError));
+      setUnverified(requestError.response?.data?.detail === "Email chưa được xác nhận");
     } finally {
       setPending(false);
     }
@@ -32,7 +34,6 @@ export default function LoginPage() {
     <SiteLayout>
       <p className="eyebrow">Tài khoản</p>
       <h1>Đăng nhập</h1>
-      {location.state?.registered && <p role="status">Đăng ký thành công. Hãy đăng nhập.</p>}
       <form className="form-stack" onSubmit={submit}>
         <label>
           Email
@@ -51,6 +52,7 @@ export default function LoginPage() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
+            minLength={8}
             autoComplete="current-password"
           />
         </label>
@@ -59,10 +61,18 @@ export default function LoginPage() {
             {error}
           </p>
         )}
+        {unverified && (
+          <Link to="/verify-email-sent" state={{ email }}>
+            Gửi lại email xác minh
+          </Link>
+        )}
         <button type="submit" disabled={pending}>
           {pending ? "Đang đăng nhập..." : "Đăng nhập"}
         </button>
       </form>
+      <p>
+        <Link to="/forgot-password">Quên mật khẩu?</Link>
+      </p>
       <p>
         Chưa có tài khoản? <Link to="/register">Đăng ký</Link>
       </p>

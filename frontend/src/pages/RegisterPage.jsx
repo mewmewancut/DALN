@@ -25,8 +25,15 @@ export default function RegisterPage() {
         password,
         role,
       });
-      navigate("/login", { replace: true, state: { registered: true } });
+      navigate("/verify-email-sent", { replace: true, state: { email } });
     } catch (requestError) {
+      if (requestError.response?.status === 503) {
+        navigate("/verify-email-sent", {
+          replace: true,
+          state: { email, deliveryFailed: true },
+        });
+        return;
+      }
       setError(errorMessage(requestError));
     } finally {
       setPending(false);
@@ -64,9 +71,11 @@ export default function RegisterPage() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
+            minLength={8}
             autoComplete="new-password"
           />
         </label>
+        <small>Mật khẩu phải có ít nhất 8 ký tự.</small>
         <label>
           Loại tài khoản
           <select value={role} onChange={(event) => setRole(event.target.value)}>

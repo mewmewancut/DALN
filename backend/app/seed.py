@@ -84,6 +84,7 @@ def get_or_create_user(
         password_hash=hash_password(password),
         full_name=full_name,
         role=role,
+        email_verified_at=datetime.now(timezone.utc),
     )
     session.add(user)
     session.flush()

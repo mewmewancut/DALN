@@ -18,10 +18,23 @@ Sao chép `.env.example` thành `.env` trước khi dùng thông tin riêng trê
 - `TEST_DATABASE_URL`: database test độc lập `fashion_test`.
 - `JWT_SECRET`: khóa ký JWT HS256; phải thay giá trị mẫu bằng khóa bí mật dài ít nhất 32 byte ở môi trường không phải local.
 - `JWT_EXPIRE_MINUTES`: thời hạn token.
+- `SMTP_HOST`, `SMTP_PORT`: Gmail SMTP, mặc định `smtp.gmail.com:587` với STARTTLS.
+- `SMTP_USERNAME`: địa chỉ Gmail dùng riêng cho project; `SMTP_APP_PASSWORD`: Google App Password, không phải mật khẩu Gmail thông thường.
+- `EMAIL_FROM_NAME`, `FRONTEND_PUBLIC_URL`: tên người gửi và URL frontend dùng để tạo link email local.
+- `VERIFY_EMAIL_EXPIRE_MINUTES`, `RESET_PASSWORD_EXPIRE_MINUTES`, `SMTP_TIMEOUT_SECONDS`: thời hạn token và timeout SMTP.
 - `VITE_API_URL`: địa chỉ backend mà frontend sử dụng.
 - `VITE_DATABRICKS_DASHBOARD_URL`, `VITE_DATABRICKS_GENIE_URL`: link Databricks AI/BI Dashboard và Genie space hiển thị trên dashboard admin. Để trống cho tới khi Planning E5–E6 được triển khai; khi trống, giao diện ghi "chưa được cấu hình". Vite nhúng giá trị lúc khởi động/build, nên cần khởi động lại service frontend sau khi đổi.
 
 PostgreSQL tạo `fashion_test` từ `backend/docker/postgres-init.sql` khi volume database được khởi tạo lần đầu.
+
+## Email Gmail cho local
+
+1. Bật 2-Step Verification cho tài khoản Gmail dùng gửi mail.
+2. Tạo App Password trong Google Account; Google chỉ hiện App Password một lần.
+3. Điền email vào `SMTP_USERNAME` và chuỗi 16 ký tự vào `SMTP_APP_PASSWORD` trong `.env`. Không gửi secret qua chat và không commit `.env`.
+4. Khởi động lại backend sau khi đổi cấu hình.
+
+Gmail dùng `smtp.gmail.com`, port `587` với STARTTLS. Xem [Google App Passwords](https://support.google.com/accounts/answer/185833) và [cấu hình SMTP Gmail](https://support.google.com/a/answer/176600). Link gửi ra là `http://localhost:5173/...`, vì vậy chỉ mở đúng khi người nhận đang dùng máy chạy frontend này. Test tự động dùng fake sender, không gửi email thật.
 
 ## Khởi động
 

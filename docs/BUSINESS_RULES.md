@@ -1,7 +1,17 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Toàn bộ backend Planning C3–C10 (giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop và admin) đã triển khai.
+**Phạm vi:** Toàn bộ backend Planning C1–C10 đã triển khai.
+
+## Tài khoản và email C1
+
+- Tài khoản đăng ký mới chưa thể đăng nhập cho tới khi dùng liên kết xác minh email hợp lệ; `is_active` tiếp tục chỉ mang nghĩa admin khóa/mở tài khoản.
+- Mật khẩu tối thiểu 8 ký tự, tối đa 72 byte và chỉ lưu bcrypt hash.
+- Token xác minh/reset là token ngẫu nhiên dùng một lần; cấp token mới vô hiệu hóa token chưa dùng cùng mục đích. Xác minh hết hạn sau 8 giờ, reset sau 30 phút.
+- Forgot/resend không tiết lộ email có tồn tại. Reset thành công không tự đăng nhập và làm mọi JWT cũ của user hết hiệu lực.
+- Gmail App Password chỉ ở `.env`; không ghi secret, token gốc hay mật khẩu vào code, log hoặc database.
+
+Contract và mã lỗi nằm tại [`API.md`](API.md#auth); cấu hình Gmail nằm tại [`DEVELOPMENT.md`](DEVELOPMENT.md#email-gmail-cho-local).
 
 ## Giỏ hàng C3
 

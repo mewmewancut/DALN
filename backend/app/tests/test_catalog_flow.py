@@ -7,11 +7,13 @@ from sqlalchemy.orm import Session
 from app.deps import get_db
 from app.main import app
 from app.models import Category, ProductVariant
+from app.services.email_service import get_email_sender
 
 
 @pytest.fixture
-def client(db_session: Session) -> Generator[TestClient, None, None]:
+def client(db_session: Session, fake_email_sender) -> Generator[TestClient, None, None]:
     app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_email_sender] = lambda: fake_email_sender
     try:
         with TestClient(app) as test_client:
             yield test_client
@@ -20,7 +22,7 @@ def client(db_session: Session) -> Generator[TestClient, None, None]:
 
 
 def test_owner_can_publish_product_for_public_catalog(
-    db_session: Session, client: TestClient
+    db_session: Session, client: TestClient, fake_email_sender
 ) -> None:
     category = Category(name="Áo")
     db_session.add(category)
@@ -36,6 +38,13 @@ def test_owner_can_publish_product_for_public_catalog(
         },
     )
     assert registered.status_code == 201
+    assert (
+        client.post(
+            "/auth/verify-email",
+            json={"token": fake_email_sender.verifications[-1][1]},
+        ).status_code
+        == 200
+    )
     first_login = client.post("/auth/login", json=owner_credentials)
     assert first_login.status_code == 200
     assert first_login.json()["shop_id"] is None
@@ -86,6 +95,13 @@ def test_owner_can_publish_product_for_public_catalog(
         },
     )
     assert buyer.status_code == 201
+    assert (
+        client.post(
+            "/auth/verify-email",
+            json={"token": fake_email_sender.verifications[-1][1]},
+        ).status_code
+        == 200
+    )
     buyer_login = client.post(
         "/auth/login",
         json={"email": "flow-buyer@example.com", "password": "Secret@123"},
