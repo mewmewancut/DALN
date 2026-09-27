@@ -5,8 +5,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 export default function SiteLayout({ children, wide = false }) {
   const { session, logout } = useAuth();
 
-  const navClassName = ({ isActive }) =>
-    `site-nav-link${isActive ? " active" : ""}`;
+  const navClassName = ({ isActive }) => `site-nav-link${isActive ? " active" : ""}`;
 
   return (
     <div className="site-frame">
@@ -63,11 +62,7 @@ export default function SiteLayout({ children, wide = false }) {
                     Hồ sơ
                   </NavLink>
 
-                  <button
-                    type="button"
-                    className="site-nav-logout"
-                    onClick={logout}
-                  >
+                  <button type="button" className="site-nav-logout" onClick={logout}>
                     Đăng xuất
                   </button>
                 </>

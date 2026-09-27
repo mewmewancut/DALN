@@ -144,6 +144,7 @@ def test_update_threshold_recomputes_is_low_and_checks_ownership(
         == 422
     )
 
+
 def test_update_threshold_creates_and_resolves_low_stock_alert(
     db_session: Session, client: TestClient
 ) -> None:
@@ -193,13 +194,10 @@ def test_update_threshold_creates_and_resolves_low_stock_alert(
 
     assert (
         db_session.scalar(
-            select(LowStockAlert.is_resolved).where(
-                LowStockAlert.variant_id == variant_id
-            )
+            select(LowStockAlert.is_resolved).where(LowStockAlert.variant_id == variant_id)
         )
         is True
     )
-
 
 
 def test_checkout_below_threshold_creates_single_alert_until_resolved(
