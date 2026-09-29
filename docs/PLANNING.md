@@ -161,6 +161,21 @@ Token xác minh email có hạn 8 giờ; token đặt lại mật khẩu có h�
 - Đơn hàng vẫn lưu snapshot tại `orders.shipping_address`, `receiver_name`, `receiver_phone`; sửa hoặc xóa sổ địa chỉ không làm thay đổi đơn cũ.
 - Bộ dữ liệu hành chính theo Quyết định 19/2025/QĐ-TTg, hiệu lực 01/07/2025: 34 đơn vị cấp tỉnh và 3.321 đơn vị cấp xã. Dữ liệu có metadata nguồn và phiên bản để có thể cập nhật có kiểm soát.
 
+### B1c. `wishlist_items` — P2 danh sách yêu thích
+
+| Cột | Kiểu | Ràng buộc |
+|---|---|---|
+| buyer_id | BIGINT | FK → users.id, NOT NULL, ON DELETE CASCADE |
+| product_id | BIGINT | FK → products.id, NOT NULL |
+| | | UNIQUE (buyer_id, product_id) |
+
+📌 QUYẾT ĐỊNH WISHLIST P2:
+
+- Chỉ BUYER được dùng wishlist; lưu ở cấp product, không lưu size/màu. Buyer chọn variant khi mở trang chi tiết để thêm vào giỏ.
+- Thêm và xóa là idempotent. Gọi thêm cùng product nhiều lần vẫn chỉ có một dòng; xóa item không tồn tại vẫn thành công.
+- Product hoặc shop bị ẩn vẫn được giữ trong wishlist và hiển thị trạng thái không khả dụng; không tự xóa lịch sử quan tâm của buyer.
+- Chỉ product và shop đang hoạt động mới được thêm mới. Không giới hạn số item ở P2 hiện tại.
+
 ### B2. `shops`
 
 | Cột | Kiểu | Ràng buộc |
@@ -395,6 +410,16 @@ Script phải tạo (idempotent — chạy lại không nhân đôi, dùng kiể
 | DELETE `/users/me/addresses/{id}` | BUYER sở hữu | hard delete; nếu xóa mặc định thì tự chọn địa chỉ cũ nhất còn lại |
 
 Mọi thao tác ghi sổ địa chỉ khóa dòng user trước khi đếm hoặc đổi mặc định để tránh vượt giới hạn và tránh hai địa chỉ mặc định khi request đồng thời. Tài nguyên không tồn tại hoặc không thuộc user hiện tại đều trả 404 để không lộ dữ liệu người khác.
+
+### C1c. Router `wishlist.py` — P2 danh sách yêu thích
+
+| Method + Path | Ai gọi | Ghi chú |
+|---|---|---|
+| GET `/wishlist` | BUYER | trả toàn bộ item mới nhất trước, gồm thông tin product hiện tại và trạng thái khả dụng/tồn kho |
+| PUT `/wishlist/items/{product_id}` | BUYER | thêm idempotent; 404 nếu product không tồn tại, product bị ẩn hoặc shop bị khóa |
+| DELETE `/wishlist/items/{product_id}` | BUYER | xóa idempotent, trả 204 kể cả item không tồn tại |
+
+Wishlist không thay đổi quy tắc giỏ hàng. Từ trang wishlist, buyer mở trang chi tiết để chọn variant; thao tác thêm giỏ vẫn đi qua C3 và rule một giỏ một shop.
 
 ### C2. Router `shops.py` + `products.py` (catalog)
 
@@ -658,8 +683,11 @@ Mọi query ở C9 đều có `WHERE shop_id = current_shop.id`.
 | `/orders` | Đơn của tôi | tab theo status; mỗi đơn: code, ngày, tổng, trạng thái (badge màu), nút "Hủy đơn" **chỉ hiện khi PENDING** |
 | `/orders/:id` | Chi tiết đơn | items (snapshot), timeline trạng thái từ order_status_history, nút "Đánh giá" cho từng item **chỉ khi DELIVERED và chưa review** |
 | `/account/profile` | Hồ sơ và địa chỉ | mọi role sửa họ tên, điện thoại, avatar URL; BUYER có thêm CRUD sổ địa chỉ. Tỉnh/Thành phố và Xã/Phường/Đặc khu dùng combobox có thể gõ tìm kiếm không phân biệt dấu; đổi tỉnh xóa xã đã chọn; chỉ giá trị chính thức mới được lưu |
+| `/wishlist` | Sản phẩm yêu thích | danh sách product buyer đã lưu; hiển thị giá/trạng thái hiện tại, cho bỏ yêu thích và mở chi tiết để chọn variant nếu còn khả dụng |
 
 Trang `/checkout` tải hồ sơ và sổ địa chỉ cùng giỏ hàng, tự chọn địa chỉ mặc định và cho đổi địa chỉ đã lưu. Chuỗi snapshot gửi theo contract cũ có dạng `address_detail, commune_name, province_name`; không gửi `address_id` và không tạo FK từ order. Khi buyer chưa có địa chỉ lưu, form nhập tay hiện tại vẫn dùng được. Avatar chỉ preview/fallback tại trang hồ sơ, chưa đưa vào navbar toàn hệ thống.
+
+Card catalog và trang chi tiết có nút tim. Buyer đã đăng nhập thao tác trực tiếp với wishlist; khách chưa đăng nhập được chuyển tới `/login`. Product bị ẩn sau khi đã lưu vẫn xuất hiện tại `/wishlist`, nhưng không có nút mở chi tiết để mua.
 
 ### D3. Trang SHOP_OWNER (layout riêng có sidebar)
 
@@ -794,8 +822,10 @@ Viết pytest trong `backend/app/tests/`, dùng DB test riêng. Đây là danh s
 | 9j | CRUD địa chỉ bằng BUYER | đúng ownership; role khác 403; mã tỉnh/xã sai quan hệ bị từ chối |
 | 9k | Quy tắc mặc định và giới hạn | địa chỉ đầu tự mặc định; đổi/xóa mặc định đúng; tối đa 10; request đổi mặc định đồng thời vẫn chỉ có một dòng mặc định |
 | 9l | Sửa/xóa địa chỉ sau checkout | snapshot người nhận, điện thoại và địa chỉ của đơn cũ không đổi |
+| 9m | BUYER thêm cùng product vào wishlist nhiều lần | chỉ có một dòng; response vẫn thành công |
+| 9n | Phân quyền và vòng đời wishlist | role khác 403; product ẩn vẫn còn trong danh sách nhưng không khả dụng; xóa lặp lại trả 204 |
 
-Frontend phải test tìm tỉnh/xã không phân biệt dấu, reset xã khi đổi tỉnh, không cho lưu lựa chọn tự do, CRUD/đặt mặc định, và checkout tự điền/đổi địa chỉ/có fallback khi sổ địa chỉ trống.
+Frontend phải test tìm tỉnh/xã không phân biệt dấu, reset xã khi đổi tỉnh, không cho lưu lựa chọn tự do, CRUD/đặt mặc định, checkout tự điền/đổi địa chỉ/có fallback khi sổ địa chỉ trống, trạng thái nút tim ở catalog/chi tiết và trang wishlist ở trạng thái có dữ liệu/rỗng/lỗi/product bị ẩn.
 
 ### F2. Giỏ hàng & checkout
 

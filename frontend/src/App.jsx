@@ -24,6 +24,7 @@ import RegisterPage from "./pages/RegisterPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import VerificationPendingPage from "./pages/VerificationPendingPage.jsx";
 import VerifyEmailPage from "./pages/VerifyEmailPage.jsx";
+import WishlistPage from "./pages/WishlistPage.jsx";
 import ShopAlertsPage from "./pages/shop/ShopAlertsPage.jsx";
 import ShopDashboardPage from "./pages/shop/ShopDashboardPage.jsx";
 import ShopInventoryPage from "./pages/shop/ShopInventoryPage.jsx";
@@ -84,6 +85,14 @@ export default function App() {
           element={
             <RequireRole role="BUYER">
               <CartPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/wishlist"
+          element={
+            <RequireRole role="BUYER">
+              <WishlistPage />
             </RequireRole>
           }
         />

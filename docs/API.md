@@ -1,7 +1,7 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10 và P1 hồ sơ/sổ địa chỉ. Frontend D1–D4 đã nối các contract cho BUYER, SHOP_OWNER và ADMIN.
+**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10, P1 hồ sơ/sổ địa chỉ và P2 wishlist. Frontend D1–D4 đã nối các contract cho BUYER, SHOP_OWNER và ADMIN.
 
 Swagger chạy tại `http://localhost:8000/docs`.
 
@@ -40,6 +40,16 @@ JWT được ký bằng HS256 với `JWT_SECRET`, hết hạn theo `JWT_EXPIRE_M
 Body tạo địa chỉ gồm `label`, `receiver_name`, `receiver_phone`, `province_code` (2 chữ số), `commune_code` (5 chữ số), `address_detail`, `is_default`. Client không được gửi tên hành chính; backend tự suy ra tên chính thức từ `backend/app/data/vn_admin_units_2025.json`. Tài nguyên không thuộc buyer hiện tại trả `404`. Role khác BUYER gọi sổ địa chỉ nhận `403`.
 
 Frontend checkout chỉ dùng địa chỉ đã lưu để tự điền `receiver_name`, `receiver_phone`, `shipping_address`; request `/orders/checkout` không nhận `address_id`. Vì vậy đơn hàng giữ snapshot và không đổi khi địa chỉ được sửa hoặc xóa sau đó.
+
+## Wishlist
+
+| Method | Path | Quyền | Response thành công |
+|---|---|---|---|
+| GET | `/wishlist` | BUYER | `200` với toàn bộ item mới nhất trước |
+| PUT | `/wishlist/items/{product_id}` | BUYER | `200` với item vừa lưu; gọi lặp lại trả cùng item |
+| DELETE | `/wishlist/items/{product_id}` | BUYER | `204`; gọi lặp lại vẫn thành công |
+
+Mỗi item gồm `{id, product_id, name, image_url, shop_name, price_from, rating_average, is_available, has_stock, created_at}`. `is_available=false` khi product bị ẩn hoặc shop bị khóa; item vẫn được giữ để buyer có thể xóa nhưng frontend không dẫn tới luồng mua. `has_stock` phản ánh có ít nhất một variant đang hoạt động còn tồn kho. Chỉ product và shop đang hoạt động mới được thêm mới; không tìm thấy hoặc không khả dụng trả `404`. Role khác BUYER nhận `403`.
 
 ## Shop và catalog
 

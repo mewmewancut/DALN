@@ -1,7 +1,7 @@
 # Database
 
 **Trạng thái:** Implemented
-**Phạm vi đã triển khai:** Planning B1–B15 và P1 hồ sơ/sổ địa chỉ
+**Phạm vi đã triển khai:** Planning B1–B15, P1 hồ sơ/sổ địa chỉ và P2 wishlist
 
 Tài liệu này mô tả schema vận hành đã được triển khai trong SQLAlchemy và Alembic. Đặc tả đầy đủ, bao gồm các bảng chưa triển khai, nằm trong [`PLANNING.md`](PLANNING.md#phần-b--database-từng-bảng-từng-cột).
 
@@ -19,9 +19,11 @@ Tài liệu này mô tả schema vận hành đã được triển khai trong SQ
 erDiagram
     USERS ||--o| SHOPS : owns
     USERS ||--o{ USER_ADDRESSES : saves
+    USERS ||--o{ WISHLIST_ITEMS : owns
     SHOPS ||--o{ PRODUCTS : sells
     CATEGORIES ||--o{ PRODUCTS : classifies
     PRODUCTS ||--o{ PRODUCT_VARIANTS : has
+    PRODUCTS ||--o{ WISHLIST_ITEMS : saved_in
     PRODUCT_VARIANTS ||--o| INVENTORY : stocked_as
     SHOPS ||--o{ INVENTORY : stores
     SHOPS ||--o{ SUPPLIERS : works_with
@@ -71,6 +73,12 @@ erDiagram
 - `address_detail` giữ phần số nhà/đường/thôn/ấp/khu phố do buyer nhập. Receiver và số điện thoại là dữ liệu riêng của từng địa chỉ.
 - Partial unique index `uq_user_addresses_default_user ON user_addresses (user_id) WHERE is_default` bảo đảm mỗi user có tối đa một địa chỉ mặc định. Service khóa dòng user khi đếm, tạo, đổi hoặc xóa địa chỉ.
 - Order tiếp tục giữ snapshot độc lập trong `orders`; không đọc địa chỉ giao hàng lịch sử từ bảng này.
+
+### `wishlist_items`
+
+- Mỗi dòng nối một buyer với một product; `UNIQUE (buyer_id, product_id)` chặn lưu trùng ở database.
+- Xóa user cascade toàn bộ wishlist. Product không cascade vì product chỉ được soft delete; item được giữ khi product hoặc shop bị ẩn.
+- Có index riêng trên `buyer_id` và `product_id`. Bảng chỉ cần `created_at` vì item không có dữ liệu cần cập nhật.
 
 ### `shops`
 
@@ -148,6 +156,7 @@ erDiagram
 - Migration ràng buộc một alert đang mở mỗi variant: `20260923_0004_low_stock_alert_unique_open.py`.
 - Migration xác minh email và reset mật khẩu: `20260927_0005_add_email_auth_flows.py`.
 - Migration hồ sơ và sổ địa chỉ: `20260927_0006_add_profiles_and_addresses.py`.
+- Migration wishlist: `20260929_0007_add_wishlist_items.py`.
 
 ```powershell
 docker compose --env-file .env.example exec -T backend alembic upgrade head

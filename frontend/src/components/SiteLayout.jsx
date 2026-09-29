@@ -41,6 +41,10 @@ export default function SiteLayout({ children, wide = false }) {
                         Giỏ hàng
                       </NavLink>
 
+                      <NavLink to="/wishlist" className={navClassName}>
+                        Yêu thích
+                      </NavLink>
+
                       <NavLink to="/orders" className={navClassName}>
                         Đơn hàng
                       </NavLink>

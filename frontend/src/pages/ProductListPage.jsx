@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
+import { useAuth } from "../auth/AuthContext.jsx";
 import SiteLayout from "../components/SiteLayout.jsx";
+import WishlistButton from "../components/WishlistButton.jsx";
 import { formatCurrency } from "../components/formatCurrency.js";
+import useWishlist from "../components/useWishlist.js";
 
 const PAGE_SIZE = 20;
 
 export default function ProductListPage() {
+  const navigate = useNavigate();
+  const { session } = useAuth();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [filters, setFilters] = useState({
     keyword: "",
@@ -23,6 +28,9 @@ export default function ProductListPage() {
   const [result, setResult] = useState({ items: [], total: 0, page: 1, page_size: PAGE_SIZE });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const { favoriteIds, busyIds, wishlistError, wishlistLoading, toggleWishlist } = useWishlist(
+    session?.role === "BUYER",
+  );
 
   useEffect(() => {
     let active = true;
@@ -76,6 +84,16 @@ export default function ProductListPage() {
       sort: "newest",
       page: 1,
     });
+  }
+
+  function toggleFavorite(event, productId) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!session) {
+      navigate("/login");
+      return;
+    }
+    toggleWishlist(productId);
   }
 
   const totalPages = Math.max(1, Math.ceil(result.total / result.page_size));
@@ -208,34 +226,48 @@ export default function ProductListPage() {
           ) : !loading && result.items.length === 0 ? (
             <p>Không tìm thấy sản phẩm phù hợp.</p>
           ) : null}
+          {wishlistError && (
+            <p className="form-error" role="alert">
+              Không cập nhật được yêu thích: {wishlistError}
+            </p>
+          )}
           {!loading && !error && (
             <div className="product-grid">
               {result.items.map((product) => (
-                <Link key={product.id} to={`/products/${product.id}`} className="product-card">
-                  <div className="product-card-media">
-                    {product.image_url ? (
-                      <img src={product.image_url} alt={product.name} />
-                    ) : (
-                      <div className="product-image-placeholder">Chưa có ảnh</div>
-                    )}
-                    <span className="view-product">Xem chi tiết</span>
-                  </div>
-                  <div className="product-card-body">
-                    <p className="product-shop">{product.shop_name}</p>
-                    <h2>{product.name}</h2>
-                    <strong className="product-price">
-                      {product.price_from == null
-                        ? "Chưa có giá"
-                        : `Từ ${formatCurrency(product.price_from)}`}
-                    </strong>
-                    <p className="product-rating">
-                      <span aria-hidden="true">★</span>{" "}
-                      {product.rating_average == null
-                        ? "Chưa có đánh giá"
-                        : Number(product.rating_average).toFixed(1)}
-                    </p>
-                  </div>
-                </Link>
+                <article key={product.id} className="product-card">
+                  <Link to={`/products/${product.id}`} className="product-card-link">
+                    <div className="product-card-media">
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} />
+                      ) : (
+                        <div className="product-image-placeholder">Chưa có ảnh</div>
+                      )}
+                      <span className="view-product">Xem chi tiết</span>
+                    </div>
+                    <div className="product-card-body">
+                      <p className="product-shop">{product.shop_name}</p>
+                      <h2>{product.name}</h2>
+                      <strong className="product-price">
+                        {product.price_from == null
+                          ? "Chưa có giá"
+                          : `Từ ${formatCurrency(product.price_from)}`}
+                      </strong>
+                      <p className="product-rating">
+                        <span aria-hidden="true">★</span>{" "}
+                        {product.rating_average == null
+                          ? "Chưa có đánh giá"
+                          : Number(product.rating_average).toFixed(1)}
+                      </p>
+                    </div>
+                  </Link>
+                  <WishlistButton
+                    className="product-card-wishlist"
+                    productName={product.name}
+                    isFavorite={favoriteIds.has(product.id)}
+                    isBusy={wishlistLoading || busyIds.has(product.id)}
+                    onClick={(event) => toggleFavorite(event, product.id)}
+                  />
+                </article>
               ))}
             </div>
           )}

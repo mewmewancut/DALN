@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from app.models.order import Order, OrderStatusHistory
     from app.models.review import Review
     from app.models.shop import Shop
+    from app.models.wishlist import WishlistItem
 
 
 class User(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
@@ -58,5 +59,9 @@ class User(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     )
     addresses: Mapped[list["UserAddress"]] = relationship(
         back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    wishlist_items: Mapped[list["WishlistItem"]] = relationship(
+        back_populates="buyer",
         cascade="all, delete-orphan",
     )

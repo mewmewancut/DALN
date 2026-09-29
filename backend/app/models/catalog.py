@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from app.models.purchase import PurchaseOrderItem
     from app.models.review import Review
     from app.models.shop import Shop
+    from app.models.wishlist import WishlistItem
 
 
 class Category(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
@@ -63,6 +64,7 @@ class Product(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     category: Mapped["Category"] = relationship(back_populates="products")
     variants: Mapped[list["ProductVariant"]] = relationship(back_populates="product")
     reviews: Mapped[list["Review"]] = relationship(back_populates="product")
+    wishlist_items: Mapped[list["WishlistItem"]] = relationship(back_populates="product")
 
 
 class ProductVariant(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):

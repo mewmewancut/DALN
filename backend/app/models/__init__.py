@@ -11,6 +11,7 @@ from app.models.review import Review
 from app.models.shop import Shop
 from app.models.supplier import Supplier
 from app.models.user import User
+from app.models.wishlist import WishlistItem
 
 __all__ = [
     "Category",
@@ -31,4 +32,5 @@ __all__ = [
     "Shop",
     "Supplier",
     "User",
+    "WishlistItem",
 ]

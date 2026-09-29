@@ -22,6 +22,7 @@ from app.routers.shop_stats import router as shop_stats_router
 from app.routers.shops import router as shops_router
 from app.routers.suppliers import router as suppliers_router
 from app.routers.users import router as users_router
+from app.routers.wishlist import router as wishlist_router
 
 settings = get_settings()
 
@@ -37,6 +38,7 @@ app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(locations_router)
 app.include_router(users_router)
+app.include_router(wishlist_router)
 app.include_router(cart_router)
 app.include_router(orders_router)
 app.include_router(shop_orders_router)

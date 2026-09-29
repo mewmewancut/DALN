@@ -1,7 +1,7 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Toàn bộ backend Planning C1–C10 và P1 hồ sơ/sổ địa chỉ đã triển khai.
+**Phạm vi:** Toàn bộ backend Planning C1–C10, P1 hồ sơ/sổ địa chỉ và P2 wishlist đã triển khai.
 
 ## Tài khoản và email C1
 
@@ -20,6 +20,14 @@ Contract và mã lỗi nằm tại [`API.md`](API.md#auth); cấu hình Gmail n�
 - Chỉ BUYER có sổ địa chỉ, tối đa 10 dòng. Mọi thao tác ghi khóa dòng user để tuần tự hóa việc đếm và đổi mặc định; partial unique index là chốt chặn cuối cho quy tắc tối đa một mặc định.
 - Địa chỉ đầu tiên tự là mặc định. Đặt lại cùng địa chỉ là no-op an toàn. Xóa địa chỉ mặc định sẽ chọn địa chỉ được tạo sớm nhất còn lại.
 - Checkout ghép địa chỉ đã chọn thành `address_detail, commune_name, province_name` và gửi theo contract snapshot hiện có. Order không tham chiếu `user_addresses`, vì vậy thay đổi sổ địa chỉ không sửa lịch sử đơn.
+
+## Wishlist P2
+
+- Chỉ BUYER quản lý wishlist. Buyer được lấy từ token và database; client chỉ chỉ ra `product_id` trong path.
+- Wishlist lưu product, không lưu variant. Mọi lựa chọn size/màu và kiểm tra giỏ hàng tiếp tục diễn ra ở trang chi tiết và cart service.
+- Thêm/xóa idempotent; unique constraint `(buyer_id, product_id)` là chốt chặn chống trùng khi có request đồng thời.
+- Chỉ product đang hoạt động của shop đang hoạt động được thêm mới. Item đã tồn tại không bị xóa khi product/shop bị ẩn; API trả `is_available=false` để giao diện chặn đường mua nhưng vẫn cho bỏ yêu thích.
+- `price_from`, rating và `has_stock` luôn tính từ dữ liệu hiện tại, không phải snapshot tại lúc lưu.
 
 ## Giỏ hàng C3
 

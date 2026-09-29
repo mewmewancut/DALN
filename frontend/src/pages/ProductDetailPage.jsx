@@ -5,8 +5,10 @@ import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import SiteLayout from "../components/SiteLayout.jsx";
+import WishlistButton from "../components/WishlistButton.jsx";
 import { formatCurrency } from "../components/formatCurrency.js";
 import { formatDateTime } from "../components/orderPresentation.js";
+import useWishlist from "../components/useWishlist.js";
 
 export default function ProductDetailPage() {
   const { id } = useParams();
@@ -21,6 +23,9 @@ export default function ProductDetailPage() {
   const [differentShop, setDifferentShop] = useState(null);
   const [color, setColor] = useState("");
   const [size, setSize] = useState("");
+  const { favoriteIds, busyIds, wishlistError, wishlistLoading, toggleWishlist } = useWishlist(
+    session?.role === "BUYER",
+  );
 
   useEffect(() => {
     let active = true;
@@ -142,6 +147,21 @@ export default function ProductDetailPage() {
                 </span>
               </div>
               <h1>{product.name}</h1>
+              <WishlistButton
+                className="detail-wishlist"
+                productName={product.name}
+                isFavorite={favoriteIds.has(product.id)}
+                isBusy={wishlistLoading || busyIds.has(product.id)}
+                onClick={() => {
+                  if (!session) navigate("/login");
+                  else toggleWishlist(product.id);
+                }}
+              />
+              {wishlistError && (
+                <p className="form-error" role="alert">
+                  Không cập nhật được yêu thích: {wishlistError}
+                </p>
+              )}
               <p className="detail-description">{product.description}</p>
               <p className="detail-price">
                 {selectedVariant
