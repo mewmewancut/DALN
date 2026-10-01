@@ -401,6 +401,29 @@ button:disabled {
   gap: 36px;
 }
 
+.recommendations {
+  margin-bottom: 36px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--line);
+}
+
+.recommendations-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.recommendations-heading h2 {
+  margin: 0;
+}
+
+.recommendations-heading .muted {
+  margin-bottom: 0;
+}
+
 .catalog-filters {
   align-self: start;
   padding: 20px;

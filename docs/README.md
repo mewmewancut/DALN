@@ -17,8 +17,8 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`PLANNING.md`](PLANNING.md) | Có sẵn | Kế hoạch và đặc tả triển khai |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | In progress | Thành phần backend/frontend (BUYER, SHOP_OWNER, ADMIN) đã chạy và ranh giới với phần còn planned |
 | [`DATABASE.md`](DATABASE.md) | Implemented | Schema, quan hệ, constraint, migration, hồ sơ/sổ địa chỉ và seed data |
-| [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến toàn bộ backend C3–C10: giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo, supplier/nhập hàng, review, số liệu thống kê shop và admin |
-| [`API.md`](API.md) | In progress | Endpoint C0–C10 và P1: auth, hồ sơ/địa chỉ, catalog, vận hành shop, đơn hàng, thống kê, admin, role và error contract |
+| [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến backend C3–C10 và P1–P4, gồm sở thích và gợi ý sản phẩm |
+| [`API.md`](API.md) | In progress | Endpoint C0–C10 và P1–P4: auth, hồ sơ/địa chỉ, wishlist/sở thích/gợi ý, catalog, vận hành shop, đơn hàng, thống kê, admin, role và error contract |
 | `DATA_PLATFORM.md` | Planned | Lakebase, Medallion, metric và data quality |
 | [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) | Implemented | Cài đặt Docker, cấu hình, migration, seed, kiểm tra và xử lý lỗi local/demo từ đầu |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |

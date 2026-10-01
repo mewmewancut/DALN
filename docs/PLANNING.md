@@ -194,7 +194,7 @@ Token xác minh email có hạn 8 giờ; token đặt lại mật khẩu có h�
 - Chỉ BUYER có preferences; mỗi buyer tối đa một bản ghi gốc. Toàn bộ danh mục, màu và khoảng giá được thay thế trong một transaction khi lưu.
 - Danh mục phải tồn tại. Màu phải xuất hiện trong variant đang hoạt động của product/shop đang hoạt động; màu buyer đã lưu trước đó vẫn hợp lệ nếu catalog sau này ẩn màu đó.
 - P3 chỉ thu thập danh mục, màu và khoảng giá. Chưa thu thập giới tính, ngày sinh, số đo, size hay nhãn phong cách vì catalog hiện chưa có mô hình dữ liệu đủ để sử dụng chúng đúng cách.
-- P3 chỉ lưu dữ liệu sở thích; chưa thay đổi thứ tự catalog hay tự gợi ý sản phẩm. P4 sẽ dùng dữ liệu này.
+- P3 chỉ lưu dữ liệu sở thích; P4 dùng dữ liệu này qua API gợi ý riêng ở C1e.
 
 ### B2. `shops`
 
@@ -450,6 +450,23 @@ Wishlist không thay đổi quy tắc giỏ hàng. Từ trang wishlist, buyer m�
 | PUT `/users/me/preferences` | BUYER | thay thế toàn bộ `category_ids`, `colors`, `min_price`, `max_price` trong một transaction |
 
 Backend khóa dòng user khi cập nhật để tuần tự hóa hai request lưu đầu tiên. Danh sách trùng được chuẩn hóa về một lựa chọn; danh mục/màu không hợp lệ trả 400, khoảng giá sai trả 422.
+
+### C1e. Router `recommendations.py` — P4 gợi ý theo sở thích
+
+| Method + Path | Ai gọi | Ghi chú |
+|---|---|---|
+| GET `/users/me/recommendations` | BUYER | danh sách `ProductSummary`, `limit` mặc định 8, từ 1 đến 20; buyer lấy từ user đã xác thực và database |
+
+📌 QUYẾT ĐỊNH GỢI Ý P4:
+
+- Chỉ xét product/shop đang hoạt động, có ít nhất một variant đang hoạt động và còn tồn kho. Không tạo bảng, lưu điểm hoặc ghi dữ liệu khi đọc gợi ý.
+- Mỗi tiêu chí được tối đa 1 điểm: category thuộc sở thích; có variant còn hàng khớp màu đã lưu; có variant còn hàng trong khoảng giá đã lưu. Màu và giá được xét độc lập, không bắt buộc cùng một variant. Khoảng giá có ít nhất một cận mới tính điểm; cận có giá trị được áp dụng bao gồm biên.
+- Sắp xếp theo tổng điểm giảm dần, `created_at` giảm dần rồi `id` giảm dần, sau đó mới lấy `limit`. Nhiều màu/category/variant khớp không nhân điểm và không tạo product trùng.
+- Chưa có sở thích, sở thích rỗng hoặc không khớp tiêu chí nào: trả sản phẩm mới còn hàng. Các sản phẩm 0 điểm vẫn được dùng để bổ sung danh sách sau các sản phẩm khớp.
+- Dữ liệu lấy lại ở mỗi request. `price_from` và rating dùng cùng định nghĩa catalog C2: giá thấp nhất của variant đang hoạt động (có thể đã hết hàng), rating trung bình hiện tại; buyer mở chi tiết để chọn đúng variant và xem tồn kho.
+- Khách chưa đăng nhập nhận 401; role khác BUYER hoặc tài khoản bị khóa nhận 403; `limit` không hợp lệ nhận 422. Response rỗng là `[]`.
+
+**Definition of Done P4:** API đúng thứ tự, fallback, giới hạn và phân quyền; catalog BUYER hiện mục Dành cho bạn với trạng thái tải/rỗng/lỗi và link chi tiết/sở thích; nút tim đồng bộ với catalog; test backend/frontend, lint và build pass; tài liệu phản ánh phần đã triển khai.
 
 ### C2. Router `shops.py` + `products.py` (catalog)
 
@@ -720,6 +737,8 @@ Trang `/checkout` tải hồ sơ và sổ địa chỉ cùng giỏ hàng, tự c
 
 Card catalog và trang chi tiết có nút tim. Buyer đã đăng nhập thao tác trực tiếp với wishlist; khách chưa đăng nhập được chuyển tới `/login`. Product bị ẩn sau khi đã lưu vẫn xuất hiện tại `/wishlist`, nhưng không có nút mở chi tiết để mua.
 
+P4 thêm mục **Dành cho bạn** phía trên catalog cho BUYER đã đăng nhập, tải riêng tối đa 8 sản phẩm từ C1e và giữ thứ tự API. Card có link chi tiết và nút tim dùng chung trạng thái wishlist với catalog; có link Chỉnh sở thích tới `/account/preferences`. Hiển thị tải/rỗng/lỗi riêng; lỗi gợi ý không chặn catalog. Tìm kiếm/filter/sort/phân trang catalog vẫn gọi C2 và không tải lại gợi ý. Đăng xuất gỡ mục gợi ý và bỏ response đang chờ của phiên cũ.
+
 ### D3. Trang SHOP_OWNER (layout riêng có sidebar)
 
 | Route | Trang | Nội dung phải có |
@@ -857,8 +876,12 @@ Viết pytest trong `backend/app/tests/`, dùng DB test riêng. Đây là danh s
 | 9n | Phân quyền và vòng đời wishlist | role khác 403; product ẩn vẫn còn trong danh sách nhưng không khả dụng; xóa lặp lại trả 204 |
 | 9o | BUYER đọc/lưu/thay thế preferences | mặc định rỗng; category/color trùng không tạo dòng trùng; request sau thay thế đúng request trước |
 | 9p | Validation và phân quyền preferences | role khác 403; category/color sai trả 400; khoảng giá ngược trả 422 và dữ liệu cũ không đổi |
+| 9q | Gợi ý P4 | đúng điểm từng tiêu chí, không nhân điểm/product theo variant, xếp điểm rồi ngày/ID trước limit; chưa có hoặc rỗng sở thích dùng sản phẩm mới còn hàng |
+| 9r | Catalog và quyền của gợi ý | loại product/shop/variant ẩn và hết kho; biên giá inclusive; sở thích riêng từng buyer, cập nhật theo dữ liệu hiện tại; 401/403 và limit sai 422 |
 
 Frontend phải test tìm tỉnh/xã không phân biệt dấu, reset xã khi đổi tỉnh, không cho lưu lựa chọn tự do, CRUD/đặt mặc định, checkout tự điền/đổi địa chỉ/có fallback khi sổ địa chỉ trống, trạng thái nút tim ở catalog/chi tiết, trang wishlist ở trạng thái có dữ liệu/rỗng/lỗi/product bị ẩn, và form preferences tải/lưu/validation/lỗi tải.
+
+Frontend P4 phải test thứ tự và link của gợi ý, định dạng tiền, tải/rỗng/lỗi riêng, catalog vẫn lọc khi gợi ý lỗi, nút tim đồng bộ và không gọi API gợi ý cho khách/role khác; response trễ sau đăng xuất không hiển thị lại gợi ý.
 
 ### F2. Giỏ hàng & checkout
 

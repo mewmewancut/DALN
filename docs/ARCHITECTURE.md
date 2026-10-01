@@ -1,7 +1,7 @@
 # Architecture
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Nền tảng A–B, toàn bộ backend C0–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist, P3 sở thích mua sắm và toàn bộ frontend D1–D4 (BUYER, SHOP_OWNER, ADMIN).
+**Phạm vi đã triển khai:** Nền tảng A–B, toàn bộ backend C0–C10, P1–P4 và toàn bộ frontend D1–D4 (BUYER, SHOP_OWNER, ADMIN).
 
 ## Thành phần đang chạy
 
@@ -20,7 +20,9 @@ P1 hồ sơ/sổ địa chỉ nằm trong `routers/users.py`, `profile_service.p
 
 P2 wishlist nằm riêng trong `routers/wishlist.py`, `wishlist_service.py` và model `WishlistItem`. Service chỉ lấy buyer từ dependency xác thực, trả thông tin catalog hiện tại bằng truy vấn tổng hợp và giữ item khi product/shop bị ẩn. Frontend dùng một hook chung để tải ID yêu thích một lần cho từng trang catalog/chi tiết; trang `/wishlist` dùng response đầy đủ. Wishlist lưu ở cấp product và chuyển buyer sang chi tiết để chọn variant, nên không sao chép logic tồn kho hay quy tắc một giỏ một shop.
 
-P3 sở thích mua sắm nằm trong `routers/preferences.py`, `preference_service.py` và ba model preference. Service khóa user rồi thay thế category/color/price range trong một transaction; options màu được suy ra từ catalog đang hoạt động và hợp nhất với màu đã lưu. Frontend `/account/preferences` là form nhiều lựa chọn độc lập với catalog list; P3 chưa sắp xếp hay đề xuất sản phẩm, tránh trộn phạm vi P4 vào bước thu thập dữ liệu.
+P3 sở thích mua sắm nằm trong `routers/preferences.py`, `preference_service.py` và ba model preference. Service khóa user rồi thay thế category/color/price range trong một transaction; options màu được suy ra từ catalog đang hoạt động và hợp nhất với màu đã lưu. Frontend `/account/preferences` là form nhiều lựa chọn; P4 đọc dữ liệu này để gợi ý.
+
+P4 nằm riêng trong `routers/recommendations.py` và `recommendation_service.py`, không đổi schema. Service đọc sở thích bằng service P3; query SQL tổng hợp theo product để mỗi tiêu chí màu/giá chỉ đóng góp một điểm, lọc catalog còn hàng, xếp điểm/ngày/ID trước giới hạn. Kết quả dùng `ProductSummary` hiện có. Frontend `RecommendedProducts` tải độc lập trên catalog BUYER và gỡ khi phiên thay đổi; `ProductCard` dùng chung cho gợi ý và catalog, cùng trạng thái từ một hook wishlist trên page. Filter của catalog không tác động request gợi ý. Quy tắc chuẩn nằm ở [Planning C1e](PLANNING.md#c1e-router-recommendationspy--p4-gợi-ý-theo-sở-thích).
 
 Frontend dùng `BrowserRouter` để định tuyến. `AuthProvider` đọc và lưu `{token, role, shop_id}` trong `localStorage`, rồi điều hướng theo vai trò sau khi đăng nhập; `RequireRole` chuyển người chưa đăng nhập tới `/login` và người sai vai trò về trang của vai trò đó. Đây là điều hướng giao diện; backend vẫn xác thực token và quyền trên từng request. Axios client gắn token vào header `Authorization` và xóa phiên, chuyển tới `/login` khi API trả `401`.
 

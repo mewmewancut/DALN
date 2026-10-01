@@ -3,7 +3,7 @@
 **Trạng thái:** In progress  
 **Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15 và toàn bộ backend C0–C10 (auth gồm xác minh email/reset mật khẩu, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop, admin) cùng luồng API từ đăng ký đã xác minh đến đăng sản phẩm
 
-Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth, catalog/wishlist/preferences, toàn bộ luồng buyer từ giỏ hàng tới review, toàn bộ trang quản lý của chủ shop và các trang admin.
+Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth, catalog/wishlist/preferences/recommendations, toàn bộ luồng buyer từ giỏ hàng tới review, toàn bộ trang quản lý của chủ shop và các trang admin.
 
 ## Các lớp kiểm tra hiện có
 
@@ -48,7 +48,7 @@ Hook được lưu trong `.githooks/pre-commit`. Kích hoạt một lần cho m�
 git config core.hooksPath .githooks
 ```
 
-Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff lint/format, đồng bộ npm theo lockfile, chạy ESLint/Prettier, áp dụng và kiểm tra migration, chạy toàn bộ pytest và Vitest, build frontend, audit dependency và smoke test hai service. Bất kỳ lệnh nào thất bại sẽ chặn commit. Lint/format chỉ kiểm tra, không tự sửa file. Có thể chạy lại thủ công bằng `git hook run pre-commit`. Docker Desktop cần chạy; cài dependency và audit cần truy cập registry. Hook kiểm tra working tree đang có trên máy, nên trước khi commit từng phần cần bảo đảm code được test khớp phần đã stage. Lệnh lint/format thủ công và phạm vi cấu hình nằm trong [`DEVELOPMENT.md`](DEVELOPMENT.md#chuẩn-hóa-code).
+Mỗi lần `git commit`, hook build image, đồng bộ npm theo lockfile khi frontend đã dừng, kiểm tra regression của hook rồi khởi động Docker Compose. Sau đó chạy Ruff lint/format, ESLint/Prettier, áp dụng và kiểm tra migration, toàn bộ pytest và Vitest, build frontend, audit dependency và smoke test hai service. Bất kỳ lệnh nào thất bại sẽ chặn commit. Lint/format chỉ kiểm tra, không tự sửa file. Có thể chạy lại thủ công bằng `git hook run pre-commit`. Docker Desktop cần chạy; cài dependency và audit cần truy cập registry. Hook kiểm tra working tree đang có trên máy, nên trước khi commit từng phần cần bảo đảm code được test khớp phần đã stage. Cách kiểm tra race dependency và lệnh lint/format nằm trong [`DEVELOPMENT.md`](DEVELOPMENT.md#chuẩn-hóa-code).
 
 `backend/app/tests/test_code_quality.py` và `frontend/quality.test.js` chạy CLI thật trên đoạn code qua stdin: code hợp lệ được chấp nhận, biến/import lỗi, JSX chưa khai báo, hook có điều kiện và dependency effect thiếu bị từ chối. Test format xác nhận code chưa chuẩn trả exit code 1 và output sau format pass. Các probe không tạo file lỗi trong source tree.
 
@@ -76,6 +76,7 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - Hồ sơ/sổ địa chỉ P1: kiểm tra dữ liệu local đúng 34 tỉnh và 3.321 xã với mã duy nhất/hierarchy 2 cấp; endpoint địa danh lọc đúng tỉnh; mọi role đọc/sửa profile nhưng không sửa email/role; BUYER CRUD địa chỉ, ownership/role, mã tỉnh–xã, tối đa 10, tự tạo/đổi/xóa mặc định. Frontend kiểm tra tìm địa danh không dấu, reset xã khi đổi tỉnh, chỉ gửi mã đã chọn và checkout tự điền/đổi snapshot từ sổ địa chỉ.
 - Wishlist P2: kiểm tra BUYER thêm/xóa idempotent, unique buyer–product, phân quyền, product không tồn tại, item được giữ nhưng đánh dấu không khả dụng khi product/shop bị ẩn và trạng thái tồn kho hiện tại. Frontend kiểm tra tim ở catalog/chi tiết, điều hướng, xóa item, product tạm ẩn và trạng thái rỗng/lỗi.
 - Sở thích P3: kiểm tra mặc định rỗng, options từ catalog, lưu/thay thế atomically, loại lựa chọn trùng, tách dữ liệu giữa buyer, giữ màu cũ khi variant bị ẩn, validation category/color/khoảng giá và phân quyền. Frontend kiểm tra tải lựa chọn hiện tại, gửi đúng payload, chặn khoảng giá ngược và không hiện form rỗng giả khi tải lỗi.
+- Gợi ý P4: `test_recommendations.py` kiểm tra điểm và thứ tự trước limit, nhiều variant không nhân điểm/product, fallback chưa có/rỗng/không khớp sở thích, biên giá/một cận/giá 0, giá variant thay vì base price, loại catalog ẩn/hết kho/thiếu inventory, không dùng variant không bán được để cộng điểm, sở thích riêng và giá/rating hiện tại, phân quyền/khóa tài khoản/limit. `recommendations.test.jsx` kiểm tra thứ tự API, link, giá VND, tim đồng bộ và lỗi lưu tim giữ trạng thái cũ, tải/rỗng/lỗi riêng, catalog tiếp tục lọc, không gọi API cho khách/role khác và bỏ response trễ sau đăng xuất.
 - Email service: test fake SMTP xác nhận STARTTLS, App Password và link token nằm trong fragment; kiểm tra cả subject, bản text, template HTML, CTA, link dự phòng, thời hạn và hướng dẫn bảo mật của ba loại email. Toàn bộ API test dùng fake email sender nên không phụ thuộc Gmail/network.
 - Thiếu, sai, hết hạn token hoặc user bị khóa đều bị từ chối; dependency role và shop lấy quyền sở hữu từ database thay vì tin `shop_id` trong token.
 - API shop chỉ cho SHOP_OWNER tạo và sửa shop của mình; từ chối `owner_id` do client gửi và không cho tạo shop thứ hai.
@@ -105,4 +106,4 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 
 - Frontend ADMIN D4: vai trò khác không vào được `/admin/*`; dashboard gọi `/admin/stats/overview` với khoảng 30 ngày mặc định, hiện 4 chỉ số, sidebar đủ bốn trang và lỗi API khi khoảng ngày sai; link Databricks Dashboard/Genie chỉ xuất hiện (mở tab mới, `rel="noreferrer"`) khi biến môi trường có giá trị, ngược lại ghi "chưa được cấu hình"; trang người dùng gửi filter `role`/`keyword`, khóa/mở theo response và giữ nguyên dòng khi backend từ chối tự khóa; trang shop gửi `keyword`/`is_active` cùng tham số phân trang phía server, xóa được bộ lọc, khóa/mở theo response và hiện lỗi; trang đơn toàn hệ thống tải danh sách shop cho bộ lọc, gửi đúng `shop_id`/`status`/`from`/`to` và hiện tên shop.
 
-Toàn bộ backend Planning C0–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist, P3 sở thích mua sắm và frontend D1–D4 đã có test. Phần mở rộng cá nhân hóa tiếp theo là P4 gợi ý theo luật; phần lõi còn lại là data platform (E) và Docker/demo (G).
+Toàn bộ backend Planning C0–C10, P1–P4 và frontend D1–D4 đã có test. Phần lõi còn lại là data platform (E) và Docker/demo (G).

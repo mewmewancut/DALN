@@ -1,7 +1,7 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Toàn bộ backend Planning C1–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist và P3 sở thích mua sắm đã triển khai.
+**Phạm vi:** Toàn bộ backend Planning C1–C10 và P1–P4 đã triển khai.
 
 ## Tài khoản và email C1
 
@@ -35,7 +35,17 @@ Contract và mã lỗi nằm tại [`API.md`](API.md#auth); cấu hình Gmail n�
 - PUT là thay thế toàn bộ cấu hình. Service khóa user và commit preference cùng hai danh sách trong một transaction; lỗi validation không làm mất dữ liệu cũ.
 - Category phải tồn tại. Màu phải có trong catalog đang hoạt động hoặc là màu chính buyer đã lưu trước khi variant bị ẩn.
 - Danh sách trùng được chuẩn hóa; database vẫn có unique constraint làm chốt chặn. Khoảng giá có CHECK không âm và `min_price <= max_price`.
-- Sở thích chưa tác động catalog, giá, tồn kho hoặc checkout. P4 mới được phép dùng dữ liệu này để chấm điểm gợi ý.
+- P4 đọc sở thích để chấm điểm gợi ý; lưu sở thích không thay đổi giá, tồn kho hay checkout.
+
+## Gợi ý sản phẩm P4
+
+- Chỉ BUYER đọc gợi ý của chính mình; danh tính lấy từ user đã xác thực trong database.
+- Product/shop phải hoạt động và có variant đang hoạt động còn hàng. Variant ẩn, hết kho hoặc thiếu inventory không dùng để cộng điểm màu/giá.
+- Khớp category, khớp ít nhất một màu và có variant trong khoảng giá được 1 điểm mỗi tiêu chí, tối đa 3. Màu/giá xét độc lập; nhiều variant khớp không nhân điểm. Khoảng giá chỉ xét khi có ít nhất một cận; các cận bao gồm biên.
+- Xếp tổng điểm giảm dần, thời gian tạo giảm dần, ID giảm dần rồi lấy giới hạn. Sản phẩm 0 điểm vẫn có thể bổ sung danh sách; sở thích chưa lưu/rỗng hoặc không khớp dùng sản phẩm mới còn hàng.
+- Chấm điểm lại từ sở thích, giá, trạng thái và kho hiện tại mỗi request; không lưu/cache điểm, không suy ra sở thích từ wishlist hay lịch sử đơn hàng.
+
+Đặc tả chuẩn và Definition of Done nằm ở [Planning C1e](PLANNING.md#c1e-router-recommendationspy--p4-gợi-ý-theo-sở-thích). Contract response và ý nghĩa `price_from` nằm ở [API](API.md#gợi-ý-sản-phẩm).
 
 ## Giỏ hàng C3
 

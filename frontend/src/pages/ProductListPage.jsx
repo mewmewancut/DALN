@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 
 import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
 import { useAuth } from "../auth/AuthContext.jsx";
+import ProductCard from "../components/ProductCard.jsx";
+import RecommendedProducts from "../components/RecommendedProducts.jsx";
 import SiteLayout from "../components/SiteLayout.jsx";
-import WishlistButton from "../components/WishlistButton.jsx";
-import { formatCurrency } from "../components/formatCurrency.js";
 import useWishlist from "../components/useWishlist.js";
 
 const PAGE_SIZE = 20;
@@ -119,6 +119,16 @@ export default function ProductListPage() {
           <span>sản phẩm đang hiển thị</span>
         </div>
       </header>
+      {session?.role === "BUYER" && (
+        <RecommendedProducts
+          key={session.token}
+          favoriteIds={favoriteIds}
+          busyIds={busyIds}
+          wishlistLoading={wishlistLoading}
+          wishlistError={wishlistError}
+          onToggleFavorite={toggleFavorite}
+        />
+      )}
       <div className="catalog-mobile-toolbar">
         <button
           type="button"
@@ -234,40 +244,13 @@ export default function ProductListPage() {
           {!loading && !error && (
             <div className="product-grid">
               {result.items.map((product) => (
-                <article key={product.id} className="product-card">
-                  <Link to={`/products/${product.id}`} className="product-card-link">
-                    <div className="product-card-media">
-                      {product.image_url ? (
-                        <img src={product.image_url} alt={product.name} />
-                      ) : (
-                        <div className="product-image-placeholder">Chưa có ảnh</div>
-                      )}
-                      <span className="view-product">Xem chi tiết</span>
-                    </div>
-                    <div className="product-card-body">
-                      <p className="product-shop">{product.shop_name}</p>
-                      <h2>{product.name}</h2>
-                      <strong className="product-price">
-                        {product.price_from == null
-                          ? "Chưa có giá"
-                          : `Từ ${formatCurrency(product.price_from)}`}
-                      </strong>
-                      <p className="product-rating">
-                        <span aria-hidden="true">★</span>{" "}
-                        {product.rating_average == null
-                          ? "Chưa có đánh giá"
-                          : Number(product.rating_average).toFixed(1)}
-                      </p>
-                    </div>
-                  </Link>
-                  <WishlistButton
-                    className="product-card-wishlist"
-                    productName={product.name}
-                    isFavorite={favoriteIds.has(product.id)}
-                    isBusy={wishlistLoading || busyIds.has(product.id)}
-                    onClick={(event) => toggleFavorite(event, product.id)}
-                  />
-                </article>
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  isFavorite={favoriteIds.has(product.id)}
+                  isBusy={wishlistLoading || busyIds.has(product.id)}
+                  onToggleFavorite={toggleFavorite}
+                />
               ))}
             </div>
           )}

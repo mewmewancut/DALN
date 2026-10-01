@@ -53,6 +53,7 @@ it("hiện trạng thái tim ở catalog và bỏ yêu thích không tải lại
   vi.spyOn(client, "get").mockImplementation(async (url) => {
     if (url === "/categories") return { data: [] };
     if (url === "/wishlist") return { data: [wishlistItem] };
+    if (url === "/users/me/recommendations") return { data: [] };
     if (url === "/products") {
       return { data: { items: [product], total: 1, page: 1, page_size: 20 } };
     }

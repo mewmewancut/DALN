@@ -1,7 +1,7 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist và P3 sở thích mua sắm. Frontend D1–D4 đã nối các contract cho BUYER, SHOP_OWNER và ADMIN.
+**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist, P3 sở thích mua sắm và P4 gợi ý sản phẩm. Frontend D1–D4 đã nối các contract cho BUYER, SHOP_OWNER và ADMIN.
 
 Swagger chạy tại `http://localhost:8000/docs`.
 
@@ -61,7 +61,17 @@ Mỗi item gồm `{id, product_id, name, image_url, shop_name, price_from, ratin
 
 Body PUT gồm `{category_ids, colors, min_price, max_price}`. Hai danh sách được phép rỗng và backend loại lựa chọn trùng; giá được phép `null`, phải không âm và `min_price <= max_price`. Category không tồn tại hoặc màu không thuộc catalog hiện tại/màu cũ đã lưu trả `400`; dữ liệu cũ không đổi. Response gồm cùng bốn trường. Role khác BUYER nhận `403`.
 
-Options màu lấy từ variant đang hoạt động của product/shop đang hoạt động và hợp nhất với màu buyer đã lưu, nên người dùng không mất lựa chọn chỉ vì catalog tạm ẩn variant. P3 chưa thay đổi `GET /products`; dữ liệu này dành cho P4 gợi ý sản phẩm.
+Options màu lấy từ variant đang hoạt động của product/shop đang hoạt động và hợp nhất với màu buyer đã lưu, nên người dùng không mất lựa chọn chỉ vì catalog tạm ẩn variant. Dữ liệu này được dùng bởi API gợi ý bên dưới.
+
+## Gợi ý sản phẩm
+
+| Method | Path | Quyền | Response thành công |
+|---|---|---|---|
+| GET | `/users/me/recommendations?limit=8` | BUYER | `200` với danh sách `ProductSummary`, cùng các trường của item trong `GET /products` |
+
+`limit` mặc định 8, tối thiểu 1, tối đa 20; sai giá trị trả `422`. Không nhận buyer ID từ client. Thiếu token nhận `401`; role khác BUYER hoặc tài khoản bị khóa nhận `403`. Không có sản phẩm còn hàng trả `[]`.
+
+Thứ tự dựa trên sở thích hiện tại của buyer và ba tiêu chí đồng trọng số; xem [quy tắc P4](BUSINESS_RULES.md#gợi-ý-sản-phẩm-p4). `price_from` giữ định nghĩa catalog (min giá variant đang hoạt động, kể cả đã hết hàng), trong khi điểm màu/giá chỉ xét variant còn hàng. Rating là trung bình review hiện tại. GET chỉ đọc dữ liệu, không tạo preference hay lưu điểm.
 
 ## Shop và catalog
 

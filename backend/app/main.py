@@ -17,6 +17,7 @@ from app.routers.products import (
     variant_router,
 )
 from app.routers.purchase_orders import router as purchase_orders_router
+from app.routers.recommendations import router as recommendations_router
 from app.routers.reviews import product_router as product_review_router
 from app.routers.reviews import router as reviews_router
 from app.routers.shop_stats import router as shop_stats_router
@@ -40,6 +41,7 @@ app.include_router(auth_router)
 app.include_router(locations_router)
 app.include_router(users_router)
 app.include_router(preferences_router)
+app.include_router(recommendations_router)
 app.include_router(wishlist_router)
 app.include_router(cart_router)
 app.include_router(orders_router)

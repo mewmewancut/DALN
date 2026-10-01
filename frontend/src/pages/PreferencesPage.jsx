@@ -95,8 +95,7 @@ export default function PreferencesPage() {
           <p className="eyebrow">Cá nhân hóa</p>
           <h1>Sở thích mua sắm</h1>
           <p className="muted">
-            Chọn những gì bạn thường quan tâm. Thông tin này sẽ được dùng cho phần gợi ý sản phẩm
-            sau này.
+            Chọn những gì bạn thường quan tâm để ưu tiên sản phẩm trong mục Dành cho bạn.
           </p>
         </div>
       </header>
