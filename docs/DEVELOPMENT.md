@@ -98,6 +98,12 @@ Frontend D1 và các trang auth/catalog đầu tiên của D2 dùng Axios và Re
 
 Để bật bộ kiểm tra trước commit, chạy `git config core.hooksPath .githooks` một lần trong clone hiện tại. Danh sách kiểm tra và cách chạy thủ công nằm trong [`TESTING.md`](TESTING.md#hook-pre-commit).
 
+Hook build image, dừng frontend rồi chạy `npm ci` bằng container one-off dùng cùng volume trước khi khởi động service. Không cài dependency trong container đang chạy Vite vì hai process có thể đồng thời sửa `node_modules/.vite`, gây `ENOTEMPTY` hoặc mất binary `vite`. Regression test tại `.githooks/tests/test_pre_commit.py` chạy hook thật với Docker giả lập để kiểm tra cài dependency không chồng lấn frontend và lỗi cài đặt/test vẫn chặn commit; hook tự chạy các test này trước khi khởi động service.
+
+```powershell
+docker compose --env-file .env.example run --rm --no-deps --volume "${PWD}/.githooks:/hooks:ro" backend python -m unittest discover -s /hooks/tests -v
+```
+
 ## Chuẩn hóa code
 
 Backend dùng Ruff với cấu hình `backend/ruff.toml`: kiểm tra lỗi Python, import không dùng và thứ tự import; format theo độ rộng 100 ký tự. Các migration lịch sử trong `alembic/versions` được loại khỏi quá trình lint/format để không sửa revision đã áp dụng. Frontend dùng ESLint 10 với bộ rule JavaScript recommended và hai rule React Hooks (thứ tự gọi hook, dependency của effect); Prettier quản lý định dạng. Cấu hình nằm trong `frontend/eslint.config.js` và `frontend/.prettierrc.json`.

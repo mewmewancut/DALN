@@ -4,7 +4,7 @@ set -eu
 cd "$(git rev-parse --show-toplevel)"
 
 compose() {
-  docker compose --env-file .env.example "$@"
+  MSYS_NO_PATHCONV=1 docker compose --env-file .env.example "$@"
 }
 
 step() {
@@ -16,15 +16,20 @@ git diff --cached --check
 git diff --check
 compose config --quiet
 
-step "Khởi động và build các service"
-compose up --build -d
+step "Build image và đồng bộ dependency khi frontend đã dừng"
+compose build
+compose stop frontend
+compose run --rm --no-deps frontend npm ci --no-audit --no-fund
+
+step "Kiểm tra hook và khởi động các service"
+compose run --rm --no-deps --volume "$(git rev-parse --show-toplevel)/.githooks:/hooks:ro" backend python -m unittest discover -s /hooks/tests -v
+compose up -d
 
 step "Kiểm tra lint và format backend"
 compose exec -T backend ruff check .
 compose exec -T backend ruff format --check .
 
-step "Đồng bộ dependency, kiểm tra lint và format frontend"
-compose exec -T frontend npm ci --no-audit --no-fund
+step "Kiểm tra lint và format frontend"
 compose exec -T frontend npm run lint
 compose exec -T frontend npm run format:check
 
