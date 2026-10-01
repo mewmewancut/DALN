@@ -1,7 +1,7 @@
 # Database
 
 **Trạng thái:** Implemented
-**Phạm vi đã triển khai:** Planning B1–B15, P1 hồ sơ/sổ địa chỉ và P2 wishlist
+**Phạm vi đã triển khai:** Planning B1–B15, P1 hồ sơ/sổ địa chỉ, P2 wishlist và P3 sở thích mua sắm
 
 Tài liệu này mô tả schema vận hành đã được triển khai trong SQLAlchemy và Alembic. Đặc tả đầy đủ, bao gồm các bảng chưa triển khai, nằm trong [`PLANNING.md`](PLANNING.md#phần-b--database-từng-bảng-từng-cột).
 
@@ -20,8 +20,12 @@ erDiagram
     USERS ||--o| SHOPS : owns
     USERS ||--o{ USER_ADDRESSES : saves
     USERS ||--o{ WISHLIST_ITEMS : owns
+    USERS ||--o| USER_PREFERENCES : configures
     SHOPS ||--o{ PRODUCTS : sells
     CATEGORIES ||--o{ PRODUCTS : classifies
+    USER_PREFERENCES ||--o{ USER_PREFERRED_CATEGORIES : selects
+    CATEGORIES ||--o{ USER_PREFERRED_CATEGORIES : preferred_as
+    USER_PREFERENCES ||--o{ USER_PREFERRED_COLORS : selects
     PRODUCTS ||--o{ PRODUCT_VARIANTS : has
     PRODUCTS ||--o{ WISHLIST_ITEMS : saved_in
     PRODUCT_VARIANTS ||--o| INVENTORY : stocked_as
@@ -79,6 +83,13 @@ erDiagram
 - Mỗi dòng nối một buyer với một product; `UNIQUE (buyer_id, product_id)` chặn lưu trùng ở database.
 - Xóa user cascade toàn bộ wishlist. Product không cascade vì product chỉ được soft delete; item được giữ khi product hoặc shop bị ẩn.
 - Có index riêng trên `buyer_id` và `product_id`. Bảng chỉ cần `created_at` vì item không có dữ liệu cần cập nhật.
+
+### `user_preferences`, `user_preferred_categories`, `user_preferred_colors`
+
+- `user_preferences.buyer_id` là unique và cascade theo user, bảo đảm mỗi buyer tối đa một cấu hình. `min_price`/`max_price` là `NUMERIC(12,0)` tùy chọn với CHECK không âm và CHECK thứ tự khoảng giá.
+- `user_preferred_categories` nối preference với category; unique `(preference_id, category_id)`. Category không cascade vì là dữ liệu catalog dùng chung.
+- `user_preferred_colors` lưu chuỗi màu tối đa 30 ký tự; unique `(preference_id, color)`. Màu không tách bảng master vì catalog hiện cũng lưu trực tiếp trên variant.
+- Hai bảng con cascade khi preference bị xóa. Service thay thế cả hai danh sách cùng khoảng giá trong một transaction.
 
 ### `shops`
 
@@ -157,6 +168,7 @@ erDiagram
 - Migration xác minh email và reset mật khẩu: `20260927_0005_add_email_auth_flows.py`.
 - Migration hồ sơ và sổ địa chỉ: `20260927_0006_add_profiles_and_addresses.py`.
 - Migration wishlist: `20260929_0007_add_wishlist_items.py`.
+- Migration sở thích mua sắm: `20260929_0008_add_user_preferences.py`.
 
 ```powershell
 docker compose --env-file .env.example exec -T backend alembic upgrade head

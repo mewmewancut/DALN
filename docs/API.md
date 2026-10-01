@@ -1,7 +1,7 @@
 # API
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10, P1 hồ sơ/sổ địa chỉ và P2 wishlist. Frontend D1–D4 đã nối các contract cho BUYER, SHOP_OWNER và ADMIN.
+**Phạm vi đã triển khai:** Toàn bộ Planning C0–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist và P3 sở thích mua sắm. Frontend D1–D4 đã nối các contract cho BUYER, SHOP_OWNER và ADMIN.
 
 Swagger chạy tại `http://localhost:8000/docs`.
 
@@ -50,6 +50,18 @@ Frontend checkout chỉ dùng địa chỉ đã lưu để tự điền `receive
 | DELETE | `/wishlist/items/{product_id}` | BUYER | `204`; gọi lặp lại vẫn thành công |
 
 Mỗi item gồm `{id, product_id, name, image_url, shop_name, price_from, rating_average, is_available, has_stock, created_at}`. `is_available=false` khi product bị ẩn hoặc shop bị khóa; item vẫn được giữ để buyer có thể xóa nhưng frontend không dẫn tới luồng mua. `has_stock` phản ánh có ít nhất một variant đang hoạt động còn tồn kho. Chỉ product và shop đang hoạt động mới được thêm mới; không tìm thấy hoặc không khả dụng trả `404`. Role khác BUYER nhận `403`.
+
+## Sở thích mua sắm
+
+| Method | Path | Quyền | Response thành công |
+|---|---|---|---|
+| GET | `/users/me/preferences/options` | BUYER | `200` với `{categories: [{id, name}], colors: [...]}` |
+| GET | `/users/me/preferences` | BUYER | `200` với preference hiện tại hoặc giá trị rỗng nếu chưa lưu |
+| PUT | `/users/me/preferences` | BUYER | `200` với preference sau khi thay thế toàn bộ |
+
+Body PUT gồm `{category_ids, colors, min_price, max_price}`. Hai danh sách được phép rỗng và backend loại lựa chọn trùng; giá được phép `null`, phải không âm và `min_price <= max_price`. Category không tồn tại hoặc màu không thuộc catalog hiện tại/màu cũ đã lưu trả `400`; dữ liệu cũ không đổi. Response gồm cùng bốn trường. Role khác BUYER nhận `403`.
+
+Options màu lấy từ variant đang hoạt động của product/shop đang hoạt động và hợp nhất với màu buyer đã lưu, nên người dùng không mất lựa chọn chỉ vì catalog tạm ẩn variant. P3 chưa thay đổi `GET /products`; dữ liệu này dành cho P4 gợi ý sản phẩm.
 
 ## Shop và catalog
 

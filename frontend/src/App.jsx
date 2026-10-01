@@ -17,6 +17,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import OrderDetailPage from "./pages/OrderDetailPage.jsx";
 import OrdersPage from "./pages/OrdersPage.jsx";
+import PreferencesPage from "./pages/PreferencesPage.jsx";
 import ProductDetailPage from "./pages/ProductDetailPage.jsx";
 import ProductListPage from "./pages/ProductListPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
@@ -93,6 +94,14 @@ export default function App() {
           element={
             <RequireRole role="BUYER">
               <WishlistPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/account/preferences"
+          element={
+            <RequireRole role="BUYER">
+              <PreferencesPage />
             </RequireRole>
           }
         />

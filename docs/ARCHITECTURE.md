@@ -1,7 +1,7 @@
 # Architecture
 
 **Trạng thái:** In progress
-**Phạm vi đã triển khai:** Nền tảng A–B, toàn bộ backend C0–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist và toàn bộ frontend D1–D4 (BUYER, SHOP_OWNER, ADMIN).
+**Phạm vi đã triển khai:** Nền tảng A–B, toàn bộ backend C0–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist, P3 sở thích mua sắm và toàn bộ frontend D1–D4 (BUYER, SHOP_OWNER, ADMIN).
 
 ## Thành phần đang chạy
 
@@ -19,6 +19,8 @@ Backend tách router, schema, service và model. Router nhận request, dùng de
 P1 hồ sơ/sổ địa chỉ nằm trong `routers/users.py`, `profile_service.py` và model `UserAddress`; endpoint địa danh public nằm trong `routers/locations.py`/`location_service.py`. Bộ dữ liệu 2 cấp được đóng gói tại `app/data/vn_admin_units_2025.json`, có script tái tạo từ nguồn được khóa commit nên runtime không cần mạng. Frontend `/account/profile` dùng combobox tìm kiếm không phân biệt dấu và chỉ giữ mã của lựa chọn chính thức. Checkout tải profile/sổ địa chỉ để tự điền nhưng vẫn gửi snapshot qua contract cũ, không nối order bằng foreign key tới địa chỉ.
 
 P2 wishlist nằm riêng trong `routers/wishlist.py`, `wishlist_service.py` và model `WishlistItem`. Service chỉ lấy buyer từ dependency xác thực, trả thông tin catalog hiện tại bằng truy vấn tổng hợp và giữ item khi product/shop bị ẩn. Frontend dùng một hook chung để tải ID yêu thích một lần cho từng trang catalog/chi tiết; trang `/wishlist` dùng response đầy đủ. Wishlist lưu ở cấp product và chuyển buyer sang chi tiết để chọn variant, nên không sao chép logic tồn kho hay quy tắc một giỏ một shop.
+
+P3 sở thích mua sắm nằm trong `routers/preferences.py`, `preference_service.py` và ba model preference. Service khóa user rồi thay thế category/color/price range trong một transaction; options màu được suy ra từ catalog đang hoạt động và hợp nhất với màu đã lưu. Frontend `/account/preferences` là form nhiều lựa chọn độc lập với catalog list; P3 chưa sắp xếp hay đề xuất sản phẩm, tránh trộn phạm vi P4 vào bước thu thập dữ liệu.
 
 Frontend dùng `BrowserRouter` để định tuyến. `AuthProvider` đọc và lưu `{token, role, shop_id}` trong `localStorage`, rồi điều hướng theo vai trò sau khi đăng nhập; `RequireRole` chuyển người chưa đăng nhập tới `/login` và người sai vai trò về trang của vai trò đó. Đây là điều hướng giao diện; backend vẫn xác thực token và quyền trên từng request. Axios client gắn token vào header `Authorization` và xóa phiên, chuyển tới `/login` khi API trả `401`.
 

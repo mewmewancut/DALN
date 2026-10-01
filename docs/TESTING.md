@@ -3,7 +3,7 @@
 **Trạng thái:** In progress  
 **Phạm vi hiện tại:** health check, database constraints B1–B14, seed data B15 và toàn bộ backend C0–C10 (auth gồm xác minh email/reset mật khẩu, catalog, giỏ hàng, checkout, state machine đơn hàng, tồn kho/cảnh báo hết hàng, supplier/nhập hàng, review, số liệu thống kê shop, admin) cùng luồng API từ đăng ký đã xác minh đến đăng sản phẩm
 
-Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth, catalog/wishlist, toàn bộ luồng buyer từ giỏ hàng tới review, toàn bộ trang quản lý của chủ shop và các trang admin.
+Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth, catalog/wishlist/preferences, toàn bộ luồng buyer từ giỏ hàng tới review, toàn bộ trang quản lý của chủ shop và các trang admin.
 
 ## Các lớp kiểm tra hiện có
 
@@ -75,6 +75,7 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 - Auth: mật khẩu 8–72 byte được bcrypt hash; tài khoản mới bị chặn login trước xác minh; token xác minh/reset hết hạn, dùng một lần và token resend thay thế token cũ; response forgot không lộ email tồn tại; cooldown trả `429`; reset đổi mật khẩu và vô hiệu JWT cũ qua `auth_version`; lỗi SMTP đăng ký vẫn giữ account để resend; `/auth/me` không lộ hash.
 - Hồ sơ/sổ địa chỉ P1: kiểm tra dữ liệu local đúng 34 tỉnh và 3.321 xã với mã duy nhất/hierarchy 2 cấp; endpoint địa danh lọc đúng tỉnh; mọi role đọc/sửa profile nhưng không sửa email/role; BUYER CRUD địa chỉ, ownership/role, mã tỉnh–xã, tối đa 10, tự tạo/đổi/xóa mặc định. Frontend kiểm tra tìm địa danh không dấu, reset xã khi đổi tỉnh, chỉ gửi mã đã chọn và checkout tự điền/đổi snapshot từ sổ địa chỉ.
 - Wishlist P2: kiểm tra BUYER thêm/xóa idempotent, unique buyer–product, phân quyền, product không tồn tại, item được giữ nhưng đánh dấu không khả dụng khi product/shop bị ẩn và trạng thái tồn kho hiện tại. Frontend kiểm tra tim ở catalog/chi tiết, điều hướng, xóa item, product tạm ẩn và trạng thái rỗng/lỗi.
+- Sở thích P3: kiểm tra mặc định rỗng, options từ catalog, lưu/thay thế atomically, loại lựa chọn trùng, tách dữ liệu giữa buyer, giữ màu cũ khi variant bị ẩn, validation category/color/khoảng giá và phân quyền. Frontend kiểm tra tải lựa chọn hiện tại, gửi đúng payload, chặn khoảng giá ngược và không hiện form rỗng giả khi tải lỗi.
 - Email service: test fake SMTP xác nhận STARTTLS, App Password và link token nằm trong fragment; kiểm tra cả subject, bản text, template HTML, CTA, link dự phòng, thời hạn và hướng dẫn bảo mật của ba loại email. Toàn bộ API test dùng fake email sender nên không phụ thuộc Gmail/network.
 - Thiếu, sai, hết hạn token hoặc user bị khóa đều bị từ chối; dependency role và shop lấy quyền sở hữu từ database thay vì tin `shop_id` trong token.
 - API shop chỉ cho SHOP_OWNER tạo và sửa shop của mình; từ chối `owner_id` do client gửi và không cho tạo shop thứ hai.
@@ -104,4 +105,4 @@ Mỗi lần `git commit`, hook build/khởi động Docker Compose, chạy Ruff 
 
 - Frontend ADMIN D4: vai trò khác không vào được `/admin/*`; dashboard gọi `/admin/stats/overview` với khoảng 30 ngày mặc định, hiện 4 chỉ số, sidebar đủ bốn trang và lỗi API khi khoảng ngày sai; link Databricks Dashboard/Genie chỉ xuất hiện (mở tab mới, `rel="noreferrer"`) khi biến môi trường có giá trị, ngược lại ghi "chưa được cấu hình"; trang người dùng gửi filter `role`/`keyword`, khóa/mở theo response và giữ nguyên dòng khi backend từ chối tự khóa; trang shop gửi `keyword`/`is_active` cùng tham số phân trang phía server, xóa được bộ lọc, khóa/mở theo response và hiện lỗi; trang đơn toàn hệ thống tải danh sách shop cho bộ lọc, gửi đúng `shop_id`/`status`/`from`/`to` và hiện tên shop.
 
-Toàn bộ backend Planning C0–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist và frontend D1–D4 đã có test. Phần còn lại là data platform (E) và Docker/demo (G).
+Toàn bộ backend Planning C0–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist, P3 sở thích mua sắm và frontend D1–D4 đã có test. Phần mở rộng cá nhân hóa tiếp theo là P4 gợi ý theo luật; phần lõi còn lại là data platform (E) và Docker/demo (G).

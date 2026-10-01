@@ -715,6 +715,66 @@ button:disabled {
   text-decoration: none;
 }
 
+.preference-form {
+  display: grid;
+  gap: 22px;
+}
+
+.preference-form fieldset {
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.preference-form legend {
+  padding: 0 8px;
+  font-weight: 800;
+}
+
+.preference-form fieldset > .muted {
+  margin-top: 0;
+}
+
+.preference-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.preference-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  cursor: pointer;
+}
+
+.preference-options label:has(input:checked) {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+
+.preference-options input {
+  width: auto;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.preference-price-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.preference-form > button {
+  justify-self: start;
+}
+
 .detail-meta {
   display: flex;
   flex-wrap: wrap;
@@ -1606,6 +1666,14 @@ button:disabled {
   .wishlist-actions a,
   .wishlist-actions button {
     text-align: center;
+  }
+
+  .preference-price-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .preference-form > button {
+    width: 100%;
   }
 
   .detail-content h1 {

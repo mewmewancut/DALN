@@ -9,6 +9,7 @@ from app.routers.inventory import router as inventory_router
 from app.routers.locations import router as locations_router
 from app.routers.orders import router as orders_router
 from app.routers.orders import shop_router as shop_orders_router
+from app.routers.preferences import router as preferences_router
 from app.routers.products import (
     category_router,
     product_router,
@@ -38,6 +39,7 @@ app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(locations_router)
 app.include_router(users_router)
+app.include_router(preferences_router)
 app.include_router(wishlist_router)
 app.include_router(cart_router)
 app.include_router(orders_router)

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.auth import AuthToken
     from app.models.cart import Cart
     from app.models.order import Order, OrderStatusHistory
+    from app.models.preference import UserPreference
     from app.models.review import Review
     from app.models.shop import Shop
     from app.models.wishlist import WishlistItem
@@ -64,4 +65,9 @@ class User(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     wishlist_items: Mapped[list["WishlistItem"]] = relationship(
         back_populates="buyer",
         cascade="all, delete-orphan",
+    )
+    preferences: Mapped["UserPreference | None"] = relationship(
+        back_populates="buyer",
+        cascade="all, delete-orphan",
+        uselist=False,
     )

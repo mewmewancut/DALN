@@ -176,6 +176,26 @@ Token xác minh email có hạn 8 giờ; token đặt lại mật khẩu có h�
 - Product hoặc shop bị ẩn vẫn được giữ trong wishlist và hiển thị trạng thái không khả dụng; không tự xóa lịch sử quan tâm của buyer.
 - Chỉ product và shop đang hoạt động mới được thêm mới. Không giới hạn số item ở P2 hiện tại.
 
+### B1d. `user_preferences`, `user_preferred_categories`, `user_preferred_colors` — P3 sở thích mua sắm
+
+`user_preferences`:
+
+| Cột | Kiểu | Ràng buộc |
+|---|---|---|
+| buyer_id | BIGINT | FK → users.id, UNIQUE, NOT NULL, ON DELETE CASCADE |
+| min_price | NUMERIC(12,0) | NULL hoặc >= 0 |
+| max_price | NUMERIC(12,0) | NULL hoặc >= 0; nếu có cả hai thì `min_price <= max_price` |
+| updated_at | TIMESTAMPTZ | |
+
+`user_preferred_categories` có `preference_id`, `category_id` và UNIQUE trên cặp này. `user_preferred_colors` có `preference_id`, `color VARCHAR(30)` và UNIQUE trên cặp này. Hai bảng con bị xóa cascade cùng preference.
+
+📌 QUYẾT ĐỊNH SỞ THÍCH P3:
+
+- Chỉ BUYER có preferences; mỗi buyer tối đa một bản ghi gốc. Toàn bộ danh mục, màu và khoảng giá được thay thế trong một transaction khi lưu.
+- Danh mục phải tồn tại. Màu phải xuất hiện trong variant đang hoạt động của product/shop đang hoạt động; màu buyer đã lưu trước đó vẫn hợp lệ nếu catalog sau này ẩn màu đó.
+- P3 chỉ thu thập danh mục, màu và khoảng giá. Chưa thu thập giới tính, ngày sinh, số đo, size hay nhãn phong cách vì catalog hiện chưa có mô hình dữ liệu đủ để sử dụng chúng đúng cách.
+- P3 chỉ lưu dữ liệu sở thích; chưa thay đổi thứ tự catalog hay tự gợi ý sản phẩm. P4 sẽ dùng dữ liệu này.
+
 ### B2. `shops`
 
 | Cột | Kiểu | Ràng buộc |
@@ -420,6 +440,16 @@ Mọi thao tác ghi sổ địa chỉ khóa dòng user trước khi đếm hoặ
 | DELETE `/wishlist/items/{product_id}` | BUYER | xóa idempotent, trả 204 kể cả item không tồn tại |
 
 Wishlist không thay đổi quy tắc giỏ hàng. Từ trang wishlist, buyer mở trang chi tiết để chọn variant; thao tác thêm giỏ vẫn đi qua C3 và rule một giỏ một shop.
+
+### C1d. Router `preferences.py` — P3 sở thích mua sắm
+
+| Method + Path | Ai gọi | Ghi chú |
+|---|---|---|
+| GET `/users/me/preferences/options` | BUYER | danh mục hiện có và màu từ catalog đang hoạt động, cộng màu cũ buyer đã lưu |
+| GET `/users/me/preferences` | BUYER | trả danh sách rỗng và khoảng giá null nếu chưa lưu |
+| PUT `/users/me/preferences` | BUYER | thay thế toàn bộ `category_ids`, `colors`, `min_price`, `max_price` trong một transaction |
+
+Backend khóa dòng user khi cập nhật để tuần tự hóa hai request lưu đầu tiên. Danh sách trùng được chuẩn hóa về một lựa chọn; danh mục/màu không hợp lệ trả 400, khoảng giá sai trả 422.
 
 ### C2. Router `shops.py` + `products.py` (catalog)
 
@@ -684,6 +714,7 @@ Mọi query ở C9 đều có `WHERE shop_id = current_shop.id`.
 | `/orders/:id` | Chi tiết đơn | items (snapshot), timeline trạng thái từ order_status_history, nút "Đánh giá" cho từng item **chỉ khi DELIVERED và chưa review** |
 | `/account/profile` | Hồ sơ và địa chỉ | mọi role sửa họ tên, điện thoại, avatar URL; BUYER có thêm CRUD sổ địa chỉ. Tỉnh/Thành phố và Xã/Phường/Đặc khu dùng combobox có thể gõ tìm kiếm không phân biệt dấu; đổi tỉnh xóa xã đã chọn; chỉ giá trị chính thức mới được lưu |
 | `/wishlist` | Sản phẩm yêu thích | danh sách product buyer đã lưu; hiển thị giá/trạng thái hiện tại, cho bỏ yêu thích và mở chi tiết để chọn variant nếu còn khả dụng |
+| `/account/preferences` | Sở thích mua sắm | checkbox nhiều lựa chọn cho danh mục/màu và khoảng giá tùy chọn; tải/lưu theo buyer hiện tại |
 
 Trang `/checkout` tải hồ sơ và sổ địa chỉ cùng giỏ hàng, tự chọn địa chỉ mặc định và cho đổi địa chỉ đã lưu. Chuỗi snapshot gửi theo contract cũ có dạng `address_detail, commune_name, province_name`; không gửi `address_id` và không tạo FK từ order. Khi buyer chưa có địa chỉ lưu, form nhập tay hiện tại vẫn dùng được. Avatar chỉ preview/fallback tại trang hồ sơ, chưa đưa vào navbar toàn hệ thống.
 
@@ -824,8 +855,10 @@ Viết pytest trong `backend/app/tests/`, dùng DB test riêng. Đây là danh s
 | 9l | Sửa/xóa địa chỉ sau checkout | snapshot người nhận, điện thoại và địa chỉ của đơn cũ không đổi |
 | 9m | BUYER thêm cùng product vào wishlist nhiều lần | chỉ có một dòng; response vẫn thành công |
 | 9n | Phân quyền và vòng đời wishlist | role khác 403; product ẩn vẫn còn trong danh sách nhưng không khả dụng; xóa lặp lại trả 204 |
+| 9o | BUYER đọc/lưu/thay thế preferences | mặc định rỗng; category/color trùng không tạo dòng trùng; request sau thay thế đúng request trước |
+| 9p | Validation và phân quyền preferences | role khác 403; category/color sai trả 400; khoảng giá ngược trả 422 và dữ liệu cũ không đổi |
 
-Frontend phải test tìm tỉnh/xã không phân biệt dấu, reset xã khi đổi tỉnh, không cho lưu lựa chọn tự do, CRUD/đặt mặc định, checkout tự điền/đổi địa chỉ/có fallback khi sổ địa chỉ trống, trạng thái nút tim ở catalog/chi tiết và trang wishlist ở trạng thái có dữ liệu/rỗng/lỗi/product bị ẩn.
+Frontend phải test tìm tỉnh/xã không phân biệt dấu, reset xã khi đổi tỉnh, không cho lưu lựa chọn tự do, CRUD/đặt mặc định, checkout tự điền/đổi địa chỉ/có fallback khi sổ địa chỉ trống, trạng thái nút tim ở catalog/chi tiết, trang wishlist ở trạng thái có dữ liệu/rỗng/lỗi/product bị ẩn, và form preferences tải/lưu/validation/lỗi tải.
 
 ### F2. Giỏ hàng & checkout
 

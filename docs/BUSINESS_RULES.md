@@ -1,7 +1,7 @@
 # Business rules
 
 **Trạng thái:** In progress
-**Phạm vi:** Toàn bộ backend Planning C1–C10, P1 hồ sơ/sổ địa chỉ và P2 wishlist đã triển khai.
+**Phạm vi:** Toàn bộ backend Planning C1–C10, P1 hồ sơ/sổ địa chỉ, P2 wishlist và P3 sở thích mua sắm đã triển khai.
 
 ## Tài khoản và email C1
 
@@ -28,6 +28,14 @@ Contract và mã lỗi nằm tại [`API.md`](API.md#auth); cấu hình Gmail n�
 - Thêm/xóa idempotent; unique constraint `(buyer_id, product_id)` là chốt chặn chống trùng khi có request đồng thời.
 - Chỉ product đang hoạt động của shop đang hoạt động được thêm mới. Item đã tồn tại không bị xóa khi product/shop bị ẩn; API trả `is_available=false` để giao diện chặn đường mua nhưng vẫn cho bỏ yêu thích.
 - `price_from`, rating và `has_stock` luôn tính từ dữ liệu hiện tại, không phải snapshot tại lúc lưu.
+
+## Sở thích mua sắm P3
+
+- Chỉ BUYER có một cấu hình sở thích gồm nhiều category, nhiều màu và khoảng giá tùy chọn. Client không gửi `buyer_id`.
+- PUT là thay thế toàn bộ cấu hình. Service khóa user và commit preference cùng hai danh sách trong một transaction; lỗi validation không làm mất dữ liệu cũ.
+- Category phải tồn tại. Màu phải có trong catalog đang hoạt động hoặc là màu chính buyer đã lưu trước khi variant bị ẩn.
+- Danh sách trùng được chuẩn hóa; database vẫn có unique constraint làm chốt chặn. Khoảng giá có CHECK không âm và `min_price <= max_price`.
+- Sở thích chưa tác động catalog, giá, tồn kho hoặc checkout. P4 mới được phép dùng dữ liệu này để chấm điểm gợi ý.
 
 ## Giỏ hàng C3
 
