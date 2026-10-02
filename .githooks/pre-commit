@@ -40,6 +40,12 @@ compose exec -T backend alembic check
 step "Chạy toàn bộ test backend"
 compose exec -T backend pytest -q
 
+step "Kiểm tra code Bronze bằng Delta local (không triển khai Databricks)"
+docker build -f data/Dockerfile.test -t daln-data-test data
+docker run --rm daln-data-test ruff check .
+docker run --rm daln-data-test ruff format --check .
+docker run --rm daln-data-test pytest -q tests
+
 step "Chạy test frontend"
 compose exec -T frontend npm test
 

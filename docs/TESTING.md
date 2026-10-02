@@ -20,8 +20,9 @@ Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai
 | Migration và cấu hình | Alembic + Docker Compose | Áp dụng migration và kiểm tra model khớp schema; kiểm tra Compose |
 | Lint và format | Ruff + ESLint + Prettier | Lỗi Python/JavaScript, import, React Hooks và định dạng; test cấu hình xác nhận code sai bị từ chối |
 | Runtime và dependency | HTTP smoke + Vite build + npm audit | Health backend, frontend phục vụ trang, build và lỗ hổng mức moderate trở lên |
+| Bronze E1 | pytest + Spark/Delta local | MERGE 13 bảng hai lần, update/insert, khóa/schema lỗi, transaction, snapshot, count và notebook/SQL adapter |
 
-Browser end-to-end cho luồng mua hàng và kiểm tra Bronze/Silver/Gold của F6–F7 vẫn là **Planned** vì các module đó chưa triển khai. Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
+Browser end-to-end cho luồng mua hàng và nghiệm thu Bronze/Silver/Gold trên Databricks thật của F6–F7 vẫn là **Planned**. Bronze có test Delta local nhưng chưa nghiệm thu Lakebase thật; xem [`DATA_PLATFORM.md`](DATA_PLATFORM.md). Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
 
 ## Nguyên tắc
 
@@ -48,7 +49,7 @@ Hook được lưu trong `.githooks/pre-commit`. Kích hoạt một lần cho m�
 git config core.hooksPath .githooks
 ```
 
-Mỗi lần `git commit`, hook build image, đồng bộ npm theo lockfile khi frontend đã dừng, kiểm tra regression của hook rồi khởi động Docker Compose. Sau đó chạy Ruff lint/format, ESLint/Prettier, áp dụng và kiểm tra migration, toàn bộ pytest và Vitest, build frontend, audit dependency và smoke test hai service. Bất kỳ lệnh nào thất bại sẽ chặn commit. Lint/format chỉ kiểm tra, không tự sửa file. Có thể chạy lại thủ công bằng `git hook run pre-commit`. Docker Desktop cần chạy; cài dependency và audit cần truy cập registry. Hook kiểm tra working tree đang có trên máy, nên trước khi commit từng phần cần bảo đảm code được test khớp phần đã stage. Cách kiểm tra race dependency và lệnh lint/format nằm trong [`DEVELOPMENT.md`](DEVELOPMENT.md#chuẩn-hóa-code).
+Mỗi lần `git commit`, hook build image, đồng bộ npm theo lockfile khi frontend đã dừng, kiểm tra regression của hook rồi khởi động Docker Compose. Sau đó chạy Ruff lint/format, ESLint/Prettier, áp dụng và kiểm tra migration, toàn bộ pytest backend, lint/format và test Bronze trong image test riêng, Vitest, build frontend, audit dependency và smoke test hai service. Bất kỳ lệnh nào thất bại sẽ chặn commit. Lint/format chỉ kiểm tra, không tự sửa file. Có thể chạy lại thủ công bằng `git hook run pre-commit`. Docker Desktop cần chạy; build image Bronze cần Python registry/Maven, cài dependency và audit cần npm registry. Container Bronze chỉ là công cụ kiểm thử code local, không thay thế Databricks web. Hook kiểm tra working tree đang có trên máy, nên trước khi commit từng phần cần bảo đảm code được test khớp phần đã stage. Cách kiểm tra race dependency và lệnh lint/format nằm trong [`DEVELOPMENT.md`](DEVELOPMENT.md#chuẩn-hóa-code).
 
 `backend/app/tests/test_code_quality.py` và `frontend/quality.test.js` chạy CLI thật trên đoạn code qua stdin: code hợp lệ được chấp nhận, biến/import lỗi, JSX chưa khai báo, hook có điều kiện và dependency effect thiếu bị từ chối. Test format xác nhận code chưa chuẩn trả exit code 1 và output sau format pass. Các probe không tạo file lỗi trong source tree.
 

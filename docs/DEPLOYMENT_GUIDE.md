@@ -9,7 +9,7 @@
 Tài liệu này hướng dẫn tải source code, tạo cấu hình, khởi động database/backend/frontend, tạo dữ liệu mẫu, kiểm tra hệ thống và xử lý các lỗi thường gặp.
 
 > [!IMPORTANT]
-> Repository hiện chạy hoàn chỉnh phần web vận hành bằng PostgreSQL local. Data Platform Databricks, AI/BI Dashboard, Genie và cấu hình production public vẫn đang ở trạng thái **Planned**. Bốn file trong `data/` mới là placeholder, vì vậy không thể triển khai phần analytics chỉ bằng repository hiện tại.
+> Repository hiện chạy hoàn chỉnh phần web vận hành bằng PostgreSQL local. Bronze E1 đã có notebook và test Delta local; kết nối Lakebase và nghiệm thu trên Databricks web vẫn **Planned**. Silver/Gold E2–E4, AI/BI Dashboard, Genie và cấu hình production public chưa triển khai. Setup/chạy Bronze trên web được hướng dẫn tại [`DATA_PLATFORM.md`](DATA_PLATFORM.md); repository hiện chưa có toàn bộ pipeline analytics.
 
 ## 1. Sau khi hoàn thành bạn sẽ có gì?
 

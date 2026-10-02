@@ -64,6 +64,7 @@ fi
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         for check in ["pytest -q", "npm test", "npm run build", "npm audit", "alembic check"]:
             self.assertIn(check, calls)
+        self.assertIn("daln-data-test pytest -q tests", calls)
         self.assertIn("Tất cả kiểm tra đã pass", result.stdout)
 
     def test_failed_dependency_install_blocks_startup_and_commit(self):
@@ -74,7 +75,14 @@ fi
         self.assertNotIn("Tất cả kiểm tra đã pass", result.stdout)
 
     def test_failed_tests_block_build_and_success_message(self):
-        result, calls = self.run_hook("pytest -q")
+        result, calls = self.run_hook("backend pytest -q")
         self.assertEqual(result.returncode, 17)
+        self.assertNotIn("npm run build", calls)
+        self.assertNotIn("Tất cả kiểm tra đã pass", result.stdout)
+
+    def test_failed_data_tests_block_commit(self):
+        result, calls = self.run_hook("daln-data-test pytest -q tests")
+        self.assertEqual(result.returncode, 17)
+        self.assertNotIn("npm test", calls)
         self.assertNotIn("npm run build", calls)
         self.assertNotIn("Tất cả kiểm tra đã pass", result.stdout)
