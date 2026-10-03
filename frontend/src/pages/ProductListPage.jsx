@@ -25,15 +25,26 @@ export default function ProductListPage() {
   });
   const [categories, setCategories] = useState([]);
   const [categoryError, setCategoryError] = useState("");
-  const [result, setResult] = useState({ items: [], total: 0, page: 1, page_size: PAGE_SIZE });
+  const [result, setResult] = useState({
+    items: [],
+    total: 0,
+    page: 1,
+    page_size: PAGE_SIZE,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const { favoriteIds, busyIds, wishlistError, wishlistLoading, toggleWishlist } = useWishlist(
-    session?.role === "BUYER",
-  );
+
+  const {
+    favoriteIds,
+    busyIds,
+    wishlistError,
+    wishlistLoading,
+    toggleWishlist,
+  } = useWishlist(session?.role === "BUYER");
 
   useEffect(() => {
     let active = true;
+
     client
       .get("/categories")
       .then((response) => {
@@ -42,6 +53,7 @@ export default function ProductListPage() {
       .catch((requestError) => {
         if (active) setCategoryError(errorMessage(requestError));
       });
+
     return () => {
       active = false;
     };
@@ -49,12 +61,22 @@ export default function ProductListPage() {
 
   useEffect(() => {
     let active = true;
+
     setLoading(true);
     setError("");
-    const params = { sort: filters.sort, page: filters.page, page_size: PAGE_SIZE };
+
+    const params = {
+      sort: filters.sort,
+      page: filters.page,
+      page_size: PAGE_SIZE,
+    };
+
     for (const key of ["keyword", "category_id", "min_price", "max_price"]) {
-      if (filters[key] !== "") params[key] = filters[key];
+      if (filters[key] !== "") {
+        params[key] = filters[key];
+      }
     }
+
     client
       .get("/products", { params })
       .then((response) => {
@@ -66,13 +88,18 @@ export default function ProductListPage() {
       .finally(() => {
         if (active) setLoading(false);
       });
+
     return () => {
       active = false;
     };
   }, [filters]);
 
   function changeFilter(key, value) {
-    setFilters((previous) => ({ ...previous, [key]: value, page: 1 }));
+    setFilters((previous) => ({
+      ...previous,
+      [key]: value,
+      page: 1,
+    }));
   }
 
   function resetFilters() {
@@ -89,14 +116,17 @@ export default function ProductListPage() {
   function toggleFavorite(event, productId) {
     event.preventDefault();
     event.stopPropagation();
+
     if (!session) {
       navigate("/login");
       return;
     }
+
     toggleWishlist(productId);
   }
 
   const totalPages = Math.max(1, Math.ceil(result.total / result.page_size));
+
   const activeFilterCount = [
     filters.keyword,
     filters.category_id,
@@ -114,11 +144,13 @@ export default function ProductListPage() {
             Khám phá sản phẩm từ nhiều gian hàng, xem đúng giá và tồn kho của từng biến thể.
           </p>
         </div>
+
         <div className="catalog-proof" aria-label="Thông tin catalog">
           <strong>{result.total}</strong>
           <span>sản phẩm đang hiển thị</span>
         </div>
       </header>
+
       {session?.role === "BUYER" && (
         <RecommendedProducts
           key={session.token}
@@ -129,6 +161,7 @@ export default function ProductListPage() {
           onToggleFavorite={toggleFavorite}
         />
       )}
+
       <div className="catalog-mobile-toolbar">
         <button
           type="button"
@@ -139,8 +172,10 @@ export default function ProductListPage() {
         >
           Bộ lọc{activeFilterCount ? ` (${activeFilterCount})` : ""}
         </button>
+
         <span>{result.total} sản phẩm</span>
       </div>
+
       <div className="catalog-layout">
         <aside
           id="catalog-filters"
@@ -152,28 +187,40 @@ export default function ProductListPage() {
               <p className="eyebrow">Tinh chỉnh</p>
               <h2>Bộ lọc</h2>
             </div>
+
             {activeFilterCount > 0 && (
-              <button type="button" className="text-button" onClick={resetFilters}>
+              <button
+                type="button"
+                className="text-button"
+                onClick={resetFilters}
+              >
                 Xóa lọc
               </button>
             )}
           </div>
+
           <label>
             Tìm sản phẩm
             <input
               type="search"
               value={filters.keyword}
-              onChange={(event) => changeFilter("keyword", event.target.value)}
+              onChange={(event) =>
+                changeFilter("keyword", event.target.value)
+              }
               placeholder="Tên sản phẩm"
             />
           </label>
+
           <label>
             Danh mục
             <select
               value={filters.category_id}
-              onChange={(event) => changeFilter("category_id", event.target.value)}
+              onChange={(event) =>
+                changeFilter("category_id", event.target.value)
+              }
             >
               <option value="">Tất cả</option>
+
               {categories.map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
@@ -181,34 +228,46 @@ export default function ProductListPage() {
               ))}
             </select>
           </label>
+
           {categoryError && (
             <p className="form-error" role="alert">
               Không tải được danh mục: {categoryError}
             </p>
           )}
+
           <label>
             Giá từ (₫)
             <input
               type="number"
               min="0"
               value={filters.min_price}
-              onChange={(event) => changeFilter("min_price", event.target.value)}
+              onChange={(event) =>
+                changeFilter("min_price", event.target.value)
+              }
             />
           </label>
+
           <label>
             Giá đến (₫)
             <input
               type="number"
               min="0"
               value={filters.max_price}
-              onChange={(event) => changeFilter("max_price", event.target.value)}
+              onChange={(event) =>
+                changeFilter("max_price", event.target.value)
+              }
             />
           </label>
         </aside>
-        <section className="catalog-results" aria-label="Danh sách sản phẩm">
+
+        <section
+          className="catalog-results"
+          aria-label="Danh sách sản phẩm"
+        >
           <div className="results-heading">
             <div>
               <p className="eyebrow">Sản phẩm</p>
+
               <strong>
                 {loading
                   ? "Đang tải sản phẩm..."
@@ -217,11 +276,14 @@ export default function ProductListPage() {
                     : `${result.total} kết quả`}
               </strong>
             </div>
+
             <label className="sort-field">
               Sắp xếp
               <select
                 value={filters.sort}
-                onChange={(event) => changeFilter("sort", event.target.value)}
+                onChange={(event) =>
+                  changeFilter("sort", event.target.value)
+                }
               >
                 <option value="newest">Mới nhất</option>
                 <option value="price_asc">Giá tăng dần</option>
@@ -229,19 +291,58 @@ export default function ProductListPage() {
               </select>
             </label>
           </div>
-          {error ? (
-            <p className="form-error" role="alert">
-              {error}
-            </p>
-          ) : !loading && result.items.length === 0 ? (
-            <p>Không tìm thấy sản phẩm phù hợp.</p>
-          ) : null}
+
           {wishlistError && (
             <p className="form-error" role="alert">
               Không cập nhật được yêu thích: {wishlistError}
             </p>
           )}
-          {!loading && !error && (
+
+          {loading ? (
+            <div
+              className="product-grid"
+              aria-label="Đang tải sản phẩm"
+              aria-busy="true"
+            >
+              {Array.from({ length: 8 }, (_, index) => (
+                <div
+                  key={index}
+                  className="product-card product-card-skeleton"
+                  aria-hidden="true"
+                >
+                  <div className="skeleton skeleton-product-image" />
+
+                  <div className="product-card-body">
+                    <div className="skeleton skeleton-shop" />
+                    <div className="skeleton skeleton-title" />
+                    <div className="skeleton skeleton-price" />
+                    <div className="skeleton skeleton-rating" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="catalog-state catalog-state-error">
+              <strong>Không thể tải sản phẩm</strong>
+              <p className="form-error" role="alert">
+                {error}
+              </p>
+            </div>
+          ) : result.items.length === 0 ? (
+            <div className="catalog-state">
+              <strong>Không tìm thấy sản phẩm phù hợp</strong>
+
+              <p>
+                Thử thay đổi từ khóa, danh mục hoặc khoảng giá để xem thêm kết quả.
+              </p>
+
+              {activeFilterCount > 0 && (
+                <button type="button" onClick={resetFilters}>
+                  Xóa bộ lọc
+                </button>
+              )}
+            </div>
+          ) : (
             <div className="product-grid">
               {result.items.map((product) => (
                 <ProductCard
@@ -254,21 +355,36 @@ export default function ProductListPage() {
               ))}
             </div>
           )}
+
           <div className="pagination">
             <button
               type="button"
               disabled={loading || !!error || filters.page <= 1}
-              onClick={() => setFilters((previous) => ({ ...previous, page: previous.page - 1 }))}
+              onClick={() =>
+                setFilters((previous) => ({
+                  ...previous,
+                  page: previous.page - 1,
+                }))
+              }
             >
               Trang trước
             </button>
+
             <span>
               <strong>{filters.page}</strong> / {totalPages}
             </span>
+
             <button
               type="button"
-              disabled={loading || !!error || filters.page >= totalPages}
-              onClick={() => setFilters((previous) => ({ ...previous, page: previous.page + 1 }))}
+              disabled={
+                loading || !!error || filters.page >= totalPages
+              }
+              onClick={() =>
+                setFilters((previous) => ({
+                  ...previous,
+                  page: previous.page + 1,
+                }))
+              }
             >
               Trang sau
             </button>
