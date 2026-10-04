@@ -1,1 +1,1 @@
-"""Cross-layer data-quality checks; implemented in Phase E."""
+"""Planned E4. Cross-layer Gold data-quality gate is not implemented yet."""

@@ -1,1 +1,1 @@
-"""Gold-layer aggregations; implemented in Phase E."""
+"""Planned E3. Gold aggregations are not implemented yet."""

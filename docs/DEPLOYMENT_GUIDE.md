@@ -9,7 +9,7 @@
 Tài liệu này hướng dẫn tải source code, tạo cấu hình, khởi động database/backend/frontend, tạo dữ liệu mẫu, kiểm tra hệ thống và xử lý các lỗi thường gặp.
 
 > [!IMPORTANT]
-> Repository hiện chạy hoàn chỉnh phần web vận hành bằng PostgreSQL local. Bronze E1 và Silver E2 đã có notebook và test Delta local; nghiệm thu E1, cấu hình Job thật và nghiệm thu E2 trên Databricks chưa hoàn tất. Thao tác còn lại nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md) và [`E2_SILVER.md`](E2_SILVER.md). Gold E3, gate E4, AI/BI Dashboard, Genie và cấu hình production public chưa triển khai; repository hiện chưa có toàn bộ pipeline analytics.
+> Repository hiện chạy hoàn chỉnh phần web vận hành bằng PostgreSQL local. Bronze E1 và Silver E2 dùng CDC/checkpoint, đã chạy Job và nghiệm thu trên Databricks; setup và bằng chứng nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md) và [`E2_SILVER.md`](E2_SILVER.md). Gold E3, gate E4, AI/BI Dashboard, Genie và cấu hình production public chưa triển khai.
 
 ## 1. Sau khi hoàn thành bạn sẽ có gì?
 
@@ -523,12 +523,12 @@ Sau đó tải lại trang bằng `Ctrl+F5`.
 
 ## 15. Trạng thái triển khai Databricks
 
-E1 Bronze và E2 Silver đã có notebook, module hỗ trợ và test Delta local. Nghiệm thu trên workspace thật chưa hoàn tất; E3 Gold và gate E4 chưa triển khai nên pipeline chưa chạy từ đầu tới cuối. Trình tự theo `PLANNING.md` là:
+E1 Bronze và E2 Silver đã có notebook, test Delta local và nghiệm thu trên workspace thật. E3 Gold và gate E4 còn Planned. Setup E1/E2 dùng CDC đã được duyệt, giữ nguyên bảng và nghiệp vụ Planning:
 
-1. Chuyển database vận hành từ PostgreSQL local sang Databricks Lakebase.
-2. Tạo Unity Catalog `fashion` và ba schema `bronze`, `silver`, `gold`.
-3. Chạy nghiệm thu `01_bronze_ingest.py` với `check_twice=true`, sau đó cấu hình task định kỳ `01_bronze_job.py` theo [`DATA_PLATFORM.md`](DATA_PLATFORM.md).
-4. Cấu hình task `02_silver_transform.py` chạy sau Bronze và nghiệm thu 7 bảng theo [`E2_SILVER.md`](E2_SILVER.md); code xử lý ngày Việt Nam đúng một lần ở Silver.
+1. Chuẩn bị database ứng dụng trên Lakebase; backend local không tự chuyển kết nối.
+2. Bật Lakebase CDF vào external catalog S3 và tạo Volume checkpoint, schema Bronze/Silver theo [`DATA_PLATFORM.md`](DATA_PLATFORM.md).
+3. Đồng bộ Git folder; cấu hình một task serverless `data/00_pipeline.py`, maximum concurrent runs = 1. Chạy tay trước demo hoặc lịch 15 phút; dừng Job Bronze cũ trước khi bật lịch mới.
+4. Chạy Job hai lượt và nghiệm thu riêng bằng `data/acceptance.py`; xem [`E2_SILVER.md`](E2_SILVER.md). Ngày Việt Nam chỉ tính ở Silver. Không chạy audit/đếm nguồn trong mỗi lượt Job.
 5. Hoàn thiện `03_gold_aggregate.py` theo định nghĩa metric C9.
 6. Chạy `04_data_quality_check.py`; cả năm kiểm tra E4 phải PASS.
 7. Chỉ sau khi E4 PASS mới tạo AI/BI Dashboard và Genie space.

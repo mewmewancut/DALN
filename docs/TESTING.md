@@ -20,10 +20,11 @@ Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai
 | Migration và cấu hình | Alembic + Docker Compose | Áp dụng migration và kiểm tra model khớp schema; kiểm tra Compose |
 | Lint và format | Ruff + ESLint + Prettier | Lỗi Python/JavaScript, import, React Hooks và định dạng; test cấu hình xác nhận code sai bị từ chối |
 | Runtime và dependency | HTTP smoke + Vite build + npm audit | Health backend, frontend phục vụ trang, build và lỗ hổng mức moderate trở lên |
-| Bronze E1 | pytest + Spark/Delta local | MERGE 13 bảng hai lần, update/insert, khóa/schema lỗi, transaction, snapshot, count, SQL trả kết quả không sleep/poll và Job song song có giới hạn/dọn staging khi lỗi |
-| Silver E2 | pytest + Spark/Delta local | MERGE 7 bảng, lọc status/amount/rating và loại dòng cũ, timezone độc lập phiên SQL, snapshot item/decimal/inactive, khóa/join/schema lỗi, rollback/dọn staging và notebook Job |
+| Bronze E1 | pytest + Spark/Delta local | Bootstrap 13 bảng, checkpoint/skip qua restart, CDC update/insert/delete/preimage, replay, schema/key lỗi, transaction/retry và thay đổi identity |
+| Silver E2 | pytest + Spark/Delta local | MERGE 7 bảng, no-op/dependency skip, order→items, variant→inventory, config/target/retry, nghiệp vụ status/amount/rating, timezone, snapshot item/decimal/inactive, khóa/join/schema lỗi và dọn staging |
+| Điều phối/metadata/nghiệm thu E1–E2 | pytest | E1 fail thì không chạy E2, dùng chung phiên/snapshot, giới hạn hai metadata request, cấu hình không hợp lệ và đối chiếu thiếu/trùng/sai giá trị |
 
-Browser end-to-end cho luồng mua hàng và nghiệm thu Bronze/Silver/Gold trên Databricks thật của F6–F7 vẫn là **Planned**. Bronze/Silver có test Delta local; nghiệm thu E1, cấu hình Job thật và nghiệm thu E2 chưa hoàn tất. Thao tác còn lại nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md) và [`E2_SILVER.md`](E2_SILVER.md). Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
+Bronze/Silver có test Delta local và Job/đối chiếu dữ liệu trên Databricks thật; bằng chứng và lệnh nghiệm thu riêng nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md), nghiệp vụ ở [`E2_SILVER.md`](E2_SILVER.md). Browser end-to-end luồng mua hàng và nghiệm thu Gold/gate E4 của F6–F7 còn **Planned**. Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
 
 ## Nguyên tắc
 

@@ -94,7 +94,11 @@ class SilverTransform:
             # A row that becomes invalid must also disappear on rerun (including its items).
             self.sql.execute(
                 f"MERGE INTO {target} t USING ({source}) s ON t.id = s.id "
-                "WHEN MATCHED THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT * "
+                "WHEN MATCHED AND ("
+                + " OR ".join(
+                    f"NOT (t.{identifier(c)} <=> s.{identifier(c)})" for c in sorted(stage_columns)
+                )
+                + ") THEN UPDATE SET * WHEN NOT MATCHED THEN INSERT * "
                 "WHEN NOT MATCHED BY SOURCE THEN DELETE"
             )
             actual = int(self.sql.execute(f"SELECT COUNT(*) FROM {target}")[0][0])

@@ -1,79 +1,60 @@
-import importlib.util
+import runpy
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
 
-from bronze_ingest import IngestionError
-
-spec = importlib.util.spec_from_file_location(
-    "notebook", Path(__file__).resolve().parents[1] / "01_bronze_ingest.py"
-)
-notebook = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(notebook)
+import pipeline_job
 
 
-def test_web_widgets_pass_configuration_to_ingestion(monkeypatch):
-    widgets = Mock()
+def test_widgets_use_cdc_and_durable_volume(monkeypatch):
     values = {
-        "source_catalog": "lakebase",
-        "source_schema": "public",
+        "source_catalog": "fashion_cdc",
+        "source_schema": "bronze",
         "target_catalog": "fashion",
-        "warehouse_id": "wh-1",
-        "check_twice": "true",
+        "checkpoint_root": "/Volumes/fashion_cdc/bronze/checkpoints",
+        "excluded_shop_ids": "2,3",
     }
-    widgets.get.side_effect = values.__getitem__
-    run = Mock(return_value={"users": 2})
-    monkeypatch.setattr(notebook, "run", run)
-    assert notebook.notebook_main(SimpleNamespace(widgets=widgets)) == {"users": 2}
-    run.assert_called_once_with("lakebase", "wh-1", "public", "fashion", True)
-
-
-def test_empty_web_configuration_fails_before_authentication(monkeypatch):
     widgets = Mock()
-    widgets.get.return_value = ""
+    widgets.get.side_effect = values.__getitem__
+    run = Mock(return_value={"bronze": {}, "silver": {}})
+    monkeypatch.setattr(pipeline_job, "run_pipeline", run)
+    spark = Mock()
+    pipeline_job.notebook_main(SimpleNamespace(widgets=widgets), spark)
+    run.assert_called_once_with(
+        spark, "fashion_cdc", values["checkpoint_root"], "bronze", "fashion", (2, 3), stage="all"
+    )
+
+
+@pytest.mark.parametrize(
+    "filename,stage",
+    [
+        ("00_pipeline.py", "all"),
+        ("01_bronze_ingest.py", "bronze"),
+        ("01_bronze_job.py", "bronze"),
+        ("02_silver_transform.py", "silver"),
+    ],
+)
+def test_notebook_entries_dispatch_expected_stage(monkeypatch, filename, stage):
+    run = Mock(return_value={"bronze": {"users": "SKIP"}})
+    monkeypatch.setattr(pipeline_job, "notebook_main", run)
+    utils, spark = Mock(), Mock()
+    runpy.run_path(
+        str(Path(__file__).parents[1] / filename), init_globals={"dbutils": utils, "spark": spark}
+    )
+    if stage == "all":
+        run.assert_called_once_with(utils, spark)
+        utils.notebook.exit.assert_called_once_with('{"bronze": {"users": "SKIP"}}')
+    else:
+        run.assert_called_once_with(utils, spark, stage=stage)
+
+
+def test_widgets_reject_ephemeral_checkpoint(monkeypatch):
+    widgets = Mock()
+    widgets.get.return_value = "/tmp/offsets"
     run = Mock()
-    monkeypatch.setattr(notebook, "run", run)
-    with pytest.raises(ValueError, match="source_catalog"):
-        notebook.notebook_main(SimpleNamespace(widgets=widgets))
+    monkeypatch.setattr(pipeline_job, "run_pipeline", run)
+    with pytest.raises(ValueError, match="persistent"):
+        pipeline_job.notebook_main(SimpleNamespace(widgets=widgets), Mock())
     run.assert_not_called()
-
-
-def test_two_run_check_executes_twice_and_verifies_live_source_counts(monkeypatch):
-    ingest = Mock()
-    ingest.run.return_value = {"users": 2}
-    monkeypatch.setattr(notebook, "BronzeIngest", Mock(return_value=ingest))
-    monkeypatch.setattr("databricks.sdk.WorkspaceClient", Mock())
-    assert notebook.run("lakebase", "wh-1", check_twice=True) == {"users": 2}
-    assert ingest.run.call_count == 2
-    ingest.verify_source_counts.assert_called_once_with({"users": 2})
-
-
-def test_changed_counts_do_not_report_success(monkeypatch, capsys):
-    ingest = Mock()
-    ingest.run.side_effect = [{"users": 2}, {"users": 3}]
-    monkeypatch.setattr(notebook, "BronzeIngest", Mock(return_value=ingest))
-    monkeypatch.setattr("databricks.sdk.WorkspaceClient", Mock())
-    with pytest.raises(IngestionError, match="Source changed"):
-        notebook.run("lakebase", "wh-1", check_twice=True)
-    assert "completed" not in capsys.readouterr().out
-
-
-@pytest.mark.parametrize("extra", [["--statement-timeout", "0"], ["--source-catalog", "bad.name"]])
-def test_invalid_cli_options_fail_before_authentication(monkeypatch, extra):
-    client = Mock()
-    monkeypatch.setattr("databricks.sdk.WorkspaceClient", client)
-    with pytest.raises(SystemExit) as error:
-        notebook.main(["--source-catalog", "lakebase", "--warehouse-id", "wh-1", *extra])
-    assert error.value.code == 2
-    client.assert_not_called()
-
-
-@pytest.mark.parametrize("error_type", [RuntimeError, ValueError])
-def test_remote_exception_has_no_sensitive_payload_in_job_logs(monkeypatch, capsys, error_type):
-    monkeypatch.setattr(notebook, "run", Mock(side_effect=error_type("private payload")))
-    with pytest.raises(SystemExit) as error:
-        notebook.main(["--source-catalog", "lakebase", "--warehouse-id", "wh-1"])
-    assert error.value.code == 1
-    assert "private payload" not in capsys.readouterr().err
