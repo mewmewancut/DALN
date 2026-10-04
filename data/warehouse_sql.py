@@ -20,7 +20,8 @@ class WarehouseSQL:
         response = self.api.execute_statement(
             warehouse_id=self.warehouse_id,
             statement=statement,
-            wait_timeout="0s",
+            # Return short statements directly instead of paying a polling sleep for each SQL.
+            wait_timeout=f"{min(10, int(self.timeout))}s" if self.timeout >= 5 else "0s",
         )
         statement_id = response.statement_id
         state = None

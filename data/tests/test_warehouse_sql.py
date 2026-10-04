@@ -27,6 +27,24 @@ def test_polls_until_success_and_returns_count_data():
     api.cancel_execution.assert_not_called()
 
 
+def test_short_sql_returns_without_polling_or_sleeping():
+    api = Mock()
+    api.execute_statement.return_value = response("SUCCEEDED", [["13"]])
+    sleep = Mock()
+    assert WarehouseSQL(api, "warehouse-1", sleep=sleep).execute("SELECT COUNT(*)") == [["13"]]
+    assert api.execute_statement.call_args.kwargs["wait_timeout"] == "10s"
+    api.get_statement.assert_not_called()
+    sleep.assert_not_called()
+
+
+@pytest.mark.parametrize("timeout, wait_timeout", [(5, "5s"), (8, "8s"), (3, "0s")])
+def test_submission_wait_does_not_exceed_statement_deadline(timeout, wait_timeout):
+    api = Mock()
+    api.execute_statement.return_value = response("SUCCEEDED")
+    WarehouseSQL(api, "warehouse", timeout=timeout).execute("SELECT 1")
+    assert api.execute_statement.call_args.kwargs["wait_timeout"] == wait_timeout
+
+
 @pytest.mark.parametrize("state", ["FAILED", "CANCELED", "CLOSED"])
 def test_terminal_failures_do_not_pass_or_log_server_error_payloads(state):
     api = Mock()

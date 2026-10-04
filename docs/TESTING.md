@@ -20,7 +20,7 @@ Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai
 | Migration và cấu hình | Alembic + Docker Compose | Áp dụng migration và kiểm tra model khớp schema; kiểm tra Compose |
 | Lint và format | Ruff + ESLint + Prettier | Lỗi Python/JavaScript, import, React Hooks và định dạng; test cấu hình xác nhận code sai bị từ chối |
 | Runtime và dependency | HTTP smoke + Vite build + npm audit | Health backend, frontend phục vụ trang, build và lỗ hổng mức moderate trở lên |
-| Bronze E1 | pytest + Spark/Delta local | MERGE 13 bảng hai lần, update/insert, khóa/schema lỗi, transaction, snapshot, count và notebook/SQL adapter |
+| Bronze E1 | pytest + Spark/Delta local | MERGE 13 bảng hai lần, update/insert, khóa/schema lỗi, transaction, snapshot, count, SQL trả kết quả không sleep/poll và Job song song có giới hạn/dọn staging khi lỗi |
 
 Browser end-to-end cho luồng mua hàng và nghiệm thu Bronze/Silver/Gold trên Databricks thật của F6–F7 vẫn là **Planned**. Bronze có test Delta local nhưng chưa nghiệm thu Lakebase thật; xem [`DATA_PLATFORM.md`](DATA_PLATFORM.md). Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
 

@@ -19,7 +19,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`DATABASE.md`](DATABASE.md) | Implemented | Schema, quan hệ, constraint, migration, hồ sơ/sổ địa chỉ và seed data |
 | [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến backend C3–C10 và P1–P4, gồm sở thích và gợi ý sản phẩm |
 | [`API.md`](API.md) | In progress | Endpoint C0–C10 và P1–P4: auth, hồ sơ/địa chỉ, wishlist/sở thích/gợi ý, catalog, vận hành shop, đơn hàng, thống kê, admin, role và error contract |
-| [`DATA_PLATFORM.md`](DATA_PLATFORM.md) | In progress | Notebook Bronze E1, setup trên Databricks web và kiểm tra Delta local; nghiệm thu nguồn thật và E2–E6 còn Planned |
+| [`DATA_PLATFORM.md`](DATA_PLATFORM.md) | In progress | Notebook nghiệm thu và Job Bronze E1, cấu hình song song/dependency trên Databricks web và kiểm tra Delta local; nghiệm thu nguồn thật và E2–E6 còn Planned |
 | [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) | Implemented | Cài đặt Docker, cấu hình, migration, seed, kiểm tra và xử lý lỗi local/demo từ đầu |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |
 | [`TESTING.md`](TESTING.md) | In progress | Các lớp test hiện có, hook pre-commit và hướng dẫn chạy |

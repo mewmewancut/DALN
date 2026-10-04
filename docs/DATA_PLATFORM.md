@@ -22,7 +22,32 @@ Databricks và Lakebase chạy trong workspace của bạn. Không triển khai 
 5. Chạy các ô cài SDK, restart Python và khai báo hàm. Notebook dùng [xác thực mặc định trong notebook của SDK](https://docs.databricks.com/aws/en/dev-tools/sdk-python); không điền token/mật khẩu vào code hoặc widget. SDK được khóa phiên bản `0.139.0`. Nếu workspace chặn cài thư viện, cấu hình dependency này qua môi trường compute trước khi chạy.
 6. Chạy ô cuối để tạo widgets. Lần đầu notebook báo thiếu cấu hình; điền `source_catalog` và `warehouse_id`, rồi chạy lại **ô cuối**. Lấy warehouse ID trong trang SQL Warehouses của warehouse đã chọn. `source_schema` mặc định `public`, `target_catalog` mặc định `fashion`; giữ `check_twice=true` để nghiệm thu E1.
 7. Tạm ngừng thao tác ghi vào nguồn trong lúc nghiệm thu. Notebook ingest đủ 13 bảng hai lần và đối chiếu số dòng từng bảng với nguồn hiện tại. Chỉ khi không có lỗi và có dòng `two-run count check passed` mới coi kiểm tra số dòng E1 đạt. Lưu kết quả run trong workspace; test local không thay thế bước này.
-8. Sau nghiệm thu, tạo **Lakeflow Job** có Notebook task trỏ đến notebook này. Nhập các widgets thành task parameters; dùng `check_twice=false` cho các lần chạy định kỳ. Đặt tối đa một run đồng thời; lịch development 15 phút/lần hoặc chạy tay trước demo theo Planning. Notebook compute và SQL warehouse đều cần sẵn sàng và có quyền tương ứng. Chưa cấu hình lịch Job thật trong repository này.
+8. Sau nghiệm thu, dùng notebook **`01_bronze_job.py`** cho Lakeflow Job theo mục bên dưới. Đặt tối đa một run đồng thời; lịch development 15 phút/lần hoặc chạy tay trước demo theo Planning. Notebook compute và SQL warehouse đều cần sẵn sàng và có quyền tương ứng. Chưa cấu hình lịch Job thật trong repository này.
+
+## Notebook riêng cho Job định kỳ
+
+`data/01_bronze_job.py` chạy đúng một lượt refresh 13 bảng. Giữ `bronze_ingest.py` và `warehouse_sql.py` cạnh notebook. Notebook này không cài thư viện, không restart Python và không chạy nghiệm thu hai lần. Cấu hình **`databricks-sdk==0.139.0`** trong mục **Environment / Dependencies** của serverless notebook/Job trước khi chạy; không chỉ cài ở phiên notebook nghiệm thu vì Job có môi trường riêng.
+
+Tạo Notebook task trỏ tới `01_bronze_job.py`, chọn serverless compute và cấu hình task parameters:
+
+| Parameter | Giá trị |
+|---|---|
+| `source_catalog` | Catalog Lakebase đã đăng ký, ví dụ `daln_source` |
+| `source_schema` | `public` |
+| `warehouse_id` | ID serverless SQL warehouse có quyền đọc nguồn và ghi Bronze |
+| `target_catalog` | `fashion` |
+| `parallelism` | `2` mặc định; chấp nhận số nguyên `1`–`4` |
+| `statement_timeout` | `600` giây mỗi câu SQL; phải dương |
+
+Với Free Edition, bắt đầu bằng `parallelism=2` trên warehouse hiện có. Có thể đo lại với `4` nếu warehouse còn năng lực; tăng song song có thể làm query queue lâu hơn, không bảo đảm nhanh hơn. Giữ **Maximum concurrent runs = 1**, dùng cùng danh tính Run as để tạo/dọn staging và đọc/sửa Bronze. Không chạy notebook nghiệm thu đồng thời với Job.
+
+Job dùng tối đa số worker đã chọn, mỗi worker có SDK/SQL client riêng và tái sử dụng client cho các bảng tiếp theo. Trước khi giao thêm bảng, coordinator kiểm tra lỗi từ các bảng đã hoàn tất. Nếu lỗi, không giao thêm công việc và chờ các worker đã chạy hoàn tất/dọn staging rồi trả lỗi; một số bảng độc lập có thể đã MERGE thành công. Các kiểm tra khóa, tập cột, count, transaction Delta và xử lý hard-delete vẫn dùng `BronzeIngest` chung, không bỏ kiểm tra để chạy nhanh.
+
+Adapter SQL chờ kết quả ngay trong request tối đa 10 giây theo [Statement Execution API](https://docs.databricks.com/aws/en/dev-tools/sql-execution-tutorial). Câu SQL hoàn thành trong khoảng này trả kết quả ngay, không phải chờ một vòng polling 2 giây. Câu dài hơn vẫn dùng polling, deadline và cancel best effort; timeout dưới 5 giây dùng request async vì API chỉ nhận `0s` hoặc `5s`–`50s`.
+
+Output được flush theo từng bảng: `START`, `DONE` với count/thời gian, và `Bronze job completed` chỉ sau khi đủ 13 bảng thành công. Thời gian Job còn phụ thuộc khởi động compute/warehouse, Lakebase, queue và tải dữ liệu. Chưa benchmark thời gian trên workspace thật; không cam kết một thời gian hoàn thành cố định. Đo Run now với cùng dữ liệu và lưu thời gian từng bảng/Query History trước khi bật lịch 15 phút.
+
+Notebook `01_bronze_ingest.py` vẫn là công cụ nghiệm thu E1 với `check_twice=true`. Job định kỳ chạy thành công một lần không thay thế nghiệm thu hai lần bắt buộc.
 
 ## Hành vi ingestion
 
@@ -33,11 +58,11 @@ Databricks và Lakebase chạy trong workspace của bạn. Không triển khai 
 - Mỗi MERGE là một transaction Delta; 13 bảng không nằm trong một transaction chung và không phải snapshot nhất quán toàn database. Run dừng tại lỗi; bảng trước đó có thể đã cập nhật. Chạy lại an toàn với khóa `id` hợp lệ. Khi nguồn đang đổi, đợi nguồn ổn định để kiểm tra count hai lần.
 - Không xóa Bronze khi nguồn hard-delete vì E1 chỉ quy định update/insert. Count lệch sẽ làm run thất bại; cần xử lý nguồn hoặc thống nhất thay đổi thiết kế trước khi thêm xóa.
 - Dọn staging trong `finally`. Nếu mất quyền/kết nối hoặc run bị kill, có thể còn bảng `_ingest_`; kiểm tra bảng và run tương ứng trước khi dọn thủ công. Chúng chứa dữ liệu nguồn, nên áp dụng cùng quyền hạn và chính sách bảo vệ như Bronze.
-- Adapter chờ SQL hoàn thành, thất bại khi trạng thái FAILED/CANCELED/CLOSED hoặc quá 600 giây mỗi statement. Khi quá hạn/lỗi polling, yêu cầu cancel theo best effort; không coi yêu cầu cancel là xác nhận statement đã dừng. Giữ một run đồng thời và kiểm tra Query History trước khi retry sau timeout. Output chỉ gồm tên bảng/count/trạng thái, không in dòng dữ liệu hay nội dung lỗi SQL từ server.
+- Adapter chờ SQL hoàn thành, thất bại khi trạng thái FAILED/CANCELED/CLOSED hoặc quá deadline (mặc định 600 giây mỗi statement). Khi quá hạn/lỗi polling, yêu cầu cancel theo best effort; không coi yêu cầu cancel là xác nhận statement đã dừng. Giữ một run đồng thời và kiểm tra Query History trước khi retry sau timeout. Output chỉ gồm tên bảng/count/trạng thái/thời gian, không in dòng dữ liệu hay nội dung lỗi SQL từ server.
 
 ## Kiểm tra code
 
-Test nằm trong `data/tests`: Delta MERGE thật cho 13 bảng chạy hai lần, update/insert, bảng rỗng, giữ UTC/decimal/soft-delete, khóa lỗi, schema lệch, rollback khi constraint fail, nguồn đổi sau snapshot và dọn staging. Test adapter kiểm tra polling/failure/timeout; test notebook kiểm tra widgets và nghiệm thu hai lần.
+Test nằm trong `data/tests`: Delta MERGE thật cho 13 bảng chạy hai lần, update/insert, bảng rỗng, giữ UTC/decimal/soft-delete, khóa lỗi, schema lệch, rollback khi constraint fail, nguồn đổi sau snapshot và dọn staging. Test adapter kiểm tra câu SQL ngắn không sleep/poll, polling/failure/timeout; test notebook kiểm tra widgets và nghiệm thu hai lần. Test Job kiểm tra giới hạn song song, client riêng từng worker, lỗi không giao thêm bảng và chờ dọn staging, output tiến độ/thời gian, validation tham số trước kết nối và MERGE Delta thật hai lượt có update/insert.
 
 Container dưới đây **chỉ chạy test Spark/Delta local**, không cài Databricks hoặc Lakebase và không cần tài khoản workspace. Không phải bước setup trên web của bạn. Hook pre-commit chạy cùng các kiểm tra này để bảo vệ code đã commit:
 
