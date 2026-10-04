@@ -158,9 +158,7 @@ it("người dùng: xác nhận trước khi khóa, lọc theo vai trò và từ
       data: { ...users[1], is_active: true },
     });
   await renderAt("/admin/users");
-  expect(rowContaining("buyer1@shop.vn").textContent).toContain(
-    "Người mua",
-  );
+  expect(rowContaining("buyer1@shop.vn").textContent).toContain("Người mua");
   await fill("Vai trò", "BUYER");
   await fill("Tìm email hoặc họ tên", " buyer1 ");
   expect(get).toHaveBeenLastCalledWith("/admin/users", {
@@ -171,9 +169,7 @@ it("người dùng: xác nhận trước khi khóa, lọc theo vai trò và từ
       keyword: "buyer1",
     },
   });
-  await click(
-    button("Khóa", rowContaining("buyer1@shop.vn")),
-  );
+  await click(button("Khóa", rowContaining("buyer1@shop.vn")));
   expect(patch).not.toHaveBeenCalled();
   const confirmDialog = dialog();
   expect(confirmDialog.textContent).toContain("Khóa tài khoản?");
@@ -189,15 +185,11 @@ it("người dùng: xác nhận trước khi khóa, lọc theo vai trò và từ
   expect(patch).toHaveBeenLastCalledWith("/admin/users/2", {
     is_active: true,
   });
-  expect(rowContaining("buyer1@shop.vn").textContent).toContain(
-    "Hoạt động",
-  );
+  expect(rowContaining("buyer1@shop.vn").textContent).toContain("Hoạt động");
   const adminRow = rowContaining("admin@shop.vn");
   expect(adminRow.textContent).toContain("Tài khoản hiện tại");
   expect(
-    [...adminRow.querySelectorAll("button")].some(
-      (item) => item.textContent.trim() === "Khóa",
-    ),
+    [...adminRow.querySelectorAll("button")].some((item) => item.textContent.trim() === "Khóa"),
   ).toBe(false);
   get.mockRejectedValueOnce({
     response: {

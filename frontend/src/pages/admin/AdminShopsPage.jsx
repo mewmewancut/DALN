@@ -83,9 +83,7 @@ export default function AdminShopsPage() {
 
       setResult((current) => ({
         ...current,
-        items: current.items.map((item) =>
-          item.id === shop.id ? response.data : item,
-        ),
+        items: current.items.map((item) => (item.id === shop.id ? response.data : item)),
       }));
 
       return true;
@@ -112,9 +110,7 @@ export default function AdminShopsPage() {
           <input
             type="search"
             value={filters.keyword}
-            onChange={(event) =>
-              updateFilter("keyword", event.target.value)
-            }
+            onChange={(event) => updateFilter("keyword", event.target.value)}
           />
         </label>
 
@@ -122,9 +118,7 @@ export default function AdminShopsPage() {
           Trạng thái
           <select
             value={filters.is_active}
-            onChange={(event) =>
-              updateFilter("is_active", event.target.value)
-            }
+            onChange={(event) => updateFilter("is_active", event.target.value)}
           >
             <option value="">Tất cả</option>
             <option value="true">Hoạt động</option>
@@ -133,11 +127,7 @@ export default function AdminShopsPage() {
         </label>
 
         {(filters.keyword || filters.is_active) && (
-          <button
-            type="button"
-            className="text-button"
-            onClick={resetFilters}
-          >
+          <button type="button" className="text-button" onClick={resetFilters}>
             Xóa bộ lọc
           </button>
         )}
@@ -184,9 +174,7 @@ export default function AdminShopsPage() {
                   <td>
                     <span
                       className={`status-badge ${
-                        shop.is_active
-                          ? "status-active"
-                          : "status-inactive"
+                        shop.is_active ? "status-active" : "status-inactive"
                       }`}
                     >
                       {shop.is_active ? "Hoạt động" : "Đã khóa"}
@@ -237,10 +225,8 @@ export default function AdminShopsPage() {
             <h2 id="lock-shop-title">Khóa shop?</h2>
 
             <p id="lock-shop-description">
-              Bạn có chắc muốn khóa{" "}
-              <strong>{shopToLock.name}</strong>? Sản phẩm của shop
-              sẽ không còn hiển thị trong catalog công khai cho đến
-              khi shop được mở khóa.
+              Bạn có chắc muốn khóa <strong>{shopToLock.name}</strong>? Sản phẩm của shop sẽ không
+              còn hiển thị trong catalog công khai cho đến khi shop được mở khóa.
             </p>
 
             <div className="dialog-actions">
@@ -264,9 +250,7 @@ export default function AdminShopsPage() {
                   }
                 }}
               >
-                {pendingId === shopToLock.id
-                  ? "Đang xử lý..."
-                  : "Khóa shop"}
+                {pendingId === shopToLock.id ? "Đang xử lý..." : "Khóa shop"}
               </button>
             </div>
           </section>

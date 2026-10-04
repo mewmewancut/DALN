@@ -106,9 +106,7 @@ export default function AdminUsersPage() {
 
       setResult((current) => ({
         ...current,
-        items: current.items.map((item) =>
-          item.id === user.id ? response.data : item,
-        ),
+        items: current.items.map((item) => (item.id === user.id ? response.data : item)),
       }));
 
       return true;
@@ -171,9 +169,7 @@ export default function AdminUsersPage() {
         </p>
       )}
 
-      {!loading && !loadError && result.items.length === 0 && (
-        <p>Không có người dùng phù hợp.</p>
-      )}
+      {!loading && !loadError && result.items.length === 0 && <p>Không có người dùng phù hợp.</p>}
 
       {!loading && !loadError && result.items.length > 0 && (
         <div className="table-wrap">
@@ -200,9 +196,7 @@ export default function AdminUsersPage() {
                   <td>
                     <span
                       className={`status-badge ${
-                        user.is_active
-                          ? "status-active"
-                          : "status-inactive"
+                        user.is_active ? "status-active" : "status-inactive"
                       }`}
                     >
                       {user.is_active ? "Hoạt động" : "Đã khóa"}
@@ -211,9 +205,7 @@ export default function AdminUsersPage() {
 
                   <td>
                     {user.id === currentUserId ? (
-                      <span className="muted">
-                        Tài khoản hiện tại
-                      </span>
+                      <span className="muted">Tài khoản hiện tại</span>
                     ) : (
                       <button
                         type="button"
@@ -260,17 +252,12 @@ export default function AdminUsersPage() {
           >
             <p className="eyebrow">Xác nhận thao tác</p>
 
-            <h2 id="lock-user-title">
-              Khóa tài khoản?
-            </h2>
+            <h2 id="lock-user-title">Khóa tài khoản?</h2>
 
             <p id="lock-user-description">
               Bạn có chắc muốn khóa tài khoản{" "}
-              <strong>
-                {userToLock.full_name || userToLock.email}
-              </strong>
-              ? Người dùng sẽ không thể tiếp tục sử dụng tài khoản
-              cho đến khi được mở khóa.
+              <strong>{userToLock.full_name || userToLock.email}</strong>? Người dùng sẽ không thể
+              tiếp tục sử dụng tài khoản cho đến khi được mở khóa.
             </p>
 
             <div className="dialog-actions">
@@ -294,9 +281,7 @@ export default function AdminUsersPage() {
                   }
                 }}
               >
-                {pendingId === userToLock.id
-                  ? "Đang xử lý..."
-                  : "Khóa tài khoản"}
+                {pendingId === userToLock.id ? "Đang xử lý..." : "Khóa tài khoản"}
               </button>
             </div>
           </section>
