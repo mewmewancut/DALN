@@ -45,11 +45,7 @@ export function ToastProvider({ children }) {
       {children}
 
       {toast && (
-        <div
-          className={`app-toast app-toast-${toast.type}`}
-          role="status"
-          aria-live="polite"
-        >
+        <div className={`app-toast app-toast-${toast.type}`} role="status" aria-live="polite">
           <span>{toast.message}</span>
           <button
             type="button"

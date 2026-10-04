@@ -34,13 +34,9 @@ export default function ProductListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const {
-    favoriteIds,
-    busyIds,
-    wishlistError,
-    wishlistLoading,
-    toggleWishlist,
-  } = useWishlist(session?.role === "BUYER");
+  const { favoriteIds, busyIds, wishlistError, wishlistLoading, toggleWishlist } = useWishlist(
+    session?.role === "BUYER",
+  );
 
   useEffect(() => {
     let active = true;
@@ -189,11 +185,7 @@ export default function ProductListPage() {
             </div>
 
             {activeFilterCount > 0 && (
-              <button
-                type="button"
-                className="text-button"
-                onClick={resetFilters}
-              >
+              <button type="button" className="text-button" onClick={resetFilters}>
                 Xóa lọc
               </button>
             )}
@@ -204,9 +196,7 @@ export default function ProductListPage() {
             <input
               type="search"
               value={filters.keyword}
-              onChange={(event) =>
-                changeFilter("keyword", event.target.value)
-              }
+              onChange={(event) => changeFilter("keyword", event.target.value)}
               placeholder="Tên sản phẩm"
             />
           </label>
@@ -215,9 +205,7 @@ export default function ProductListPage() {
             Danh mục
             <select
               value={filters.category_id}
-              onChange={(event) =>
-                changeFilter("category_id", event.target.value)
-              }
+              onChange={(event) => changeFilter("category_id", event.target.value)}
             >
               <option value="">Tất cả</option>
 
@@ -241,9 +229,7 @@ export default function ProductListPage() {
               type="number"
               min="0"
               value={filters.min_price}
-              onChange={(event) =>
-                changeFilter("min_price", event.target.value)
-              }
+              onChange={(event) => changeFilter("min_price", event.target.value)}
             />
           </label>
 
@@ -253,17 +239,12 @@ export default function ProductListPage() {
               type="number"
               min="0"
               value={filters.max_price}
-              onChange={(event) =>
-                changeFilter("max_price", event.target.value)
-              }
+              onChange={(event) => changeFilter("max_price", event.target.value)}
             />
           </label>
         </aside>
 
-        <section
-          className="catalog-results"
-          aria-label="Danh sách sản phẩm"
-        >
+        <section className="catalog-results" aria-label="Danh sách sản phẩm">
           <div className="results-heading">
             <div>
               <p className="eyebrow">Sản phẩm</p>
@@ -281,9 +262,7 @@ export default function ProductListPage() {
               Sắp xếp
               <select
                 value={filters.sort}
-                onChange={(event) =>
-                  changeFilter("sort", event.target.value)
-                }
+                onChange={(event) => changeFilter("sort", event.target.value)}
               >
                 <option value="newest">Mới nhất</option>
                 <option value="price_asc">Giá tăng dần</option>
@@ -299,17 +278,9 @@ export default function ProductListPage() {
           )}
 
           {loading ? (
-            <div
-              className="product-grid"
-              aria-label="Đang tải sản phẩm"
-              aria-busy="true"
-            >
+            <div className="product-grid" aria-label="Đang tải sản phẩm" aria-busy="true">
               {Array.from({ length: 8 }, (_, index) => (
-                <div
-                  key={index}
-                  className="product-card product-card-skeleton"
-                  aria-hidden="true"
-                >
+                <div key={index} className="product-card product-card-skeleton" aria-hidden="true">
                   <div className="skeleton skeleton-product-image" />
 
                   <div className="product-card-body">
@@ -332,9 +303,7 @@ export default function ProductListPage() {
             <div className="catalog-state">
               <strong>Không tìm thấy sản phẩm phù hợp</strong>
 
-              <p>
-                Thử thay đổi từ khóa, danh mục hoặc khoảng giá để xem thêm kết quả.
-              </p>
+              <p>Thử thay đổi từ khóa, danh mục hoặc khoảng giá để xem thêm kết quả.</p>
 
               {activeFilterCount > 0 && (
                 <button type="button" onClick={resetFilters}>
@@ -376,9 +345,7 @@ export default function ProductListPage() {
 
             <button
               type="button"
-              disabled={
-                loading || !!error || filters.page >= totalPages
-              }
+              disabled={loading || !!error || filters.page >= totalPages}
               onClick={() =>
                 setFilters((previous) => ({
                   ...previous,

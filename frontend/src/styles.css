@@ -1953,12 +1953,7 @@ button:disabled {
 .skeleton::after {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgb(255 255 255 / 55%) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 55%) 50%, transparent 100%);
   content: "";
   transform: translateX(-100%);
   animation: skeleton-shimmer 1.4s ease-in-out infinite;

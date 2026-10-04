@@ -102,10 +102,7 @@ export default function RegisterPage() {
 
         <label>
           Loại tài khoản
-          <select
-            value={role}
-            onChange={(event) => setRole(event.target.value)}
-          >
+          <select value={role} onChange={(event) => setRole(event.target.value)}>
             <option value="BUYER">Người mua</option>
             <option value="SHOP_OWNER">Chủ shop</option>
           </select>

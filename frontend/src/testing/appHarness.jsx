@@ -82,10 +82,7 @@ export async function fill(labelText, value, options) {
 
 export async function setValue(input, value) {
   await act(async () => {
-    const setter = Object.getOwnPropertyDescriptor(
-      input.constructor.prototype,
-      "value",
-    ).set;
+    const setter = Object.getOwnPropertyDescriptor(input.constructor.prototype, "value").set;
 
     setter.call(input, value);
 
@@ -106,9 +103,7 @@ export function buttonLabels(scope) {
 }
 
 export function button(text, scope = container) {
-  const match = buttons(scope).find(
-    (item) => item.textContent === text,
-  );
+  const match = buttons(scope).find((item) => item.textContent === text);
 
   if (!match) {
     throw new Error(`Không tìm thấy nút "${text}"`);
@@ -133,9 +128,7 @@ export async function submit(form) {
 }
 
 export function rowContaining(text, scope = container) {
-  return [...scope.querySelectorAll("tr, article")].find((row) =>
-    row.textContent.includes(text),
-  );
+  return [...scope.querySelectorAll("tr, article")].find((row) => row.textContent.includes(text));
 }
 
 export function dialog() {
@@ -147,17 +140,15 @@ export function alertText() {
 }
 
 export function routeGet(routes) {
-  return vi
-    .spyOn(client, "get")
-    .mockImplementation(async (url, options) => {
-      if (!(url in routes)) {
-        throw new Error(`GET ${url} chưa được mock`);
-      }
+  return vi.spyOn(client, "get").mockImplementation(async (url, options) => {
+    if (!(url in routes)) {
+      throw new Error(`GET ${url} chưa được mock`);
+    }
 
-      const data = routes[url];
+    const data = routes[url];
 
-      return {
-        data: typeof data === "function" ? data(options) : data,
-      };
-    });
+    return {
+      data: typeof data === "function" ? data(options) : data,
+    };
+  });
 }

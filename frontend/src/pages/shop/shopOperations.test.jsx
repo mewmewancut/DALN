@@ -279,9 +279,7 @@ it("nhà cung cấp: thêm, sửa, ngừng hợp tác (soft delete) và khôi ph
   await click(button("Ngừng hợp tác", rowContaining("Xưởng May A")));
   expect(remove).not.toHaveBeenCalled();
   const confirmDialog = dialog();
-  expect(confirmDialog.textContent).toContain(
-    "Ngừng hợp tác với nhà cung cấp?",
-  );
+  expect(confirmDialog.textContent).toContain("Ngừng hợp tác với nhà cung cấp?");
   expect(confirmDialog.textContent).toContain("Xưởng May A");
   await click(button("Ngừng hợp tác", confirmDialog));
   expect(remove).toHaveBeenCalledWith("/shop/suppliers/1");

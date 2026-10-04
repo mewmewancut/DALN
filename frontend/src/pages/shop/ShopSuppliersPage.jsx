@@ -4,9 +4,7 @@ import client from "../../api/client.js";
 import { errorMessage } from "../../api/errorMessage.js";
 import Pagination from "../../components/Pagination.jsx";
 import { useToast } from "../../components/ToastContext.jsx";
-import useClientPagination, {
-  matchesSearch,
-} from "../../components/useClientPagination.js";
+import useClientPagination, { matchesSearch } from "../../components/useClientPagination.js";
 
 const EMPTY_FORM = { name: "", phone: "", address: "" };
 
@@ -25,9 +23,7 @@ function SupplierFields({ form, onChange }) {
         Tên nhà cung cấp
         <input
           value={form.name}
-          onChange={(event) =>
-            onChange({ ...form, name: event.target.value })
-          }
+          onChange={(event) => onChange({ ...form, name: event.target.value })}
           required
         />
       </label>
@@ -37,9 +33,7 @@ function SupplierFields({ form, onChange }) {
         <input
           value={form.phone}
           maxLength={20}
-          onChange={(event) =>
-            onChange({ ...form, phone: event.target.value })
-          }
+          onChange={(event) => onChange({ ...form, phone: event.target.value })}
         />
       </label>
 
@@ -47,9 +41,7 @@ function SupplierFields({ form, onChange }) {
         Địa chỉ
         <input
           value={form.address}
-          onChange={(event) =>
-            onChange({ ...form, address: event.target.value })
-          }
+          onChange={(event) => onChange({ ...form, address: event.target.value })}
         />
       </label>
     </>
@@ -165,20 +157,11 @@ export default function ShopSuppliersPage() {
 
   const filteredSuppliers = suppliers.filter(
     (supplier) =>
-      matchesSearch(
-        keyword,
-        supplier.name,
-        supplier.phone,
-        supplier.address,
-      ) &&
-      (activeFilter === "" ||
-        (activeFilter === "true"
-          ? supplier.is_active
-          : !supplier.is_active)),
+      matchesSearch(keyword, supplier.name, supplier.phone, supplier.address) &&
+      (activeFilter === "" || (activeFilter === "true" ? supplier.is_active : !supplier.is_active)),
   );
 
-  const { page, pageItems, pageSize, setPage, total } =
-    useClientPagination(filteredSuppliers);
+  const { page, pageItems, pageSize, setPage, total } = useClientPagination(filteredSuppliers);
 
   function updateKeyword(value) {
     setKeyword(value);
@@ -198,17 +181,10 @@ export default function ShopSuppliersPage() {
       <section className="management-form">
         <h2>Thêm nhà cung cấp</h2>
 
-        <form
-          className="inline-form"
-          onSubmit={createSupplier}
-          aria-label="Thêm nhà cung cấp"
-        >
+        <form className="inline-form" onSubmit={createSupplier} aria-label="Thêm nhà cung cấp">
           <SupplierFields form={form} onChange={setForm} />
 
-          <button
-            type="submit"
-            disabled={pending === "new" || loading || !!loadError}
-          >
+          <button type="submit" disabled={pending === "new" || loading || !!loadError}>
             {pending === "new" ? "Đang thêm..." : "Thêm nhà cung cấp"}
           </button>
         </form>
@@ -233,10 +209,7 @@ export default function ShopSuppliersPage() {
 
         <label>
           Trạng thái
-          <select
-            value={activeFilter}
-            onChange={(event) => updateActiveFilter(event.target.value)}
-          >
+          <select value={activeFilter} onChange={(event) => updateActiveFilter(event.target.value)}>
             <option value="">Tất cả</option>
             <option value="true">Đang hợp tác</option>
             <option value="false">Ngừng hợp tác</option>
@@ -258,24 +231,15 @@ export default function ShopSuppliersPage() {
         </p>
       )}
 
-      {!loading && !loadError && suppliers.length === 0 && (
-        <p>Chưa có nhà cung cấp.</p>
-      )}
+      {!loading && !loadError && suppliers.length === 0 && <p>Chưa có nhà cung cấp.</p>}
 
-      {!loading &&
-        !loadError &&
-        suppliers.length > 0 &&
-        filteredSuppliers.length === 0 && (
-          <p className="empty-state">
-            Không tìm thấy nhà cung cấp phù hợp.
-          </p>
-        )}
+      {!loading && !loadError && suppliers.length > 0 && filteredSuppliers.length === 0 && (
+        <p className="empty-state">Không tìm thấy nhà cung cấp phù hợp.</p>
+      )}
 
       {!loading && !loadError && filteredSuppliers.length > 0 && (
         <>
-          <p className="list-summary">
-            Tìm thấy {total} nhà cung cấp.
-          </p>
+          <p className="list-summary">Tìm thấy {total} nhà cung cấp.</p>
 
           <div className="table-wrap">
             <table className="data-table">
@@ -299,14 +263,10 @@ export default function ShopSuppliersPage() {
                     <td>
                       <span
                         className={`status-badge ${
-                          supplier.is_active
-                            ? "status-active"
-                            : "status-inactive"
+                          supplier.is_active ? "status-active" : "status-inactive"
                         }`}
                       >
-                        {supplier.is_active
-                          ? "Đang hợp tác"
-                          : "Ngừng hợp tác"}
+                        {supplier.is_active ? "Đang hợp tác" : "Ngừng hợp tác"}
                       </span>
                     </td>
 
@@ -334,9 +294,7 @@ export default function ShopSuppliersPage() {
                             disabled={pending === supplier.id}
                             onClick={() => setSupplierToStop(supplier)}
                           >
-                            {pending === supplier.id
-                              ? "Đang xử lý..."
-                              : "Ngừng hợp tác"}
+                            {pending === supplier.id ? "Đang xử lý..." : "Ngừng hợp tác"}
                           </button>
                         ) : (
                           <button
@@ -346,19 +304,14 @@ export default function ShopSuppliersPage() {
                               run(
                                 supplier.id,
                                 () =>
-                                  client.put(
-                                    `/shop/suppliers/${supplier.id}`,
-                                    {
-                                      is_active: true,
-                                    },
-                                  ),
+                                  client.put(`/shop/suppliers/${supplier.id}`, {
+                                    is_active: true,
+                                  }),
                                 "Đã khôi phục nhà cung cấp.",
                               )
                             }
                           >
-                            {pending === supplier.id
-                              ? "Đang xử lý..."
-                              : "Khôi phục"}
+                            {pending === supplier.id ? "Đang xử lý..." : "Khôi phục"}
                           </button>
                         )}
                       </div>
@@ -381,20 +334,13 @@ export default function ShopSuppliersPage() {
 
       {editing && (
         <div className="dialog-backdrop">
-          <section
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Sửa nhà cung cấp"
-          >
+          <section className="dialog" role="dialog" aria-modal="true" aria-label="Sửa nhà cung cấp">
             <h2>Sửa nhà cung cấp</h2>
 
             <form className="form-stack" onSubmit={saveEdit}>
               <SupplierFields
                 form={editing.form}
-                onChange={(next) =>
-                  setEditing({ ...editing, form: next })
-                }
+                onChange={(next) => setEditing({ ...editing, form: next })}
               />
 
               <div className="dialog-actions">
@@ -406,13 +352,8 @@ export default function ShopSuppliersPage() {
                   Đóng
                 </button>
 
-                <button
-                  type="submit"
-                  disabled={pending === editing.id}
-                >
-                  {pending === editing.id
-                    ? "Đang lưu..."
-                    : "Lưu"}
+                <button type="submit" disabled={pending === editing.id}>
+                  {pending === editing.id ? "Đang lưu..." : "Lưu"}
                 </button>
               </div>
             </form>
@@ -430,15 +371,11 @@ export default function ShopSuppliersPage() {
           >
             <p className="eyebrow">Xác nhận thao tác</p>
 
-            <h2 id="stop-supplier-title">
-              Ngừng hợp tác với nhà cung cấp?
-            </h2>
+            <h2 id="stop-supplier-title">Ngừng hợp tác với nhà cung cấp?</h2>
 
             <p id="stop-supplier-description">
-              Bạn có chắc muốn ngừng hợp tác với{" "}
-              <strong>{supplierToStop.name}</strong>? Nhà cung cấp
-              sẽ chuyển sang trạng thái ngừng hợp tác và có thể
-              khôi phục lại sau.
+              Bạn có chắc muốn ngừng hợp tác với <strong>{supplierToStop.name}</strong>? Nhà cung
+              cấp sẽ chuyển sang trạng thái ngừng hợp tác và có thể khôi phục lại sau.
             </p>
 
             <div className="dialog-actions">
@@ -457,10 +394,7 @@ export default function ShopSuppliersPage() {
                 onClick={async () => {
                   const success = await run(
                     supplierToStop.id,
-                    () =>
-                      client.delete(
-                        `/shop/suppliers/${supplierToStop.id}`,
-                      ),
+                    () => client.delete(`/shop/suppliers/${supplierToStop.id}`),
                     "Đã ngừng hợp tác với nhà cung cấp.",
                   );
 
@@ -469,9 +403,7 @@ export default function ShopSuppliersPage() {
                   }
                 }}
               >
-                {pending === supplierToStop.id
-                  ? "Đang xử lý..."
-                  : "Ngừng hợp tác"}
+                {pending === supplierToStop.id ? "Đang xử lý..." : "Ngừng hợp tác"}
               </button>
             </div>
           </section>

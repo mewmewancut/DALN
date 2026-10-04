@@ -92,9 +92,7 @@ export default function AdminUsersPage() {
 
       setResult((current) => ({
         ...current,
-        items: current.items.map((item) =>
-          item.id === user.id ? response.data : item,
-        ),
+        items: current.items.map((item) => (item.id === user.id ? response.data : item)),
       }));
     } catch (requestError) {
       setActionError(errorMessage(requestError));
@@ -153,9 +151,7 @@ export default function AdminUsersPage() {
         </p>
       )}
 
-      {!loading && !loadError && result.items.length === 0 && (
-        <p>Không có người dùng phù hợp.</p>
-      )}
+      {!loading && !loadError && result.items.length === 0 && <p>Không có người dùng phù hợp.</p>}
 
       {!loading && !loadError && result.items.length > 0 && (
         <div className="table-wrap">
