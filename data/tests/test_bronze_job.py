@@ -37,7 +37,7 @@ def test_both_stages_share_session_and_complete_in_order(monkeypatch, tmp_path):
     assert events == ["bronze", "silver"]
     assert result["bronze"] == {"users": "CDC"}
     assert result["silver"] == {"dim_shops": 3}
-    assert set(result["timings_seconds"]) == {"bronze", "silver"}
+    assert set(result["timings_seconds"]) == {"bronze", "silver", "spark_startup"}
     assert all(value >= 0 for value in result["timings_seconds"].values())
 
 

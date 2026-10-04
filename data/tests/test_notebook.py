@@ -17,6 +17,7 @@ def test_widgets_use_cdc_and_durable_volume(monkeypatch):
         "target_catalog": "fashion",
         "checkpoint_root": "/Volumes/fashion_cdc/bronze/checkpoints",
         "excluded_shop_ids": "2,3",
+        "metadata_warehouse_id": "warehouse-id",
     }
     widgets = Mock()
     widgets.get.side_effect = values.__getitem__
@@ -25,7 +26,14 @@ def test_widgets_use_cdc_and_durable_volume(monkeypatch):
     spark = Mock()
     pipeline_job.notebook_main(SimpleNamespace(widgets=widgets), spark)
     run.assert_called_once_with(
-        spark, "fashion_cdc", values["checkpoint_root"], "bronze", "fashion", (2, 3), stage="all"
+        spark,
+        "fashion_cdc",
+        values["checkpoint_root"],
+        "bronze",
+        "fashion",
+        (2, 3),
+        stage="all",
+        metadata_warehouse_id="warehouse-id",
     )
 
 
@@ -65,6 +73,7 @@ def test_separate_notebook_runs_only_its_stage_and_reports_success_after_complet
         "target_catalog": "fashion",
         "checkpoint_root": "/Volumes/fashion_cdc/bronze/pipeline_checkpoints",
         "excluded_shop_ids": "",
+        "metadata_warehouse_id": "",
     }
     utils, spark = Mock(), Mock()
     utils.widgets.get.side_effect = values.__getitem__
@@ -93,7 +102,7 @@ def test_separate_notebook_runs_only_its_stage_and_reports_success_after_complet
         result = json.loads(utils.notebook.exit.call_args.args[0])
         assert set(result) == {stage, "timings_seconds"}
         assert result[stage] == ({"users": "CDC"} if stage == "bronze" else {"dim_shops": 3})
-        assert set(result["timings_seconds"]) == {stage}
+        assert set(result["timings_seconds"]) == {stage, "spark_startup"}
 
     selected.assert_called_once()
     if stage == "bronze":

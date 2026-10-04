@@ -15,9 +15,14 @@ Người dùng đã duyệt đổi cách lấy dữ liệu E1 từ đọc Lakeba
 - Mỗi microbatch lấy sự kiện cuối của từng id theo LSN/sort order. insert/postimage upsert; delete/preimage là tombstone, nên cả đổi primary key được xử lý. Timestamp `_ingested_at` lấy từ sự kiện CDC để retry tạo cùng giá trị.
 - Checkpoint chỉ tiến khi MERGE hoàn tất. Nếu lỗi giữa MERGE và ghi marker, retry dùng lại offsets; dữ liệu không nhân đôi. Không chạy nhiều writer vào cùng checkpoint/target.
 - E2 kiểm tra version/ID của đúng bảng phụ thuộc, danh sách shop bị loại và version phép biến đổi. Chỉ refresh bảng bị ảnh hưởng; fact_order_items chạy sau fact_orders, fact_inventory sau dim_variants. Xem [hướng dẫn Silver](E2_SILVER.md).
-- Metadata được lấy song song tối đa hai request và dùng chung giữa E1/E2; writer và stream vẫn chạy tuần tự. Metadata nguồn chốt trước xử lý; commit đến sau được xử lý ở lượt kế tiếp, không tăng checkpoint lên version chưa đọc.
+- Khi cấu hình `metadata_warehouse_id`, Job kiểm tra checkpoint qua Files API và đọc metadata Delta qua SQL warehouse trước khi gọi Spark của notebook. Chỉ khi **toàn bộ tầng được yêu cầu** khớp source/target ID, version nguồn, fingerprint và target Silver, Job mới trả SKIP sớm. Không đọc dữ liệu nghiệp vụ, không ghi bảng/checkpoint trong bước này.
+- Preflight đọc `DESCRIBE DETAIL` song song tối đa 4 request và gộp version của các bảng vào một query `DESCRIBE HISTORY ... LIMIT 1`/`UNION ALL`. Query version có `uuid()` ở kết quả để tránh dùng SQL result cache. Không suy ra thay đổi dữ liệu từ timestamp của Unity Catalog.
+- Nếu có thay đổi, thiếu marker/bảng, metadata không đầy đủ hoặc warehouse lỗi, Job chạy luồng Spark bình thường và kiểm tra lại toàn bộ; không coi lỗi kiểm tra là SKIP. Preflight dùng chung ngân sách 60 giây cho các lượt đọc, cộng thời gian HTTP/retry/cancel giới hạn của SDK; câu SQL còn chạy khi hết hạn được yêu cầu hủy.
+- Trong luồng Spark, metadata được lấy song song tối đa hai request và dùng chung giữa E1/E2; writer và stream vẫn chạy tuần tự. Metadata nguồn chốt trước xử lý; commit đến sau được xử lý ở lượt kế tiếp, không tăng checkpoint lên version chưa đọc.
 
-Job bình thường không dùng SQL warehouse/SDK, không cài pip hoặc restart Python, không chạy kiểm tra count nguồn hai lần và không tạo staging Bronze. Silver chỉ tạo staging khi cần refresh để kiểm tra khóa, rejection và MERGE cùng một snapshot. MERGE chỉ update dòng có giá trị khác.
+Job dùng SDK có sẵn trong runtime cho preflight khi bật `metadata_warehouse_id`; không cài pip hoặc restart Python trong lượt chạy. Không chạy kiểm tra count nguồn hai lần và không tạo staging Bronze. Silver chỉ tạo staging khi cần refresh để kiểm tra khóa, rejection và MERGE cùng một snapshot. MERGE chỉ update dòng có giá trị khác. Để trống warehouse ID thì chạy trực tiếp bằng Spark như trước.
+
+`timings_seconds` tách `preflight`, `spark_startup`, `bronze`, `silver`. `spark_startup` đo từ trước query đầu `SELECT 1` đến khi nhận kết quả; log thông báo trước lúc chờ. Khi SKIP sớm, startup và thời gian xử lý các tầng bằng 0; chi phí kiểm tra nằm ở `preflight`. Thời gian tổng Job vẫn gồm khởi tạo Python/điều phối ngoài các số đo này. Không có cam kết latency cố định từ serverless.
 
 ## File
 
@@ -30,7 +35,9 @@ Job bình thường không dùng SQL warehouse/SDK, không cài pip hoặc resta
 | `data/silver_job.py`, `silver_transform.py`, `silver_queries.py` | Dependency skip và biến đổi Silver |
 | `data/pipeline_job.py`, `bronze_ingest.py` | Điều phối, widget và allow-list/identifier |
 | `data/delta_metadata.py` | Prefetch metadata có giới hạn, dùng chung snapshot giữa các stage |
-| `data/acceptance.py`, `warehouse_sql.py` | Nghiệm thu chỉ đọc, chạy riêng qua warehouse; giữ để bộ test nghiệm thu hiện có tiếp tục chạy |
+| `data/pipeline_preflight.py`, `warehouse_metadata.py` | Kiểm tra điều kiện SKIP trước khi khởi tạo Spark của notebook |
+| `data/warehouse_sql.py` | SQL Statement Execution adapter, deadline/poll/cancel; dùng cho preflight và nghiệm thu |
+| `data/acceptance.py` | Nghiệm thu chỉ đọc, chạy riêng qua warehouse |
 | `data/tests/`, `Dockerfile.test`, `requirements-test.txt`, `requirements.txt`, `ruff.toml`, `.dockerignore` | Test Delta local, dependency và cấu hình kiểm tra |
 
 `data/00_pipeline.py` vẫn là entry của Job chính. Hai notebook demo riêng gọi lại cùng logic điều phối với `stage="bronze"` hoặc `stage="silver"`, dùng cùng widget và checkpoint; không sao chép logic ingestion/biến đổi và không thay đổi Job đang chạy. Entry tương thích `01_bronze_job.py` đã bỏ. Placeholder E3/E4 đã bỏ; Gold và gate chất lượng vẫn **Planned**, sẽ tạo source khi bắt đầu triển khai. Tên bước trong Planning là đặc tả dự kiến; danh sách file hiện có nằm ở bảng trên.
@@ -47,7 +54,7 @@ Job bình thường không dùng SQL warehouse/SDK, không cài pip hoặc resta
    CREATE SCHEMA IF NOT EXISTS fashion.silver;
    ```
 5. Đồng bộ toàn bộ thư mục `data` trong Git folder. Các file có header Databricks notebook là notebook, module hỗ trợ giữ dạng Workspace file. Không chỉ copy notebook thiếu module.
-6. Tạo một Notebook task trỏ tới `data/00_pipeline.py` trên serverless compute, **Maximum concurrent runs = 1**. Runtime cung cấp Spark/Delta; không cài requirements-test vào Databricks. Không cần dependency SDK cho Job thường.
+6. Tạo một Notebook task trỏ tới `data/00_pipeline.py` trên serverless compute, **Maximum concurrent runs = 1**, **Performance optimized = bật**. Runtime cung cấp Spark/Delta và SDK; không cài requirements-test vào Databricks.
 7. Điền task parameters:
 
 | Parameter | Mặc định |
@@ -57,8 +64,11 @@ Job bình thường không dùng SQL warehouse/SDK, không cài pip hoặc resta
 | `target_catalog` | `fashion` |
 | `checkpoint_root` | `/Volumes/fashion_cdc/bronze/pipeline_checkpoints` |
 | `excluded_shop_ids` | Rỗng; chỉ điền ID shop test đã biết |
+| `metadata_warehouse_id` | Rỗng để dùng Spark trực tiếp; điền SQL warehouse ID để bật SKIP trước Spark |
 
 Run as cần SELECT history, USE CATALOG/SCHEMA, READ/WRITE VOLUME checkpoint, CREATE TABLE và SELECT/MODIFY Bronze/Silver; quyền quản lý staging Silver. Chạy tay trước demo hoặc lịch 15 phút theo Planning. Dừng lịch/Job Bronze cũ trước khi bật Job mới; không chạy notebook chính chồng Job.
+
+Preflight cần thêm CAN USE trên warehouse được chọn, dùng danh tính Run as hiện có; không đặt token trong widget/code. Warehouse dừng có thể cần startup và phát sinh compute để kiểm tra metadata. Bản tối ưu không bật chế độ giữ warehouse chạy liên tục. Workspace DALN dùng warehouse sẵn có `261b45209f3d8a59`; đây là cấu hình task, không hard-code trong Python. Muốn tắt preflight chỉ cần đặt `metadata_warehouse_id` rỗng.
 
 ## Demo từng bước Bronze → Silver
 
@@ -91,7 +101,7 @@ Với nguồn ổn định, chạy toàn bộ Job hai lượt. Lượt đầu bo
 python data/acceptance.py --profile <profile> --warehouse-id <warehouse-id> --source-catalog daln_source
 ```
 
-`source_catalog` ở lệnh nghiệm thu là catalog **Lakebase federation** đã đăng ký. Công cụ đối chiếu count/khóa 13 Bronze với nguồn và so toàn bộ 7 Silver với projection Planning E2 bằng EXCEPT ALL hai chiều, in PASS từng bảng. Nghiệm thu cần SDK trong `data/requirements.txt`; Job thường không dùng SDK. Có shop loại trừ thì thêm `--excluded-shop-ids 90001,90002` (ID minh họa).
+`source_catalog` ở lệnh nghiệm thu là catalog **Lakebase federation** đã đăng ký. Công cụ đối chiếu count/khóa 13 Bronze với nguồn và so toàn bộ 7 Silver với projection Planning E2 bằng EXCEPT ALL hai chiều, in PASS từng bảng. Nghiệm thu local cần SDK trong `data/requirements.txt`. Có shop loại trừ thì thêm `--excluded-shop-ids 90001,90002` (ID minh họa).
 
 Test local chạy bootstrap/retry/update/delete thật, offsets qua restart, nguồn rỗng, schema/key lỗi, transaction, dependency propagation, timezone và nghiệp vụ E2. Test local không thay thế nghiệm thu Job thật.
 
@@ -129,3 +139,18 @@ Sau nghiệm thu E1/E2 ở trên, backend trên máy đã chuyển sang database
 - Test sau cutover: 162 backend, 3 cấu hình Compose và 7 hook pass; lint/format, frontend HTTP smoke và diff check pass. Hook khôi phục `.env` sau kiểm thử local; ba regression về khôi phục đều fail trên hook cũ.
 
 Gold E3, gate E4, Dashboard/Genie vẫn **Planned**. Job hiện chạy tay; dữ liệu Bronze/Silver chỉ cập nhật khi Job chạy, không phải website ghi tới đâu Silver cập nhật ngay tới đó.
+
+### Tối ưu lượt không thay đổi — 04/10/2026
+
+Job hiện tên `DALN`, ID `712610164863330`, vẫn gọi `00_pipeline` và dùng một task. Đã đồng bộ 5 module thay đổi lên Workspace và thêm task parameter `metadata_warehouse_id=261b45209f3d8a59`. Performance optimized, timeout 1800 giây, giới hạn một lượt đồng thời và checkpoint gốc được giữ.
+
+| Lượt kiểm chứng | Tổng Job | Preflight | Spark startup / Bronze / Silver | Kết quả |
+|---|---:|---:|---|---|
+| `582034883532015` | 41.658 giây | 29.060 giây | 0 / 0 / 0 | SUCCESS, 13 Bronze + 7 Silver SKIP |
+| `661197161083225` | 37.422 giây | 25.710 giây | 0 / 0 / 0 | SUCCESS, 13 Bronze + 7 Silver SKIP |
+
+Hai lượt chạy trên warehouse đang sẵn sàng; không khởi tạo Spark của notebook, không ghi bảng/checkpoint. Kiểm tra sau chạy xác nhận timestamp checkpoint users và 7 marker Silver không đổi. Module trên Workspace đã đối chiếu khớp source local.
+
+Kiểm tra bản tối ưu: `pytest -q tests` trong image `daln-data-test` với thư mục `data` bind mount **98 passed**; `ruff check .`, `ruff format --check .` và `git diff --check` pass. Bộ test Delta xác nhận bootstrap/CDC/retry và Silver vẫn đúng; test mới bao phủ SKIP trước Spark, metadata thiếu/sai, thay đổi source/target/config, deadline và fallback.
+
+Lượt chậm trước đó `162214251233450` mất 839.869 giây, trong đó query Spark đầu tiên được ghi nhận gần 12 phút sau khi Job bắt đầu. Lượt đó Bronze SKIP nhưng Silver có refresh `dim_shops`; **hai lượt benchmark mới là trường hợp cả hai tầng đều không đổi**, không chứng minh latency cho lượt có dữ liệu cần xử lý. Nếu Bronze hoặc Silver cần cập nhật, hoặc preflight không xác minh được trạng thái, Job vẫn cần Spark và chịu startup của dịch vụ. Tắt preflight bằng cách để trống `metadata_warehouse_id`; không cần đổi/xóa checkpoint.

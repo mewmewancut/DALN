@@ -21,6 +21,14 @@ DEPENDENCIES = {
 TRANSFORM_VERSION = 1
 
 
+def silver_fingerprint(table, inputs, excluded_shop_ids):
+    return {
+        "inputs": inputs,
+        "excluded_shop_ids": list(excluded_shop_ids) if table == "dim_shops" else [],
+        "transform_version": TRANSFORM_VERSION,
+    }
+
+
 class SparkSQL:
     def __init__(self, spark):
         self.spark = spark
@@ -59,11 +67,7 @@ def run_silver(
             if qualified not in snapshots:
                 snapshots[qualified] = table_snapshot(spark, qualified)
             inputs[dependency] = snapshots[qualified]
-        fingerprint = {
-            "inputs": inputs,
-            "excluded_shop_ids": list(transform.excluded_shop_ids) if table == "dim_shops" else [],
-            "transform_version": TRANSFORM_VERSION,
-        }
+        fingerprint = silver_fingerprint(table, inputs, transform.excluded_shop_ids)
         marker_path = root / (table + ".json")
         target = f"{transform.silver}.`{table}`"
         previous = json.loads(marker_path.read_text()) if marker_path.exists() else None

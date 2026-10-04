@@ -16,6 +16,17 @@ def save_marker(path, marker):
     temporary.replace(path)
 
 
+def validate_marker(marker, source, target, current, target_snapshot):
+    if (
+        marker["source"] != source
+        or marker["target"] != target
+        or marker["source_id"] != current["id"]
+        or marker["target_id"] != target_snapshot["id"]
+        or current["version"] < marker["processed_version"]
+    ):
+        raise IngestionError("Source/target identity changed; explicit rebuild required")
+
+
 class CDCIngest:
     def __init__(
         self,
@@ -104,15 +115,7 @@ class CDCIngest:
             snapshots[target] if target in snapshots else table_snapshot(self.spark, target)
         )
         self.target_snapshots[target] = target_snapshot
-        target_id = target_snapshot["id"]
-        if (
-            marker["source"] != source
-            or marker["target"] != target
-            or marker["source_id"] != current["id"]
-            or marker["target_id"] != target_id
-            or current["version"] < marker["processed_version"]
-        ):
-            raise IngestionError("Source/target identity changed; explicit rebuild required")
+        validate_marker(marker, source, target, current, target_snapshot)
         if current["version"] == marker["processed_version"]:
             return "SKIP"
         query = (
