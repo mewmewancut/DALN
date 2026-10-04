@@ -276,12 +276,17 @@ it("nhà cung cấp: thêm, sửa, ngừng hợp tác (soft delete) và khôi ph
     address: null,
   });
   expect(field("Tên nhà cung cấp", { scope: createForm }).value).toBe("");
-
   await click(button("Ngừng hợp tác", rowContaining("Xưởng May A")));
+  expect(remove).not.toHaveBeenCalled();
+  const confirmDialog = dialog();
+  expect(confirmDialog.textContent).toContain(
+    "Ngừng hợp tác với nhà cung cấp?",
+  );
+  expect(confirmDialog.textContent).toContain("Xưởng May A");
+  await click(button("Ngừng hợp tác", confirmDialog));
   expect(remove).toHaveBeenCalledWith("/shop/suppliers/1");
   await click(button("Khôi phục", rowContaining("Xưởng Cũ")));
   expect(put).toHaveBeenCalledWith("/shop/suppliers/2", { is_active: true });
-
   await click(button("Sửa", rowContaining("Xưởng May A")));
   expect(field("Số điện thoại", { scope: dialog() }).value).toBe("0901");
   await fill("Địa chỉ", "Hải Phòng", { scope: dialog() });

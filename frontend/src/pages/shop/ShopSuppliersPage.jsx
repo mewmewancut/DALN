@@ -67,6 +67,7 @@ export default function ShopSuppliersPage() {
   const [actionError, setActionError] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
   const [editing, setEditing] = useState(null);
+  const [supplierToStop, setSupplierToStop] = useState(null);
   const [pending, setPending] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -331,16 +332,7 @@ export default function ShopSuppliersPage() {
                           <button
                             type="button"
                             disabled={pending === supplier.id}
-                            onClick={() =>
-                              run(
-                                supplier.id,
-                                () =>
-                                  client.delete(
-                                    `/shop/suppliers/${supplier.id}`,
-                                  ),
-                                "Đã ngừng hợp tác với nhà cung cấp.",
-                              )
-                            }
+                            onClick={() => setSupplierToStop(supplier)}
                           >
                             {pending === supplier.id
                               ? "Đang xử lý..."
@@ -424,6 +416,64 @@ export default function ShopSuppliersPage() {
                 </button>
               </div>
             </form>
+          </section>
+        </div>
+      )}
+      {supplierToStop && (
+        <div className="dialog-backdrop">
+          <section
+            className="dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="stop-supplier-title"
+            aria-describedby="stop-supplier-description"
+          >
+            <p className="eyebrow">Xác nhận thao tác</p>
+
+            <h2 id="stop-supplier-title">
+              Ngừng hợp tác với nhà cung cấp?
+            </h2>
+
+            <p id="stop-supplier-description">
+              Bạn có chắc muốn ngừng hợp tác với{" "}
+              <strong>{supplierToStop.name}</strong>? Nhà cung cấp
+              sẽ chuyển sang trạng thái ngừng hợp tác và có thể
+              khôi phục lại sau.
+            </p>
+
+            <div className="dialog-actions">
+              <button
+                type="button"
+                disabled={pending === supplierToStop.id}
+                onClick={() => setSupplierToStop(null)}
+              >
+                Hủy
+              </button>
+
+              <button
+                type="button"
+                className="primary-button"
+                disabled={pending === supplierToStop.id}
+                onClick={async () => {
+                  const success = await run(
+                    supplierToStop.id,
+                    () =>
+                      client.delete(
+                        `/shop/suppliers/${supplierToStop.id}`,
+                      ),
+                    "Đã ngừng hợp tác với nhà cung cấp.",
+                  );
+
+                  if (success) {
+                    setSupplierToStop(null);
+                  }
+                }}
+              >
+                {pending === supplierToStop.id
+                  ? "Đang xử lý..."
+                  : "Ngừng hợp tác"}
+              </button>
+            </div>
           </section>
         </div>
       )}
