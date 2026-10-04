@@ -149,6 +149,21 @@ it("đăng ký vẫn chuyển tới resend khi tài khoản đã tạo nhưng SM
   expect(container.querySelector('input[type="email"]').value).toBe("smtp@example.com");
 });
 
+it("không gửi yêu cầu đăng ký khi họ tên chỉ chứa khoảng trắng", async () => {
+  const post = vi.spyOn(client, "post");
+
+  await renderAt("/register");
+  await fill("Họ và tên", "   ");
+  await fill("Email", "an@example.com");
+  await fill("Mật khẩu", "secret123");
+  await submit();
+
+  expect(post).not.toHaveBeenCalled();
+  expect(container.querySelector('[role="alert"]').textContent).toBe(
+    "Họ và tên phải có ít nhất 2 ký tự.",
+  );
+});
+
 it("tìm kiếm, lọc, sắp xếp và phân trang bằng query params; đổi filter về trang 1", async () => {
   const get = vi.spyOn(client, "get").mockImplementation(async (url, options) => {
     if (url === "/categories") return { data: [{ id: 3, name: "Áo" }] };

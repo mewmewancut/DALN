@@ -16,24 +16,43 @@ export default function RegisterPage() {
 
   async function submit(event) {
     event.preventDefault();
+
+    const normalizedFullName = fullName.trim();
+    const normalizedEmail = email.trim();
+
     setError("");
+
+    if (normalizedFullName.length < 2) {
+      setError("Họ và tên phải có ít nhất 2 ký tự.");
+      return;
+    }
+
     setPending(true);
+
     try {
       await client.post("/auth/register", {
-        full_name: fullName,
-        email,
+        full_name: normalizedFullName,
+        email: normalizedEmail,
         password,
         role,
       });
-      navigate("/verify-email-sent", { replace: true, state: { email } });
+
+      navigate("/verify-email-sent", {
+        replace: true,
+        state: { email: normalizedEmail },
+      });
     } catch (requestError) {
       if (requestError.response?.status === 503) {
         navigate("/verify-email-sent", {
           replace: true,
-          state: { email, deliveryFailed: true },
+          state: {
+            email: normalizedEmail,
+            deliveryFailed: true,
+          },
         });
         return;
       }
+
       setError(errorMessage(requestError));
     } finally {
       setPending(false);
@@ -44,6 +63,7 @@ export default function RegisterPage() {
     <SiteLayout>
       <p className="eyebrow">Tài khoản</p>
       <h1>Đăng ký</h1>
+
       <form className="form-stack" onSubmit={submit}>
         <label>
           Họ và tên
@@ -54,6 +74,7 @@ export default function RegisterPage() {
             autoComplete="name"
           />
         </label>
+
         <label>
           Email
           <input
@@ -64,6 +85,7 @@ export default function RegisterPage() {
             autoComplete="email"
           />
         </label>
+
         <label>
           Mật khẩu
           <input
@@ -75,23 +97,31 @@ export default function RegisterPage() {
             autoComplete="new-password"
           />
         </label>
+
         <small>Mật khẩu phải có ít nhất 8 ký tự.</small>
+
         <label>
           Loại tài khoản
-          <select value={role} onChange={(event) => setRole(event.target.value)}>
+          <select
+            value={role}
+            onChange={(event) => setRole(event.target.value)}
+          >
             <option value="BUYER">Người mua</option>
             <option value="SHOP_OWNER">Chủ shop</option>
           </select>
         </label>
+
         {error && (
           <p className="form-error" role="alert">
             {error}
           </p>
         )}
+
         <button type="submit" disabled={pending}>
           {pending ? "Đang đăng ký..." : "Tạo tài khoản"}
         </button>
       </form>
+
       <p>
         Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
       </p>
