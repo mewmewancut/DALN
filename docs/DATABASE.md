@@ -7,7 +7,7 @@ Tài liệu này mô tả schema vận hành đã được triển khai trong SQ
 
 ## Quy ước chung
 
-- PostgreSQL 16 được dùng trong môi trường development; Lakebase là đích triển khai và tương thích giao thức PostgreSQL.
+- Lakebase tương thích giao thức PostgreSQL và schema SQLAlchemy hiện tại. `DATABASE_URL` chọn database ứng dụng; PostgreSQL 16 local phục vụ development/test. Hướng dẫn chuyển kết nối nằm ở [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md#kết-nối-web-với-lakebase).
 - Khóa chính dùng `BIGINT` tự tăng; PostgreSQL tạo sequence tương ứng khi migration chạy.
 - `created_at` và `updated_at` dùng `TIMESTAMPTZ` và lưu thời gian UTC. Các bảng có luồng cập nhật mang cả hai timestamp; bảng snapshot và lịch sử chỉ cần `created_at`.
 - Tên constraint được chuẩn hóa để migration và lỗi database dễ truy vết.

@@ -14,7 +14,7 @@ Tài liệu này mô tả môi trường development đã được triển khai.
 
 Sao chép `.env.example` thành `.env` trước khi dùng thông tin riêng trên máy local. Không commit `.env`.
 
-- `DATABASE_URL`: database development `fashion`.
+- `DATABASE_URL`: database ứng dụng `fashion`; Compose dùng nguyên URL này. File mẫu trỏ tới `db` trong Docker; chạy Python trực tiếp trên máy thì đổi host thành `localhost`. Kết nối Lakebase xem [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md#kết-nối-web-với-lakebase).
 - `TEST_DATABASE_URL`: database test độc lập `fashion_test`.
 - `JWT_SECRET`: khóa ký JWT HS256; phải thay giá trị mẫu bằng khóa bí mật dài ít nhất 32 byte ở môi trường không phải local.
 - `JWT_EXPIRE_MINUTES`: thời hạn token.

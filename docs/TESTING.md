@@ -26,11 +26,14 @@ Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai
 
 Bronze/Silver có test Delta local và Job/đối chiếu dữ liệu trên Databricks thật; bằng chứng và lệnh nghiệm thu riêng nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md), nghiệp vụ ở [`E2_SILVER.md`](E2_SILVER.md). Browser end-to-end luồng mua hàng và nghiệm thu Gold/gate E4 của F6–F7 còn **Planned**. Test luồng API hiện tại chạy với database test và rollback sau test; nó không thay thế browser end-to-end.
 
+Data có notebook chính `00_pipeline.py` và hai notebook demo riêng `01_bronze_ingest.py`, `02_silver_transform.py`. Test notebook kiểm tra điều phối E1→E2, từng entry demo chỉ chạy đúng tầng, trả kết quả cho Job và không báo thành công khi xử lý lỗi. Các test CDC, Silver, metadata, nghiệm thu và warehouse được giữ; `acceptance.py`/`warehouse_sql.py` cùng dependency SDK vẫn cần cho bộ test nghiệm thu, dù không được Job thường gọi. Cách demo từng bước nằm ở [Data platform](DATA_PLATFORM.md#demo-từng-bước-bronze--silver).
+
 ## Nguyên tắc
 
 - Mỗi hành vi mới hoặc thay đổi hành vi (API, service, model/constraint, component/route frontend, script, cấu hình) phải có test mới hoặc test được cập nhật trong cùng task và commit. Test phải kiểm tra kết quả quan sát được cùng các nhánh lỗi, phân quyền, biên và invariant liên quan; chỉ chạy lại test cũ không tính là đã cover phần mới.
 - Thay đổi chỉ về tài liệu phải có lệnh kiểm tra phù hợp, tối thiểu là kiểm tra diff. Chỉ coi task hoàn thành khi test và kiểm tra liên quan đều pass.
 - Backend test dùng PostgreSQL `fashion_test`, tách khỏi database development `fashion`.
+- Compose giữ `TEST_DATABASE_URL` trong container ở database local `fashion_test` ngay cả khi `DATABASE_URL` ứng dụng trỏ tới Lakebase. Test không được tạo/drop bảng trên Lakebase đang phục vụ website.
 - Các test thông thường dùng transaction riêng và rollback sau test. Hai ca giỏ hàng đồng thời tạo schema riêng trong database test để dùng commit thật giữa các session; schema được xóa trong `finally`. Không tạo dữ liệu này trong database development.
 - Constraint quan trọng phải được kiểm tra ở database, không chỉ kiểm tra bằng Python.
 - Không bỏ qua, làm yếu hoặc xóa test đang fail để làm suite xanh.
@@ -45,13 +48,23 @@ docker compose --env-file .env.example exec -T frontend npm test
 
 ## Hook pre-commit
 
+Test cấu hình kết nối chạy bằng Python trên máy có Docker Compose, không khởi động hoặc sửa database:
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+Ba ca kiểm tra Compose thực tế: file mẫu trỏ `db`, URL Lakebase được chuyển nguyên vẹn cùng SSL và database test vẫn tách biệt, thiếu URL thì dùng thông số Postgres local.
+
 Hook được lưu trong `.githooks/pre-commit`. Kích hoạt một lần cho mỗi clone:
 
 ```powershell
 git config core.hooksPath .githooks
 ```
 
-Mỗi lần `git commit`, hook build image, đồng bộ npm theo lockfile khi frontend đã dừng, kiểm tra regression của hook rồi khởi động Docker Compose. Sau đó chạy Ruff lint/format, ESLint/Prettier, áp dụng và kiểm tra migration, toàn bộ pytest backend, lint/format và test Bronze/Silver trong image data test riêng, Vitest, build frontend, audit dependency và smoke test hai service. Bất kỳ lệnh nào thất bại sẽ chặn commit. Lint/format chỉ kiểm tra, không tự sửa file. Có thể chạy lại thủ công bằng `git hook run pre-commit`. Docker Desktop cần chạy; build image data test cần Python registry/Maven, cài dependency và audit cần npm registry. Container data test chỉ là công cụ kiểm thử code local, không thay thế Databricks web. Hook kiểm tra working tree đang có trên máy, nên trước khi commit từng phần cần bảo đảm code được test khớp phần đã stage. Cách kiểm tra race dependency và lệnh lint/format nằm trong [`DEVELOPMENT.md`](DEVELOPMENT.md#chuẩn-hóa-code).
+Mỗi lần `git commit`, hook build image, đồng bộ npm theo lockfile khi frontend đã dừng, kiểm tra regression của hook rồi khởi động Docker Compose bằng `.env.example` để kiểm tra local. Sau đó chạy Ruff lint/format, ESLint/Prettier, áp dụng và kiểm tra migration, toàn bộ pytest backend, lint/format và test Bronze/Silver trong image data test riêng, Vitest, build frontend, audit dependency và smoke test hai service. Bất kỳ lệnh nào thất bại sẽ chặn commit. Nếu `.env` tồn tại và hook đã bắt đầu thay đổi service, khi kết thúc hook khôi phục backend/frontend bằng `.env`, kể cả khi test hoặc dependency fail; khôi phục thất bại cũng chặn commit và không in thông báo pass. Vì vậy môi trường đã chuyển Lakebase không bị giữ lại ở cấu hình test local sau commit. Hook vẫn làm service khởi động lại trong quá trình kiểm tra. Lint/format chỉ kiểm tra, không tự sửa file. Có thể chạy lại thủ công bằng `git hook run pre-commit`. Docker Desktop cần chạy; build image data test cần Python registry/Maven, cài dependency và audit cần npm registry. Container data test chỉ là công cụ kiểm thử code local, không thay thế Databricks web. Hook kiểm tra working tree đang có trên máy, nên trước khi commit từng phần cần bảo đảm code được test khớp phần đã stage. Cách kiểm tra race dependency và lệnh lint/format nằm trong [`DEVELOPMENT.md`](DEVELOPMENT.md#chuẩn-hóa-code).
+
+Test hook chạy hook thật với Docker giả lập: giữ kiểm tra lỗi dependency/test, đồng thời kiểm tra khôi phục `.env` khi thành công hoặc fail và lỗi khôi phục chặn commit. Ba regression về khôi phục đều fail với hook cũ và pass sau sửa.
 
 `backend/app/tests/test_code_quality.py` và `frontend/quality.test.js` chạy CLI thật trên đoạn code qua stdin: code hợp lệ được chấp nhận, biến/import lỗi, JSX chưa khai báo, hook có điều kiện và dependency effect thiếu bị từ chối. Test format xác nhận code chưa chuẩn trả exit code 1 và output sau format pass. Các probe không tạo file lỗi trong source tree.
 
@@ -89,6 +102,7 @@ Mỗi lần `git commit`, hook build image, đồng bộ npm theo lockfile khi f
 - Catalog công khai lọc, sắp xếp, phân trang theo giá variant hoạt động; ẩn sản phẩm và shop không hoạt động; chi tiết có tồn kho và rating trung bình. Danh sách quản lý shop chỉ trả sản phẩm thuộc shop hiện tại nhưng giữ cả product/variant đã ẩn, hỗ trợ lọc và phân trang; buyer/khách không gọi được.
 - Luồng API nối đăng ký, xác minh email, đăng nhập, tạo shop, tạo sản phẩm, catalog công khai, chặn buyer sửa sản phẩm và soft delete.
 - Frontend gửi đúng body login/register/verify/resend/forgot/reset, điều hướng tới trang chờ email, kiểm tra xác nhận mật khẩu, hiển thị lỗi API và link resend khi email chưa xác minh.
+- Quyền runtime sequence: test PostgreSQL local tái hiện INSERT lỗi 42501 khi chỉ có quyền bảng; áp dụng `backend/docker/grant-runtime-sequences.sql` bằng role chủ sở hữu rồi kiểm tra INSERT tự tăng ID cho sequence hiện có và mới, chạy script lặp lại và không cấp CREATE schema. Hướng dẫn áp dụng Lakebase nằm trong [Deployment Guide](DEPLOYMENT_GUIDE.md#đăng-ký-báo-lỗi-quyền-sequence).
 - Frontend gọi lại catalog với query params khi đổi bộ lọc hoặc trang, về trang 1 khi đổi filter, hiển thị trạng thái rỗng/lỗi và giá từ API.
 - Chi tiết sản phẩm hiển thị giá/tồn kho đúng variant được chọn, xóa size khi đổi màu và báo lỗi sản phẩm không tồn tại.
 - Frontend thêm đúng `variant_id` vào giỏ; khi nhận `CART_DIFFERENT_SHOP` chỉ gọi xóa giỏ và thêm lại sau khi buyer xác nhận. Trang giỏ chặn số lượng vượt `stock_quantity`, gửi đúng body cập nhật, xóa item và cập nhật tổng tiền/trạng thái rỗng từ response API.

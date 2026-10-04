@@ -21,7 +21,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`API.md`](API.md) | In progress | Endpoint C0–C10 và P1–P4: auth, hồ sơ/địa chỉ, wishlist/sở thích/gợi ý, catalog, vận hành shop, đơn hàng, thống kê, admin, role và error contract |
 | [`DATA_PLATFORM.md`](DATA_PLATFORM.md) | Implemented (E1/E2) | CDC/checkpoint, Job serverless, setup/recovery và nghiệm thu; E3–E6 còn Planned |
 | [`E2_SILVER.md`](E2_SILVER.md) | Implemented | 7 bảng Silver, dependency skip, nghiệp vụ/transaction và kiểm thử |
-| [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) | Implemented | Cài đặt Docker, cấu hình, migration, seed, kiểm tra và xử lý lỗi local/demo từ đầu |
+| [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) | Implemented | Cài đặt Docker, chọn database local/Lakebase, cutover/rollback, migration, seed và kiểm tra local/demo |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |
 | [`TESTING.md`](TESTING.md) | In progress | Các lớp test hiện có, hook pre-commit và hướng dẫn chạy |
 

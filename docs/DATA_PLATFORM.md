@@ -24,19 +24,20 @@ Job bình thường không dùng SQL warehouse/SDK, không cài pip hoặc resta
 | File | Vai trò |
 |---|---|
 | `data/00_pipeline.py` | Entry Job chính: E1 rồi E2 trong một phiên compute |
-| `data/01_bronze_ingest.py` | Chạy riêng E1 |
-| `data/01_bronze_job.py` | Entry E1 tương thích đường dẫn Job cũ; cùng runner CDC |
-| `data/02_silver_transform.py` | Chạy riêng E2 sau E1 thành công |
+| `data/01_bronze_ingest.py` | Notebook demo riêng: chỉ nạp CDC vào Bronze |
+| `data/02_silver_transform.py` | Notebook demo riêng: chỉ cập nhật Silver từ Bronze hiện có |
 | `data/cdc_ingest.py`, `cdc_merge.py` | Bootstrap, offsets, validation và MERGE CDC |
 | `data/silver_job.py`, `silver_transform.py`, `silver_queries.py` | Dependency skip và biến đổi Silver |
 | `data/pipeline_job.py`, `bronze_ingest.py` | Điều phối, widget và allow-list/identifier |
 | `data/delta_metadata.py` | Prefetch metadata có giới hạn, dùng chung snapshot giữa các stage |
-| `data/acceptance.py`, `warehouse_sql.py` | Nghiệm thu chỉ đọc, chạy riêng qua warehouse |
-| `data/03_gold_aggregate.py`, `04_data_quality_check.py` | Placeholder **Planned**, không có trong Job E1/E2 |
+| `data/acceptance.py`, `warehouse_sql.py` | Nghiệm thu chỉ đọc, chạy riêng qua warehouse; giữ để bộ test nghiệm thu hiện có tiếp tục chạy |
+| `data/tests/`, `Dockerfile.test`, `requirements-test.txt`, `requirements.txt`, `ruff.toml`, `.dockerignore` | Test Delta local, dependency và cấu hình kiểm tra |
+
+`data/00_pipeline.py` vẫn là entry của Job chính. Hai notebook demo riêng gọi lại cùng logic điều phối với `stage="bronze"` hoặc `stage="silver"`, dùng cùng widget và checkpoint; không sao chép logic ingestion/biến đổi và không thay đổi Job đang chạy. Entry tương thích `01_bronze_job.py` đã bỏ. Placeholder E3/E4 đã bỏ; Gold và gate chất lượng vẫn **Planned**, sẽ tạo source khi bắt đầu triển khai. Tên bước trong Planning là đặc tả dự kiến; danh sách file hiện có nằm ở bảng trên.
 
 ## Setup một lần
 
-1. Chuẩn bị Lakebase database ứng dụng, migration và dữ liệu theo [Deployment guide](DEPLOYMENT_GUIDE.md). Backend local không tự chuyển sang Lakebase.
+1. Chuẩn bị Lakebase database ứng dụng, migration và dữ liệu theo [Deployment guide](DEPLOYMENT_GUIDE.md#kết-nối-web-với-lakebase). Compose dùng `DATABASE_URL` trong `.env` để chọn Lakebase; file mẫu vẫn dành cho local/test.
 2. Bật Lakebase CDF cho schema ứng dụng; mọi bảng tham gia phải có REPLICA IDENTITY FULL. Khi thêm bảng mới, migration cần cấu hình lại thuộc tính này. Không bật Delta CDF hay tự sửa/drop các bảng history do Lakebase quản lý.
 3. Tạo storage credential, external location, catalog `fashion_cdc` trên S3 cùng vùng metastore; tạo schema `bronze`. Với S3 dùng IAM trust/external ID đúng workspace và quyền giới hạn bucket, không đưa access key vào code.
 4. Tạo Volume và namespace:
@@ -57,7 +58,20 @@ Job bình thường không dùng SQL warehouse/SDK, không cài pip hoặc resta
 | `checkpoint_root` | `/Volumes/fashion_cdc/bronze/pipeline_checkpoints` |
 | `excluded_shop_ids` | Rỗng; chỉ điền ID shop test đã biết |
 
-Run as cần SELECT history, USE CATALOG/SCHEMA, READ/WRITE VOLUME checkpoint, CREATE TABLE và SELECT/MODIFY Bronze/Silver; quyền quản lý staging Silver. Chạy tay trước demo hoặc lịch 15 phút theo Planning. Dừng lịch/Job Bronze cũ trước khi bật Job mới; không chạy notebook riêng chồng Job.
+Run as cần SELECT history, USE CATALOG/SCHEMA, READ/WRITE VOLUME checkpoint, CREATE TABLE và SELECT/MODIFY Bronze/Silver; quyền quản lý staging Silver. Chạy tay trước demo hoặc lịch 15 phút theo Planning. Dừng lịch/Job Bronze cũ trước khi bật Job mới; không chạy notebook chính chồng Job.
+
+## Demo từng bước Bronze → Silver
+
+Đồng bộ cả thư mục `data` lên Git folder/Workspace để hai notebook mới có đầy đủ module. Dùng cùng catalog, `checkpoint_root` và `excluded_shop_ids` như Job chính; không tạo checkpoint mới cho demo. Các notebook riêng cũng chạy trên serverless compute và trả kết quả/timing của đúng tầng được chọn.
+
+1. Chờ Job chính hoàn tất; trong khi demo, không chạy Job chính hoặc notebook khác đồng thời vào cùng checkpoint/bảng đích.
+2. Chọn một sản phẩm, ghi nhận `id` và tên hiện tại trong `fashion.bronze.products` và `fashion.silver.dim_products`. Sửa tên qua website/API của shop sở hữu sản phẩm.
+3. Chờ thay đổi xuất hiện trong `fashion_cdc.bronze.lb_products_history`. Bronze/Silver vẫn giữ giá trị trước đó nếu chưa chạy pipeline.
+4. Chạy [`01_bronze_ingest.py`](../data/01_bronze_ingest.py): tên mới xuất hiện ở `fashion.bronze.products`; `fashion.silver.dim_products` chưa cập nhật vì notebook không chạy Silver.
+5. Chạy [`02_silver_transform.py`](../data/02_silver_transform.py): tên mới xuất hiện ở `fashion.silver.dim_products`. Notebook chỉ đọc Bronze hiện có, không nạp thêm CDC.
+6. Khi nguồn không đổi, chạy lại từng notebook sẽ SKIP các bảng đã xử lý. Có thể dùng `00_pipeline.py` cho các lượt chạy hệ thống tiếp theo như trước.
+
+Đối chiếu giá trị theo cùng `id` thay vì chỉ đếm dòng: sửa tên không làm tăng số dòng. Ghi nhận tên cũ để có thể khôi phục qua website/API sau demo, rồi chạy Job chính để đồng bộ lại các tầng. Kiểm thử local xác nhận mỗi notebook chỉ gọi tầng được chọn, trả kết quả đúng tầng và không báo thành công khi tầng đó lỗi; việc chạy hai entry mới trên workspace thật chưa được xác minh.
 
 ## Lỗi và recovery
 
@@ -103,3 +117,15 @@ Job `DALN E1 E2 CDC` (ID `712610164863330`) chạy tay, serverless environment v
 | Kiểm tra local/pre-commit | 69 test data, 162 backend, 89 frontend pass; lint/format, migration, build, audit và smoke test pass |
 
 Số đo lượt không đổi giảm khoảng 45% overhead Job so với bản CDC chưa prefetch; đây không phải benchmark cho lượt có nhiều dữ liệu mới. Lần bootstrap đọc toàn bộ history một lần; lượt thường chỉ đọc commit mới. E3/E4 và chuyển backend đang chạy local sang Lakebase nằm ngoài task E1/E2.
+
+### Cutover website sang Lakebase — 04/10/2026
+
+Sau nghiệm thu E1/E2 ở trên, backend trên máy đã chuyển sang database Lakebase `fashion`. Người dùng chọn giữ dữ liệu Lakebase hiện có, không chuyển dữ liệu Docker. Runtime dùng role `daln_app` và SSL; cấu hình, quyền và rollback nằm ở [Deployment guide](DEPLOYMENT_GUIDE.md#kết-nối-web-với-lakebase). Frontend/backend vẫn chạy local; database Docker giữ bản cũ và database test riêng.
+
+- Kết nối thật xác nhận host Lakebase, current_user `daln_app`, SSL và không có quyền tạo schema/table hoặc quản lý database/role. Schema khớp toàn bộ model; Alembic revision `20260929_0008`.
+- API catalog, đăng nhập buyer/shop/admin và danh sách admin đọc đúng 9 user/45 product/36 order từ Lakebase. Sai role và shop khác bị từ chối. Thử tăng ngưỡng tồn kho variant 10 rồi khôi phục ngay giá trị gốc; kiểm tra trực tiếp database xác nhận cả lần ghi và khôi phục. Không đổi số lượng tồn kho hoặc đơn hàng.
+- Job E1/E2 run `350942916805940` **SUCCESS**: chỉ inventory có CDC, chỉ fact_inventory refresh (135 dòng); 18 bảng còn lại SKIP. Thời gian tổng khoảng 193 giây, gồm startup; E1 150.715 giây/E2 30.805 giây. Đây là kiểm tra cutover, không phải benchmark.
+- Nghiệm thu chỉ đọc sau Job: 13 Bronze khớp count/khóa với Lakebase và cả 7 Silver khớp projection hai chiều. `updated_at` variant 10 từ lần ghi API khớp giữa Lakebase và Bronze (`2026-10-04 12:45:51.837233` UTC); phép đối chiếu Silver xác nhận fact_inventory đã nhận cùng trạng thái.
+- Test sau cutover: 162 backend, 3 cấu hình Compose và 7 hook pass; lint/format, frontend HTTP smoke và diff check pass. Hook khôi phục `.env` sau kiểm thử local; ba regression về khôi phục đều fail trên hook cũ.
+
+Gold E3, gate E4, Dashboard/Genie vẫn **Planned**. Job hiện chạy tay; dữ liệu Bronze/Silver chỉ cập nhật khi Job chạy, không phải website ghi tới đâu Silver cập nhật ngay tới đó.

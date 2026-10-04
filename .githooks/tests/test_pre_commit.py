@@ -10,9 +10,11 @@ HOOK = Path(__file__).resolve().parents[1] / "pre-commit"
 
 
 class PreCommitTests(unittest.TestCase):
-    def run_hook(self, failure=""):
+    def run_hook(self, failure="", runtime=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
+            if runtime:
+                (root / ".env").write_text("DATABASE_URL=postgresql://demo:fake@lakebase/demo\n")
             binary = root / "bin"
             binary.mkdir()
             (root / "frontend_state").write_text("running")
@@ -85,4 +87,24 @@ fi
         self.assertEqual(result.returncode, 17)
         self.assertNotIn("npm test", calls)
         self.assertNotIn("npm run build", calls)
+        self.assertNotIn("Tất cả kiểm tra đã pass", result.stdout)
+
+    def test_runtime_configuration_is_restored_after_success(self):
+        result, calls = self.run_hook(runtime=True)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            calls.splitlines()[-1],
+            "compose --env-file .env up -d --no-deps backend frontend",
+        )
+
+    def test_runtime_is_restored_and_test_failure_still_blocks_commit(self):
+        result, calls = self.run_hook("backend pytest -q", runtime=True)
+        self.assertEqual(result.returncode, 17)
+        self.assertIn("compose --env-file .env up -d --no-deps backend frontend", calls)
+        self.assertNotIn("npm run build", calls)
+
+    def test_failure_to_restore_runtime_blocks_commit(self):
+        result, calls = self.run_hook("--env-file .env up", runtime=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("compose --env-file .env up -d --no-deps backend frontend", calls)
         self.assertNotIn("Tất cả kiểm tra đã pass", result.stdout)

@@ -9,7 +9,7 @@
 Tài liệu này hướng dẫn tải source code, tạo cấu hình, khởi động database/backend/frontend, tạo dữ liệu mẫu, kiểm tra hệ thống và xử lý các lỗi thường gặp.
 
 > [!IMPORTANT]
-> Repository hiện chạy hoàn chỉnh phần web vận hành bằng PostgreSQL local. Bronze E1 và Silver E2 dùng CDC/checkpoint, đã chạy Job và nghiệm thu trên Databricks; setup và bằng chứng nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md) và [`E2_SILVER.md`](E2_SILVER.md). Gold E3, gate E4, AI/BI Dashboard, Genie và cấu hình production public chưa triển khai.
+> Web vận hành đã chuyển sang Lakebase với cấu hình `.env` riêng trên máy; `.env.example` vẫn chạy PostgreSQL local cho development/test. Hướng dẫn dưới đây mô tả setup local; cách chọn Lakebase nằm ở mục 15. Bronze E1 và Silver E2 dùng CDC/checkpoint, đã chạy Job và nghiệm thu trên Databricks; setup và bằng chứng nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md) và [`E2_SILVER.md`](E2_SILVER.md). Gold E3, gate E4, AI/BI Dashboard, Genie và cấu hình production public chưa triển khai.
 
 ## 1. Sau khi hoàn thành bạn sẽ có gì?
 
@@ -115,7 +115,7 @@ Nội dung tối thiểu:
 POSTGRES_DB=fashion
 POSTGRES_USER=fashion
 POSTGRES_PASSWORD=fashion
-DATABASE_URL=postgresql+psycopg://fashion:fashion@localhost:5432/fashion
+DATABASE_URL=postgresql+psycopg://fashion:fashion@db:5432/fashion
 TEST_DATABASE_URL=postgresql+psycopg://fashion:fashion@localhost:5432/fashion_test
 JWT_SECRET=thay-bang-chuoi-bi-mat-dai-it-nhat-32-ky-tu
 JWT_EXPIRE_MINUTES=60
@@ -523,14 +523,63 @@ Sau đó tải lại trang bằng `Ctrl+F5`.
 
 ## 15. Trạng thái triển khai Databricks
 
+### Kết nối web với Lakebase
+
+Compose chuyển nguyên giá trị `DATABASE_URL` trong `.env` vào backend. File mẫu dùng host `db` cho development trong Docker; nếu chạy Python trực tiếp trên máy, dùng `localhost` thay `db`. `TEST_DATABASE_URL` của container luôn trỏ tới `db:5432/fashion_test`, tách khỏi dữ liệu ứng dụng.
+
+Để dùng Lakebase, chuẩn bị database `fashion` với migration hiện tại rồi đặt URL trong `.env`:
+
+```dotenv
+DATABASE_URL=postgresql+psycopg://<app-role>:<url-encoded-password>@<lakebase-host>:5432/fashion?sslmode=require
+```
+
+Dùng role riêng cho ứng dụng, có CONNECT database, USAGE schema `public`, SELECT/INSERT/UPDATE/DELETE các bảng và USAGE/SELECT/UPDATE sequence. Role chạy migration riêng cần quyền DDL; không cấp quyền quản lý role/database cho runtime. Khi migration tạo bảng mới, cấp quyền runtime và cấu hình REPLICA IDENTITY FULL cho bảng tham gia CDC. Password phải lưu trong `.env` bị Git bỏ qua; không đưa OAuth token một giờ vào URL cố định. Lakebase project phải bật native Postgres password login để dùng cách này; xem [Databricks authentication](https://docs.databricks.com/aws/en/oltp/projects/authentication).
+
+Trước cutover, đối chiếu schema và dữ liệu, chốt nguồn chính khi hai bên khác nhau rồi dừng ghi từ web trong lúc chuyển. Giữ database local để dự phòng; không dùng seed để thay thế dữ liệu đang vận hành. Sau khi dữ liệu đã được xác minh:
+
+```powershell
+docker compose --env-file .env up -d --no-deps --force-recreate backend
+```
+
+Kiểm tra kết nối thật, catalog và đăng nhập qua API; `/health` chỉ xác nhận HTTP service hoạt động. Chạy lại Job E1/E2 và nghiệm thu theo `DATA_PLATFORM.md` để kiểm tra dữ liệu web đã đi tới Bronze/Silver. Frontend/backend tiếp tục chạy local trong Docker; dữ liệu vận hành nằm trên Lakebase. Gold/Dashboard/Genie vẫn theo gate Planning E4.
+
+Cutover trên máy ngày 04/10/2026 dùng dữ liệu Lakebase có sẵn (9 user, 45 product, 36 order); người dùng chọn không chuyển dữ liệu Docker. Role `daln_app` được cấp DML trên 22 bảng ứng dụng, không có CREATE schema/table, CREATEDB, CREATEROLE, SUPERUSER hoặc BYPASSRLS. Kiểm tra sau cutover phát hiện cả 22 sequence chưa có quyền runtime; người dùng đã chạy script sửa quyền dưới đây bằng `fashion_e1`. Kiểm tra lại xác nhận 22/22 sequence có USAGE và default privileges cho sequence mới đã tồn tại. Mật khẩu ngẫu nhiên chỉ nằm trong cấu hình ngoài Git. `.env.before-lakebase` lưu cấu hình cũ để dự phòng; database local giữ nguyên. Nếu cần rollback kết nối, sao lưu `.env` hiện tại rồi phục hồi cấu hình cũ và recreate backend; không tự sao chép/ghi đè dữ liệu hai bên.
+
+`exec` dùng môi trường của container đang chạy: thêm `--env-file .env.example` vào lệnh `exec` không chuyển database bên trong container. Không chạy migration/seed trên runtime `daln_app`; migration Lakebase phải dùng tài khoản DDL riêng. Lệnh `up` với `.env.example` sẽ chuyển ứng dụng về local; sau kiểm thử thủ công, chạy `docker compose --env-file .env up -d --no-deps backend frontend` để phục hồi Lakebase. Hook pre-commit tự phục hồi `.env` sau kiểm tra, kể cả khi test fail.
+
+#### Đăng ký báo lỗi quyền sequence
+
+Nếu backend ghi `permission denied for sequence users_id_seq`, tài khoản runtime đọc được bảng nhưng không lấy được ID tự tăng. Trình duyệt có thể hiện “Không thể kết nối tới máy chủ” khi lỗi 500 không có CORS header. `/health`, catalog và login đều có thể thành công dù thao tác INSERT lỗi.
+
+File [`grant-runtime-sequences.sql`](../backend/docker/grant-runtime-sequences.sql) cấp quyền cho sequence hiện có và sequence tạo sau này bởi `fashion_e1`. Chạy bằng đúng chủ sở hữu `fashion_e1`, không dùng `daln_app` hoặc mặc định cho rằng OAuth project owner có quyền cấp trên mọi sequence. PostgreSQL có thể chỉ cảnh báo và không cấp quyền khi người chạy thiếu grant option; phải kiểm tra quyền thực tế sau khi chạy. Xem [Databricks database permissions](https://docs.databricks.com/aws/en/oltp/projects/manage-roles-permissions).
+
+```powershell
+docker compose --env-file .env cp backend/docker/grant-runtime-sequences.sql db:/tmp/grant-runtime-sequences.sql
+docker compose --env-file .env exec db psql "host=ep-blue-bar-d8j088yo.database.us-east-2.cloud.databricks.com port=5432 dbname=fashion user=fashion_e1 sslmode=require" -W --single-transaction --set ON_ERROR_STOP=1 --file /tmp/grant-runtime-sequences.sql
+```
+
+Nhập mật khẩu `fashion_e1` khi psql hỏi; không đặt mật khẩu trong lệnh hoặc tài liệu. Script chạy lại được và không đổi dữ liệu nghiệp vụ. Kiểm tra trong psql:
+
+```sql
+SELECT sequencename,
+       has_sequence_privilege('daln_app', format('%I.%I', schemaname, sequencename), 'USAGE') AS can_use
+FROM pg_sequences
+WHERE schemaname = 'public'
+ORDER BY sequencename;
+```
+
+Tất cả `can_use` phải là `true`, sau đó thử đăng ký lại và kiểm tra gửi email xác minh. Kiểm thử hồi quy local tại `backend/app/tests/test_runtime_sequence_permissions.py` tái hiện INSERT thiếu quyền dù có quyền bảng, rồi kiểm tra script sửa INSERT cho cả sequence cũ và mới mà không cấp CREATE schema.
+
+### Pipeline phân tích
+
 E1 Bronze và E2 Silver đã có notebook, test Delta local và nghiệm thu trên workspace thật. E3 Gold và gate E4 còn Planned. Setup E1/E2 dùng CDC đã được duyệt, giữ nguyên bảng và nghiệp vụ Planning:
 
-1. Chuẩn bị database ứng dụng trên Lakebase; backend local không tự chuyển kết nối.
+1. Chuẩn bị database ứng dụng trên Lakebase; chuyển backend bằng `DATABASE_URL` theo hướng dẫn trên.
 2. Bật Lakebase CDF vào external catalog S3 và tạo Volume checkpoint, schema Bronze/Silver theo [`DATA_PLATFORM.md`](DATA_PLATFORM.md).
 3. Đồng bộ Git folder; cấu hình một task serverless `data/00_pipeline.py`, maximum concurrent runs = 1. Chạy tay trước demo hoặc lịch 15 phút; dừng Job Bronze cũ trước khi bật lịch mới.
 4. Chạy Job hai lượt và nghiệm thu riêng bằng `data/acceptance.py`; xem [`E2_SILVER.md`](E2_SILVER.md). Ngày Việt Nam chỉ tính ở Silver. Không chạy audit/đếm nguồn trong mỗi lượt Job.
-5. Hoàn thiện `03_gold_aggregate.py` theo định nghĩa metric C9.
-6. Chạy `04_data_quality_check.py`; cả năm kiểm tra E4 phải PASS.
+5. **Planned:** triển khai E3 Gold theo định nghĩa metric C9; source chưa có.
+6. **Planned:** triển khai và chạy gate E4; cả năm kiểm tra phải PASS trước Dashboard/Genie. Danh sách file pipeline hiện có nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md#file).
 7. Chỉ sau khi E4 PASS mới tạo AI/BI Dashboard và Genie space.
 8. Điền URL thật vào `VITE_DATABRICKS_DASHBOARD_URL` và `VITE_DATABRICKS_GENIE_URL`, rồi build lại frontend.
 

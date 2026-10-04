@@ -11,6 +11,21 @@ step() {
   printf '\n[pre-commit] %s\n' "$1"
 }
 
+restore_needed=0
+restore_runtime() {
+  result=$?
+  trap - EXIT
+  if [ "$restore_needed" -eq 1 ] && [ -f .env ]; then
+    step "Khôi phục cấu hình runtime từ .env"
+    MSYS_NO_PATHCONV=1 docker compose --env-file .env up -d --no-deps backend frontend || result=1
+  fi
+  if [ "$result" -eq 0 ]; then
+    step "Tất cả kiểm tra đã pass"
+  fi
+  exit "$result"
+}
+trap restore_runtime EXIT
+
 step "Kiểm tra diff đã stage và Docker Compose"
 git diff --cached --check
 git diff --check
@@ -18,6 +33,7 @@ compose config --quiet
 
 step "Build image và đồng bộ dependency khi frontend đã dừng"
 compose build
+restore_needed=1
 compose stop frontend
 compose run --rm --no-deps frontend npm ci --no-audit --no-fund
 
@@ -56,5 +72,3 @@ compose exec -T frontend npm audit --audit-level=moderate
 step "Smoke test các service đang chạy"
 compose exec -T backend python -c "import httpx; r = httpx.get('http://127.0.0.1:8000/health'); assert r.status_code == 200 and r.json() == {'status': 'ok'}"
 compose exec -T frontend node -e "fetch('http://127.0.0.1:5173/').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))"
-
-step "Tất cả kiểm tra đã pass"
