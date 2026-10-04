@@ -1,6 +1,6 @@
 # Data platform
 
-**Trạng thái: In progress.** E1 đã có code notebook và test Delta local. Kết nối Lakebase, chạy notebook/Job trên Databricks web và nghiệm thu số dòng trên nguồn thật vẫn **Planned**. E2–E6 chưa triển khai; chưa tạo Dashboard hoặc Genie. Đặc tả chuẩn nằm ở [Planning phần E](PLANNING.md#phần-e--data-platform-databricks).
+**Trạng thái: In progress.** E1 và E2 đã có code notebook/Job và test Delta local. Nghiệm thu E1 hai lượt, cấu hình Job thật và nghiệm thu E2 trên Databricks chưa hoàn tất; checklist E1 nằm ở cuối [hướng dẫn E2](E2_SILVER.md#e1--điều-kiện-cần-hoàn-tất-trước-khi-nghiệm-thu-e2). E3–E6 vẫn **Planned**; chưa tạo Dashboard hoặc Genie. Đặc tả chuẩn nằm ở [Planning phần E](PLANNING.md#phần-e--data-platform-databricks).
 
 ## Chạy E1 trên Databricks web
 
@@ -62,6 +62,8 @@ Notebook `01_bronze_ingest.py` vẫn là công cụ nghiệm thu E1 với `check
 
 ## Kiểm tra code
 
+E2: xem [hướng dẫn Silver](E2_SILVER.md) cho 7 bảng đã triển khai, cấu hình task sau Bronze, MERGE dữ liệu đã làm sạch, ngày Việt Nam, nghiệm thu và checklist E1 còn lại.
+
 Test nằm trong `data/tests`: Delta MERGE thật cho 13 bảng chạy hai lần, update/insert, bảng rỗng, giữ UTC/decimal/soft-delete, khóa lỗi, schema lệch, rollback khi constraint fail, nguồn đổi sau snapshot và dọn staging. Test adapter kiểm tra câu SQL ngắn không sleep/poll, polling/failure/timeout; test notebook kiểm tra widgets và nghiệm thu hai lần. Test Job kiểm tra giới hạn song song, client riêng từng worker, lỗi không giao thêm bảng và chờ dọn staging, output tiến độ/thời gian, validation tham số trước kết nối và MERGE Delta thật hai lượt có update/insert.
 
 Container dưới đây **chỉ chạy test Spark/Delta local**, không cài Databricks hoặc Lakebase và không cần tài khoản workspace. Không phải bước setup trên web của bạn. Hook pre-commit chạy cùng các kiểm tra này để bảo vệ code đã commit:
@@ -78,6 +80,6 @@ Image dùng Java 17, Spark 3.5.7 và Delta 3.3.2 theo [ma trận tương thích 
 ## Phần còn Planned
 
 - Kết nối backend với Lakebase và kiểm tra migration/seed trên database thật.
-- Chạy E1 trên catalog nguồn thật hai lần; cấu hình Job và xác nhận quyền Run as.
-- E2 Silver, E3 Gold và toàn bộ gate E4.
+- Lưu/đối chiếu bằng chứng E1 hai lượt trên nguồn thật; cấu hình Job và xác nhận quyền Run as.
+- Chạy/nghiệm thu task E2 Silver trên workspace thật; E3 Gold và toàn bộ gate E4 chưa triển khai.
 - E5 Dashboard, E6 Genie: chỉ bắt đầu sau khi E4 đạt.

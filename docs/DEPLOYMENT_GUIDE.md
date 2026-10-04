@@ -9,7 +9,7 @@
 Tài liệu này hướng dẫn tải source code, tạo cấu hình, khởi động database/backend/frontend, tạo dữ liệu mẫu, kiểm tra hệ thống và xử lý các lỗi thường gặp.
 
 > [!IMPORTANT]
-> Repository hiện chạy hoàn chỉnh phần web vận hành bằng PostgreSQL local. Bronze E1 đã có notebook và test Delta local; kết nối Lakebase và nghiệm thu trên Databricks web vẫn **Planned**. Silver/Gold E2–E4, AI/BI Dashboard, Genie và cấu hình production public chưa triển khai. Setup/chạy Bronze trên web được hướng dẫn tại [`DATA_PLATFORM.md`](DATA_PLATFORM.md); repository hiện chưa có toàn bộ pipeline analytics.
+> Repository hiện chạy hoàn chỉnh phần web vận hành bằng PostgreSQL local. Bronze E1 và Silver E2 đã có notebook và test Delta local; nghiệm thu E1, cấu hình Job thật và nghiệm thu E2 trên Databricks chưa hoàn tất. Thao tác còn lại nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md) và [`E2_SILVER.md`](E2_SILVER.md). Gold E3, gate E4, AI/BI Dashboard, Genie và cấu hình production public chưa triển khai; repository hiện chưa có toàn bộ pipeline analytics.
 
 ## 1. Sau khi hoàn thành bạn sẽ có gì?
 
@@ -523,12 +523,12 @@ Sau đó tải lại trang bằng `Ctrl+F5`.
 
 ## 15. Trạng thái triển khai Databricks
 
-Phần này chưa thể chạy từ đầu tới cuối vì các job trong `data/` chưa được viết. Trình tự dự kiến theo `PLANNING.md` là:
+E1 Bronze và E2 Silver đã có notebook, module hỗ trợ và test Delta local. Nghiệm thu trên workspace thật chưa hoàn tất; E3 Gold và gate E4 chưa triển khai nên pipeline chưa chạy từ đầu tới cuối. Trình tự theo `PLANNING.md` là:
 
 1. Chuyển database vận hành từ PostgreSQL local sang Databricks Lakebase.
 2. Tạo Unity Catalog `fashion` và ba schema `bronze`, `silver`, `gold`.
-3. Hoàn thiện và chạy `01_bronze_ingest.py` bằng `MERGE` theo `id`.
-4. Hoàn thiện `02_silver_transform.py`, xử lý ngày Việt Nam đúng một lần ở Silver.
+3. Chạy nghiệm thu `01_bronze_ingest.py` với `check_twice=true`, sau đó cấu hình task định kỳ `01_bronze_job.py` theo [`DATA_PLATFORM.md`](DATA_PLATFORM.md).
+4. Cấu hình task `02_silver_transform.py` chạy sau Bronze và nghiệm thu 7 bảng theo [`E2_SILVER.md`](E2_SILVER.md); code xử lý ngày Việt Nam đúng một lần ở Silver.
 5. Hoàn thiện `03_gold_aggregate.py` theo định nghĩa metric C9.
 6. Chạy `04_data_quality_check.py`; cả năm kiểm tra E4 phải PASS.
 7. Chỉ sau khi E4 PASS mới tạo AI/BI Dashboard và Genie space.
