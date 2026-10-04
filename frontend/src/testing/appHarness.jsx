@@ -6,6 +6,7 @@ import { vi } from "vitest";
 import App from "../App.jsx";
 import client from "../api/client.js";
 import { AuthProvider } from "../auth/AuthContext.jsx";
+import { ToastProvider } from "../components/ToastContext.jsx";
 
 let container;
 let root;
@@ -20,7 +21,10 @@ export function mountContainer() {
 }
 
 export async function unmountContainer() {
-  if (root) await act(async () => root.unmount());
+  if (root) {
+    await act(async () => root.unmount());
+  }
+
   root = null;
   container.remove();
   delete globalThis.IS_REACT_ACT_ENVIRONMENT;
@@ -29,17 +33,24 @@ export async function unmountContainer() {
 export function signInAs(role, shopId = null) {
   localStorage.setItem(
     "fashion_auth",
-    JSON.stringify({ token: "test-token", role, shop_id: shopId }),
+    JSON.stringify({
+      token: "test-token",
+      role,
+      shop_id: shopId,
+    }),
   );
 }
 
 export async function renderAt(path) {
   root = createRoot(container);
+
   await act(async () =>
     root.render(
       <MemoryRouter initialEntries={[path]}>
         <AuthProvider>
-          <App />
+          <ToastProvider>
+            <App />
+          </ToastProvider>
         </AuthProvider>
       </MemoryRouter>,
     ),
@@ -51,8 +62,13 @@ function findField(labelText, { scope = container, index = 0 } = {}) {
   const labels = [...scope.querySelectorAll("label")].filter(
     (label) => label.firstChild?.textContent.trim() === labelText,
   );
+
   const label = labels[index];
-  if (!label) throw new Error(`Không tìm thấy trường "${labelText}"`);
+
+  if (!label) {
+    throw new Error(`Không tìm thấy trường "${labelText}"`);
+  }
+
   return label.querySelector("input, select, textarea");
 }
 
@@ -66,10 +82,17 @@ export async function fill(labelText, value, options) {
 
 export async function setValue(input, value) {
   await act(async () => {
-    const setter = Object.getOwnPropertyDescriptor(input.constructor.prototype, "value").set;
+    const setter = Object.getOwnPropertyDescriptor(
+      input.constructor.prototype,
+      "value",
+    ).set;
+
     setter.call(input, value);
+
     input.dispatchEvent(
-      new Event(input.tagName === "SELECT" ? "change" : "input", { bubbles: true }),
+      new Event(input.tagName === "SELECT" ? "change" : "input", {
+        bubbles: true,
+      }),
     );
   });
 }
@@ -83,8 +106,14 @@ export function buttonLabels(scope) {
 }
 
 export function button(text, scope = container) {
-  const match = buttons(scope).find((item) => item.textContent === text);
-  if (!match) throw new Error(`Không tìm thấy nút "${text}"`);
+  const match = buttons(scope).find(
+    (item) => item.textContent === text,
+  );
+
+  if (!match) {
+    throw new Error(`Không tìm thấy nút "${text}"`);
+  }
+
   return match;
 }
 
@@ -94,12 +123,19 @@ export async function click(element) {
 
 export async function submit(form) {
   await act(async () =>
-    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+    form.dispatchEvent(
+      new Event("submit", {
+        bubbles: true,
+        cancelable: true,
+      }),
+    ),
   );
 }
 
 export function rowContaining(text, scope = container) {
-  return [...scope.querySelectorAll("tr, article")].find((row) => row.textContent.includes(text));
+  return [...scope.querySelectorAll("tr, article")].find((row) =>
+    row.textContent.includes(text),
+  );
 }
 
 export function dialog() {
@@ -111,9 +147,17 @@ export function alertText() {
 }
 
 export function routeGet(routes) {
-  return vi.spyOn(client, "get").mockImplementation(async (url, options) => {
-    if (!(url in routes)) throw new Error(`GET ${url} chưa được mock`);
-    const data = routes[url];
-    return { data: typeof data === "function" ? data(options) : data };
-  });
+  return vi
+    .spyOn(client, "get")
+    .mockImplementation(async (url, options) => {
+      if (!(url in routes)) {
+        throw new Error(`GET ${url} chưa được mock`);
+      }
+
+      const data = routes[url];
+
+      return {
+        data: typeof data === "function" ? data(options) : data,
+      };
+    });
 }
