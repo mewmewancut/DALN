@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import client from "../../api/client.js";
 import {
   alertText,
   button,
   click,
+  dialog,
   field,
   fill,
   mountContainer,
@@ -15,14 +16,11 @@ import {
   signInAs,
   unmountContainer,
 } from "../../testing/appHarness.jsx";
-
 let container;
-
 beforeEach(() => {
   container = mountContainer();
   signInAs("ADMIN");
 });
-
 afterEach(async () => {
   await unmountContainer();
   vi.useRealTimers();
@@ -180,35 +178,48 @@ it("người dùng: lọc theo vai trò và từ khóa, khóa/mở theo response
   expect(rowContaining("admin@shop.vn")).toBeUndefined();
 });
 
-it("shop: khóa và mở khóa theo response, hiện lỗi từ API", async () => {
+it("shop: xác nhận trước khi khóa, mở khóa theo response và hiện lỗi từ API", async () => {
   const get = routeGet({ "/admin/shops": page(shops) });
   const patch = vi
     .spyOn(client, "patch")
     .mockResolvedValueOnce({ data: { ...shops[1], is_active: true } })
-    .mockRejectedValueOnce({ response: { data: { detail: "Không tìm thấy shop" } } });
+    .mockRejectedValueOnce({
+      response: { data: { detail: "Không tìm thấy shop" } },
+    });
   await renderAt("/admin/shops");
-
   expect(rowContaining("Shop 2").textContent).toContain("Đã khóa");
   await fill("Tìm theo tên shop", " Shop 2 ");
   await fill("Trạng thái", "false");
   expect(get).toHaveBeenLastCalledWith("/admin/shops", {
-    params: { page: 1, page_size: 20, keyword: "Shop 2", is_active: "false" },
+    params: {
+      page: 1,
+      page_size: 20,
+      keyword: "Shop 2",
+      is_active: "false",
+    },
   });
   await click(button("Xóa bộ lọc"));
   expect(get).toHaveBeenLastCalledWith("/admin/shops", {
     params: { page: 1, page_size: 20 },
   });
-
   await click(button("Mở khóa", rowContaining("Shop 2")));
-  expect(patch).toHaveBeenCalledWith("/admin/shops/14", { is_active: true });
+  expect(patch).toHaveBeenCalledWith("/admin/shops/14", {
+    is_active: true,
+  });
   expect(rowContaining("Shop 2").textContent).toContain("Hoạt động");
-
   await click(button("Khóa", rowContaining("Shop 1")));
-  expect(patch).toHaveBeenLastCalledWith("/admin/shops/13", { is_active: false });
+  expect(patch).toHaveBeenCalledTimes(1);
+  const confirmDialog = dialog();
+  expect(confirmDialog.textContent).toContain("Khóa shop?");
+  expect(confirmDialog.textContent).toContain("Shop 1");
+  await click(button("Khóa shop", confirmDialog));
+  expect(patch).toHaveBeenLastCalledWith("/admin/shops/13", {
+    is_active: false,
+  });
   expect(alertText()).toBe("Không tìm thấy shop");
   expect(rowContaining("Shop 1").textContent).toContain("Hoạt động");
+  expect(dialog().textContent).toContain("Shop 1");
 });
-
 it("shop không giữ dữ liệu trang cũ khi tải trang mới thất bại", async () => {
   let request = 0;
   vi.spyOn(client, "get").mockImplementation(async (url, options) => {
