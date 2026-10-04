@@ -144,40 +144,72 @@ it("không hiện link Databricks khi chưa cấu hình, hiện link mở tab m�
   );
 });
 
-it("người dùng: lọc theo vai trò và từ khóa, khóa/mở theo response, hiện lỗi tự khóa", async () => {
-  const get = routeGet({ "/admin/users": page(users) });
+it("người dùng: xác nhận trước khi khóa, lọc theo vai trò và từ khóa, mở khóa theo response", async () => {
+  const get = routeGet({
+    "/auth/me": users[0],
+    "/admin/users": page(users),
+  });
   const patch = vi
     .spyOn(client, "patch")
-    .mockResolvedValueOnce({ data: { ...users[1], is_active: false } })
-    .mockRejectedValueOnce({
-      response: { data: { detail: "Không thể tự khóa tài khoản của chính mình" } },
+    .mockResolvedValueOnce({
+      data: { ...users[1], is_active: false },
+    })
+    .mockResolvedValueOnce({
+      data: { ...users[1], is_active: true },
     });
   await renderAt("/admin/users");
-
-  expect(rowContaining("buyer1@shop.vn").textContent).toContain("Người mua");
+  expect(rowContaining("buyer1@shop.vn").textContent).toContain(
+    "Người mua",
+  );
   await fill("Vai trò", "BUYER");
   await fill("Tìm email hoặc họ tên", " buyer1 ");
   expect(get).toHaveBeenLastCalledWith("/admin/users", {
-    params: { page: 1, page_size: 20, role: "BUYER", keyword: "buyer1" },
+    params: {
+      page: 1,
+      page_size: 20,
+      role: "BUYER",
+      keyword: "buyer1",
+    },
   });
-
-  await click(button("Khóa", rowContaining("buyer1@shop.vn")));
-  expect(patch).toHaveBeenCalledWith("/admin/users/2", { is_active: false });
+  await click(
+    button("Khóa", rowContaining("buyer1@shop.vn")),
+  );
+  expect(patch).not.toHaveBeenCalled();
+  const confirmDialog = dialog();
+  expect(confirmDialog.textContent).toContain("Khóa tài khoản?");
+  expect(confirmDialog.textContent).toContain("Người mua 1");
+  await click(button("Khóa tài khoản", confirmDialog));
+  expect(patch).toHaveBeenCalledWith("/admin/users/2", {
+    is_active: false,
+  });
   const lockedRow = rowContaining("buyer1@shop.vn");
   expect(lockedRow.textContent).toContain("Đã khóa");
   expect(button("Mở khóa", lockedRow)).toBeDefined();
-
-  await click(button("Khóa", rowContaining("admin@shop.vn")));
-  expect(patch).toHaveBeenLastCalledWith("/admin/users/1", { is_active: false });
-  expect(alertText()).toBe("Không thể tự khóa tài khoản của chính mình");
-  expect(rowContaining("admin@shop.vn").textContent).toContain("Hoạt động");
-
-  get.mockRejectedValueOnce({ response: { data: { detail: "Không tải được người dùng" } } });
+  await click(button("Mở khóa", lockedRow));
+  expect(patch).toHaveBeenLastCalledWith("/admin/users/2", {
+    is_active: true,
+  });
+  expect(rowContaining("buyer1@shop.vn").textContent).toContain(
+    "Hoạt động",
+  );
+  const adminRow = rowContaining("admin@shop.vn");
+  expect(adminRow.textContent).toContain("Tài khoản hiện tại");
+  expect(
+    [...adminRow.querySelectorAll("button")].some(
+      (item) => item.textContent.trim() === "Khóa",
+    ),
+  ).toBe(false);
+  get.mockRejectedValueOnce({
+    response: {
+      data: {
+        detail: "Không tải được người dùng",
+      },
+    },
+  });
   await fill("Vai trò", "ADMIN");
   expect(alertText()).toBe("Không tải được người dùng");
   expect(rowContaining("admin@shop.vn")).toBeUndefined();
 });
-
 it("shop: xác nhận trước khi khóa, mở khóa theo response và hiện lỗi từ API", async () => {
   const get = routeGet({ "/admin/shops": page(shops) });
   const patch = vi

@@ -6,6 +6,7 @@ import { formatDateTime } from "../../components/orderPresentation.js";
 import Pagination from "../../components/Pagination.jsx";
 
 const PAGE_SIZE = 20;
+
 const ROLE_LABELS = {
   BUYER: "Người mua",
   SHOP_OWNER: "Chủ shop",
@@ -16,15 +17,19 @@ export default function AdminUsersPage() {
   const [role, setRole] = useState("");
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
+
   const [result, setResult] = useState({
     items: [],
     total: 0,
     page: 1,
     page_size: PAGE_SIZE,
   });
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
+
+  const [userToLock, setUserToLock] = useState(null);
   const [pendingId, setPendingId] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
 
@@ -49,14 +54,23 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     let active = true;
+
     setLoading(true);
     setLoadError("");
     setActionError("");
 
-    const params = { page, page_size: PAGE_SIZE };
+    const params = {
+      page,
+      page_size: PAGE_SIZE,
+    };
 
-    if (role) params.role = role;
-    if (keyword.trim()) params.keyword = keyword.trim();
+    if (role) {
+      params.role = role;
+    }
+
+    if (keyword.trim()) {
+      params.keyword = keyword.trim();
+    }
 
     client
       .get("/admin/users", { params })
@@ -92,10 +106,15 @@ export default function AdminUsersPage() {
 
       setResult((current) => ({
         ...current,
-        items: current.items.map((item) => (item.id === user.id ? response.data : item)),
+        items: current.items.map((item) =>
+          item.id === user.id ? response.data : item,
+        ),
       }));
+
+      return true;
     } catch (requestError) {
       setActionError(errorMessage(requestError));
+      return false;
     } finally {
       setPendingId(null);
     }
@@ -117,6 +136,7 @@ export default function AdminUsersPage() {
             }}
           >
             <option value="">Tất cả</option>
+
             {Object.entries(ROLE_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
@@ -151,7 +171,9 @@ export default function AdminUsersPage() {
         </p>
       )}
 
-      {!loading && !loadError && result.items.length === 0 && <p>Không có người dùng phù hợp.</p>}
+      {!loading && !loadError && result.items.length === 0 && (
+        <p>Không có người dùng phù hợp.</p>
+      )}
 
       {!loading && !loadError && result.items.length > 0 && (
         <div className="table-wrap">
@@ -178,7 +200,9 @@ export default function AdminUsersPage() {
                   <td>
                     <span
                       className={`status-badge ${
-                        user.is_active ? "status-active" : "status-inactive"
+                        user.is_active
+                          ? "status-active"
+                          : "status-inactive"
                       }`}
                     >
                       {user.is_active ? "Hoạt động" : "Đã khóa"}
@@ -187,12 +211,20 @@ export default function AdminUsersPage() {
 
                   <td>
                     {user.id === currentUserId ? (
-                      <span className="muted">Tài khoản hiện tại</span>
+                      <span className="muted">
+                        Tài khoản hiện tại
+                      </span>
                     ) : (
                       <button
                         type="button"
                         disabled={pendingId === user.id}
-                        onClick={() => toggleActive(user)}
+                        onClick={() => {
+                          if (user.is_active) {
+                            setUserToLock(user);
+                          } else {
+                            toggleActive(user);
+                          }
+                        }}
                       >
                         {pendingId === user.id
                           ? "Đang xử lý..."
@@ -216,6 +248,60 @@ export default function AdminUsersPage() {
         loading={loading}
         onChange={setPage}
       />
+
+      {userToLock && (
+        <div className="dialog-backdrop">
+          <section
+            className="dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="lock-user-title"
+            aria-describedby="lock-user-description"
+          >
+            <p className="eyebrow">Xác nhận thao tác</p>
+
+            <h2 id="lock-user-title">
+              Khóa tài khoản?
+            </h2>
+
+            <p id="lock-user-description">
+              Bạn có chắc muốn khóa tài khoản{" "}
+              <strong>
+                {userToLock.full_name || userToLock.email}
+              </strong>
+              ? Người dùng sẽ không thể tiếp tục sử dụng tài khoản
+              cho đến khi được mở khóa.
+            </p>
+
+            <div className="dialog-actions">
+              <button
+                type="button"
+                disabled={pendingId === userToLock.id}
+                onClick={() => setUserToLock(null)}
+              >
+                Hủy
+              </button>
+
+              <button
+                type="button"
+                className="primary-button"
+                disabled={pendingId === userToLock.id}
+                onClick={async () => {
+                  const success = await toggleActive(userToLock);
+
+                  if (success) {
+                    setUserToLock(null);
+                  }
+                }}
+              >
+                {pendingId === userToLock.id
+                  ? "Đang xử lý..."
+                  : "Khóa tài khoản"}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </>
   );
 }
