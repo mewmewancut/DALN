@@ -13,6 +13,7 @@ import AdminShopsPage from "./pages/admin/AdminShopsPage.jsx";
 import AdminUsersPage from "./pages/admin/AdminUsersPage.jsx";
 import CartPage from "./pages/CartPage.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";
+import ChatbotPage from "./pages/ChatbotPage.jsx";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import OrderDetailPage from "./pages/OrderDetailPage.jsx";
@@ -167,6 +168,7 @@ export default function App() {
         >
           <Route index element={<Navigate to="/shop/dashboard" replace />} />
           <Route path="dashboard" element={<ShopDashboardPage />} />
+          <Route path="chatbot" element={<ChatbotPage />} />
           <Route path="products" element={<ShopProductsPage />} />
           <Route path="orders" element={<ShopOrdersPage />} />
           <Route path="inventory" element={<ShopInventoryPage />} />
@@ -185,6 +187,7 @@ export default function App() {
         >
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboardPage />} />
+          <Route path="chatbot" element={<ChatbotPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="shops" element={<AdminShopsPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />

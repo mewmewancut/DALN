@@ -27,8 +27,10 @@ Test UI dùng chung kiểm tra skip link đến vùng nội dung có thể focus
 | Gold E3 | pytest + Spark/Delta local | 6 bảng, metric ngày tạo/giao và tháng, snapshot giá, join review/variant/product không nhân số liệu, NULL/chia 0, shop ẩn/rỗng/thiếu dimension, overwrite lặp lại/nguồn rỗng và lỗi ngày báo cáo |
 | Điều phối/nghiệm thu E3 | pytest | E1/E2 lỗi chặn Gold, notebook riêng, refresh Gold qua warehouse khi E1/E2 SKIP, lỗi Gold làm Job fail; projection và tổng độc lập với Lakebase |
 | Điều phối/metadata/nghiệm thu E1–E2 | pytest | E1 fail thì không chạy E2, dùng chung phiên/snapshot, giới hạn metadata Spark/warehouse, SKIP trước Spark, thay đổi ID/version/config và marker lỗi, fallback, deadline, đo startup riêng và đối chiếu thiếu/trùng/sai giá trị |
+| Gate E4 | pytest + nghiệm thu workspace | Hai lượt pipeline, đối chiếu năm mục và phát hiện nguồn biến động |
+| Chatbot Genie | pytest + Vitest + nghiệm thu OAuth/browser | Role/shop/database, token hội thoại, bất đồng bộ, view và principal riêng, câu hỏi đối chiếu SQL |
 
-Bronze/Silver có test Delta local và Job/đối chiếu trên Databricks thật; bằng chứng nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md). Gold E3 có test Delta và công cụ nghiệm thu riêng, trạng thái workspace ở [`E3_GOLD.md`](E3_GOLD.md). Browser end-to-end và gate E4 của F6–F7 còn **Planned**. Test API dùng database test/rollback; không thay browser end-to-end.
+Bronze/Silver có test Delta local và Job/đối chiếu trên Databricks thật; bằng chứng nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md). Gold E3 có test Delta và công cụ nghiệm thu riêng, trạng thái workspace ở [`E3_GOLD.md`](E3_GOLD.md). Gate E4 của F6 đã PASS, bằng chứng ở [`E4_QUALITY.md`](E4_QUALITY.md). Browser end-to-end tự động và demo tổng thể F7 còn **Planned**. Test API dùng database test/rollback; không thay browser end-to-end.
 
 Data có notebook chính `00_pipeline.py` và ba notebook riêng E1/E2/E3. Test notebook kiểm tra điều phối E1→E2→E3, từng entry chỉ chạy đúng tầng, trả kết quả cho Job và không báo thành công khi xử lý lỗi. Test preflight xác nhận lượt E1/E2 không đổi không gọi Spark/writer E1/E2 nhưng Gold vẫn refresh trên warehouse; thay đổi nguồn/dependency/target/config không được SKIP sai. Test warehouse kiểm tra metadata thiếu, deduplicate, deadline chung, giới hạn reader và đóng checkpoint stream. `acceptance.py` và `gold_acceptance.py` chạy riêng. Cách demo từng bước ở [Data platform](DATA_PLATFORM.md#demo-từng-bước-bronze--silver).
 
@@ -125,8 +127,38 @@ Test hook chạy hook thật với Docker giả lập: giữ kiểm tra lỗi de
 
 - Frontend SHOP_OWNER D3: chủ shop chưa có shop chỉ thấy form tạo shop (không gọi API quản lý), tạo thành công thì lưu `shop_id` vào phiên và mở sidebar, tạo lỗi thì giữ form và hiện lỗi API; dashboard gọi `/shop/stats/dashboard` với đúng khoảng 30 ngày mặc định, gọi lại khi đổi ngày, hiện 4 chỉ số, `—` khi `cancel_rate`/`aov` là `null`, ưu tiên tồn kho, lỗi `400` khi khoảng ngày sai và biểu đồ điền 0 cho ngày thiếu kể cả khi qua tháng; trang sản phẩm hiện cả sản phẩm đã ẩn, lọc `is_active`, bật/tắt qua `PUT /products/{id}`, tạo sản phẩm gửi mọi biến thể trong một request và giữ dialog khi lỗi, sửa thông tin, giá/trạng thái variant và thêm variant; trang đơn hàng chỉ hiện nút đúng transition của shop cho từng trạng thái, gửi `PATCH` đúng body, hủy kèm lý do trong `note`, lọc theo trạng thái, hiện lỗi backend và giữ ô thao tác là table cell hợp lệ; tồn kho tìm theo tên/SKU, lọc mức tồn, phân trang 10 dòng, tô đỏ dòng `is_low`, chặn ngưỡng không hợp lệ, cập nhật dòng theo response và giữ giá trị khi lỗi; cảnh báo tìm theo sản phẩm và phân trang; nhà cung cấp tìm theo tên/điện thoại/địa chỉ, lọc trạng thái, phân trang và thêm/sửa/ngừng hợp tác/khôi phục đúng endpoint; phiếu nhập chỉ cho chọn nhà cung cấp đang hợp tác, chặn biến thể trùng, gửi đúng body, hiện nút theo trạng thái và link sang tồn kho sau khi nhận hàng.
 
-- Frontend ADMIN D4: vai trò khác không vào được `/admin/*`; dashboard gọi `/admin/stats/dashboard` với khoảng 30 ngày mặc định, hiện 4 chỉ số, sidebar đủ bốn trang và lỗi API khi khoảng ngày sai; link Databricks Dashboard/Genie chỉ xuất hiện (mở tab mới, `rel="noreferrer"`) khi biến môi trường có giá trị, ngược lại ghi "chưa được cấu hình"; trang người dùng gửi filter `role`/`keyword`, khóa/mở theo response và giữ nguyên dòng khi backend từ chối tự khóa; trang shop gửi `keyword`/`is_active` cùng tham số phân trang phía server, xóa được bộ lọc, khóa/mở theo response và hiện lỗi; trang đơn toàn hệ thống tải danh sách shop cho bộ lọc, gửi đúng `shop_id`/`status`/`from`/`to` và hiện tên shop.
+- Frontend ADMIN D4: vai trò khác không vào được `/admin/*`; dashboard gọi `/admin/stats/dashboard` với khoảng 30 ngày mặc định, hiện 4 chỉ số, sidebar đủ các trang quản lý cùng Chatbot Genie, hiển thị lỗi API khi khoảng ngày sai; link Databricks Dashboard/Genie chỉ xuất hiện (mở tab mới, `rel="noreferrer"`) khi biến môi trường có giá trị, ngược lại ghi "chưa được cấu hình"; trang người dùng gửi filter `role`/`keyword`, khóa/mở theo response và giữ nguyên dòng khi backend từ chối tự khóa; trang shop gửi `keyword`/`is_active` cùng tham số phân trang phía server, xóa được bộ lọc, khóa/mở theo response và hiện lỗi; trang đơn toàn hệ thống tải danh sách shop cho bộ lọc, gửi đúng `shop_id`/`status`/`from`/`to` và hiện tên shop.
 
 - Dashboard website mở rộng D3/D4: `backend/app/tests/test_dashboards.py` kiểm tra kỳ trước cùng số ngày, ngày Việt Nam, revenue theo giao và status theo tạo, giá snapshot, tồn đọng ngoài kỳ, tồn kho hiện tại, không nhân đôi khi nối bảng, giới hạn shop từ user/database, role và lỗi ngày, giữ sales lịch sử catalog đã ẩn. `frontend/src/components/dashboard/dashboard.test.jsx` kiểm tra so sánh kỳ trước bằng 0/null, tỷ lệ hủy dùng điểm %, tỷ trọng shop trên tổng hệ thống, link đúng role, preset/làm mới, request cũ hoàn thành muộn, trạng thái rỗng, trục/bảng VND và nhóm tháng/năm đúng biên. Kiểm tra responsive bằng trình duyệt thật; định nghĩa ở [`WEB_DASHBOARDS.md`](WEB_DASHBOARDS.md).
 
-Toàn bộ backend Planning C0–C10, P1–P4 và frontend D1–D4 đã có test. Data E1–E3 có test; E4–E6 và Docker/demo (G) còn phần nghiệm thu theo Planning.
+Toàn bộ backend Planning C0–C10, P1–P4 và frontend D1–D4 đã có test. Data E1–E4 và chatbot Genie đã có test và nghiệm thu workspace; Dashboard Databricks E5 và demo tổng thể G còn Planned.
+
+## E4 và chatbot Genie trên website
+
+`data/tests/test_quality_check.py` kiểm tra năm điều kiện E4, biến động nguồn,
+đếm Bronze sau hai lượt pipeline, fingerprint SQL thực trên Delta, Decimal tiền,
+inventory/status không hợp lệ và nhánh lỗi. `test_quality_notebook.py` kiểm tra
+tham số notebook con và việc gate thất bại không trả success. Bằng chứng gate
+workspace PASS 5/5 nằm ở [E4 Quality](E4_QUALITY.md).
+`test_quality_acceptance.py` kiểm tra CLI chờ hai Job thành công và chặn Job
+sai target, loại shop, nhiều task, còn lượt chạy hoặc thất bại.
+
+`backend/app/tests/test_chatbot.py` và `test_genie_client.py` kiểm tra admin/shop,
+shop lấy từ database, buyer/khách/tài khoản khóa, scope thiếu không fallback,
+token hội thoại ràng buộc user/role/shop/space và audience riêng với token đăng
+nhập, chữ ký/hết hạn, trạng thái Genie/query, giới hạn kết quả và lỗi OAuth sạch.
+`frontend/src/pages/chatbot.test.jsx` kiểm tra hai role và route buyer bị chặn,
+contract Axios, hội thoại tiếp nối/reset, chặn gửi trùng, polling/retry/timeout,
+response trễ, lỗi/rỗng/truncated, text HTML an toàn và định dạng VND.
+
+`data/tests/test_genie_space.py` kiểm tra metadata chỉ dùng Gold, metric C9,
+gate trước provision, fixed shop view/grant, retry dùng lại principal/space.
+`test_genie_acceptance.py` chỉ chấp nhận permission denial thật, phân biệt lỗi
+bảng thiếu và lỗi hạ tầng. Nghiệm thu bằng OAuth của từng principal, đối chiếu
+câu hỏi thực bằng SQL độc lập và kiểm tra browser nằm ở [Genie Chatbot](GENIE_CHATBOT.md).
+
+```powershell
+docker compose --env-file .env.example exec -T backend pytest -q app/tests/test_chatbot.py app/tests/test_genie_client.py
+docker compose --env-file .env.example exec -T frontend npm test -- src/pages/chatbot.test.jsx
+docker run --rm -v D:/DALN/data:/data daln-data-test pytest -q tests/test_quality_check.py tests/test_quality_notebook.py tests/test_quality_acceptance.py tests/test_genie_space.py tests/test_genie_acceptance.py
+```

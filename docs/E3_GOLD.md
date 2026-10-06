@@ -5,7 +5,8 @@
 Gold có sáu bảng Delta trong `fashion.gold`. Entry riêng là
 [`03_gold_aggregate.py`](../data/03_gold_aggregate.py); Job chính `00_pipeline.py`
 chạy E1 → E2 → E3. Metric theo [Planning C9](PLANNING.md#c9-thống-kê-shop-shop_statspy).
-Gate E4, Dashboard E5 và Genie E6 còn **Planned**.
+[Gate E4](E4_QUALITY.md) đã PASS; [Genie admin/shop](GENIE_CHATBOT.md) dùng các
+bảng Gold này. Dashboard Databricks E5 còn **Planned**.
 
 ## Bảng và metric
 
@@ -143,5 +144,5 @@ kiểm chứng bằng Delta local, chưa chạy riêng trên workspace. Notebook
 đã upload và có test entry local, chưa chạy riêng trên workspace.
 
 Các số đo trên là hai lượt với nguồn ổn định và warehouse sẵn sàng, không phải
-cam kết thời gian cho nguồn có thay đổi/startup compute. Gate E4 (đủ năm mục),
-Dashboard E5 và Genie E6 vẫn Planned.
+cam kết thời gian cho nguồn có thay đổi/startup compute. Tại lần nghiệm thu E3,
+E4–E6 chưa thực hiện; trạng thái mới nằm ở tài liệu gate/chatbot liên kết đầu trang.

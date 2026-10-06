@@ -1,0 +1,16 @@
+{
+  "host": "https://example.cloud.databricks.com",
+  "e4_passed": false,
+  "admin": {
+    "space_id": "11111111111111111111111111111111",
+    "client_id": "00000000-0000-0000-0000-000000000001",
+    "client_secret": "FAKE-ADMIN-OAUTH-SECRET"
+  },
+  "shops": {
+    "1": {
+      "space_id": "22222222222222222222222222222222",
+      "client_id": "00000000-0000-0000-0000-000000000002",
+      "client_secret": "FAKE-SHOP-OAUTH-SECRET"
+    }
+  }
+}

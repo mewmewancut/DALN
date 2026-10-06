@@ -210,6 +210,11 @@ Tạo các bảng phục vụ báo cáo và phân tích, ví dụ:
 
 Databricks Genie được tích hợp để hỗ trợ truy vấn dữ liệu bằng ngôn ngữ tự nhiên.
 
+Đã có chatbot trên website tại `/admin/chatbot` và `/shop/chatbot`. Admin xem
+analytics toàn hệ thống; shop chỉ đọc Gold view của chính shop bằng danh tính
+dịch vụ riêng. Người dùng web không cần đăng nhập Databricks. Cách cấu hình và
+bằng chứng phân quyền nằm ở [GENIE_CHATBOT.md](docs/GENIE_CHATBOT.md).
+
 ### Ví dụ câu hỏi của Admin
 
 - Doanh thu toàn hệ thống tháng này là bao nhiêu?
@@ -219,17 +224,14 @@ Databricks Genie được tích hợp để hỗ trợ truy vấn dữ liệu b�
 - Shop nào có tỷ lệ hủy đơn cao?
 - Những sản phẩm nào đang có tồn kho thấp?
 
-### Phạm vi ban đầu
+Gold hiện chưa có số đơn đang giao; chatbot giải thích giới hạn này. Các metric
+và phạm vi thời gian hỗ trợ được ghi ở tài liệu chatbot.
 
-Trong phiên bản đầu:
+### Phạm vi đã triển khai
 
-- Genie được ưu tiên cho **Admin**.
-- Quyền truy vấn của Admin có thể xem dữ liệu toàn hệ thống.
-
-Trong phiên bản mở rộng:
-
-- Chủ shop có thể sử dụng Genie.
-- Chủ shop chỉ được phép truy vấn dữ liệu thuộc shop của mình.
+- Admin truy vấn dữ liệu Gold toàn hệ thống.
+- Chủ shop dùng chatbot ngay trên web, chỉ truy vấn dữ liệu Gold của mình.
+- Đã cấu hình admin và ba shop hiện có; shop mới cần provision sau khi có trong Gold.
 
 ---
 
@@ -266,7 +268,7 @@ Trong phiên bản mở rộng:
 
 Một số chức năng có thể mở rộng sau phiên bản đầu:
 
-- Genie dành cho Shop Owner với phân quyền theo shop.
+- Mở rộng dữ liệu Gold cho các câu hỏi ngoài phạm vi hiện có của Genie.
 - Recommendation System.
 - Voucher / Promotion.
 - Tích hợp cổng thanh toán thật.

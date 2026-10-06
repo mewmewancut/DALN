@@ -7,6 +7,7 @@ import SiteLayout from "./SiteLayout.jsx";
 
 const SHOP_LINKS = [
   { to: "/shop/dashboard", label: "Tổng quan" },
+  { to: "/shop/chatbot", label: "Chatbot Genie" },
   { to: "/shop/products", label: "Sản phẩm" },
   { to: "/shop/orders", label: "Đơn hàng" },
   { to: "/shop/inventory", label: "Tồn kho" },

@@ -247,3 +247,23 @@ Tất cả endpoint dưới đây yêu cầu token `ADMIN`.
 `GET /admin/stats/overview` dùng lại đúng hàm tính metric của C9 (cùng định nghĩa `revenue`, `order_count`, `cancel_rate`, `aov`, cùng quy đổi giờ Việt Nam) nhưng không truyền điều kiện `shop_id`, nên tổng hợp trên toàn hệ thống. `from` phải nhỏ hơn hoặc bằng `to`, sai trả `400`.
 
 Thiếu/sai token trả `401`; vai trò khác `ADMIN` trả `403`. Quy tắc chi tiết tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#admin-c10).
+
+## Chatbot Genie — admin và shop
+
+| Method | Path | Body | Kết quả |
+|---|---|---|---|
+| GET | `/analytics/chat/config` | — | `{available, scope, message}`; không trả credential/space ID |
+| POST | `/analytics/chat/messages` | `{question, conversation_token?}` | `{message_id, conversation_token, status, text, tables}` |
+| POST | `/analytics/chat/messages/{message_id}` | `{conversation_token}` | Cùng schema, đọc tiến độ/kết quả; không gửi lại câu hỏi |
+
+Chỉ ADMIN và SHOP_OWNER đã có shop hoạt động được gọi; scope lấy từ user/shop
+trong database. Không nhận `shop_id`, `space_id`, SQL hoặc credential do client
+gửi. `question` trim, 1–2000 ký tự, không chỉ khoảng trắng. Token hội thoại có
+chữ ký ràng buộc user/role/shop/space, hết hạn một giờ; vẫn cần JWT đăng nhập.
+Status chuẩn hóa thành `PENDING`, `COMPLETED`, `FAILED`. Table gồm
+`{description, columns: [{name, type_name}], rows: [[string|null]], truncated}`;
+tối đa 100 dòng/chunk đầu. Text có thể trả lời không đủ dữ liệu hoặc lỗi xử lý.
+Thiếu/sai JWT: 401; role/shop/quyền hội thoại sai: 403; payload sai: 422;
+quá tải: 429; thiếu cấu hình scope: 503; kết nối/kết quả Genie lỗi: 502.
+Chi tiết phân quyền, luồng UI, giới hạn Gold và setup tại
+[`GENIE_CHATBOT.md`](GENIE_CHATBOT.md).

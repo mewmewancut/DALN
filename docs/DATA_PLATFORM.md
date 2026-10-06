@@ -1,6 +1,6 @@
-# Data platform — E1/E2/E3
+# Data platform — E1/E2/E3/E4 và Genie
 
-E1/E2 dùng Lakebase CDC và Spark trên serverless notebook compute. E3 đã triển khai và nghiệm thu sáu bảng Gold; nghiệp vụ, cách chạy và bằng chứng nằm ở [E3_GOLD.md](E3_GOLD.md). E4–E6 còn **Planned**. Không triển khai Dashboard/Genie trước gate E4. Phạm vi bảng và nghiệp vụ theo [Planning phần E](PLANNING.md#phần-e--data-platform-databricks), cách xử lý ngày tạo/ngày giao E3 được ghi rõ trong tài liệu Gold.
+E1/E2 dùng Lakebase CDC và Spark trên serverless notebook compute. E3 đã triển khai và nghiệm thu sáu bảng Gold; nghiệp vụ, cách chạy và bằng chứng nằm ở [E3_GOLD.md](E3_GOLD.md). [Gate E4](E4_QUALITY.md) đã PASS 5/5 trên workspace; [chatbot Genie admin/shop](GENIE_CHATBOT.md) dùng Gold và quyền dữ liệu riêng cho từng shop. Dashboard Databricks E5 còn **Planned**. Phạm vi bảng và nghiệp vụ theo [Planning phần E](PLANNING.md#phần-e--data-platform-databricks), cách xử lý ngày tạo/ngày giao E3 được ghi rõ trong tài liệu Gold.
 
 Người dùng đã duyệt đổi cách lấy dữ liệu E1 từ đọc Lakebase đầy đủ mỗi lượt sang CDC để tối ưu Job. Catalog đích vẫn là `fashion`; Bronze vẫn 13 bảng E1 và Silver vẫn 7 bảng E2. Feed nguồn có thể chứa nhiều bảng hơn nhưng pipeline không sao chép bảng ngoài allow-list E1.
 
@@ -34,6 +34,8 @@ Job dùng SDK có sẵn trong runtime cho preflight khi bật `metadata_warehous
 | `data/03_gold_aggregate.py` | Notebook riêng: overwrite 6 Gold từ Silver hiện có |
 | `data/gold_queries.py`, `gold_transform.py`, `gold_job.py` | SQL metric và full overwrite Gold trên Spark/warehouse |
 | `data/gold_acceptance.py` | Nghiệm thu E3 chỉ đọc, projection và tổng số liệu so Lakebase; không thay gate E4 |
+| `data/04_data_quality_check.py`, `quality_check.py`, `quality_acceptance.py` | Gate E4: hai lượt pipeline, in PASS/FAIL đủ năm mục |
+| `data/genie_space.py`, `genie_provision.py`, `genie_acceptance.py` | Metadata space Gold, provision identity/view riêng và kiểm tra phân quyền thật |
 | `data/cdc_ingest.py`, `cdc_merge.py` | Bootstrap, offsets, validation và MERGE CDC |
 | `data/silver_job.py`, `silver_transform.py`, `silver_queries.py` | Dependency skip và biến đổi Silver |
 | `data/pipeline_job.py`, `bronze_ingest.py` | Điều phối, widget và allow-list/identifier |
@@ -43,7 +45,7 @@ Job dùng SDK có sẵn trong runtime cho preflight khi bật `metadata_warehous
 | `data/acceptance.py` | Nghiệm thu chỉ đọc, chạy riêng qua warehouse |
 | `data/tests/`, `Dockerfile.test`, `requirements-test.txt`, `requirements.txt`, `ruff.toml`, `.dockerignore` | Test Delta local, dependency và cấu hình kiểm tra |
 
-`data/00_pipeline.py` vẫn là entry của Job chính. Ba notebook riêng gọi cùng điều phối với stage bronze/silver/gold, dùng cùng widget; Gold không dùng checkpoint riêng. Entry tương thích `01_bronze_job.py` đã bỏ. Gate chất lượng E4 còn **Planned**; danh sách file hiện có nằm ở bảng trên.
+`data/00_pipeline.py` vẫn là entry của Job chính. Ba notebook riêng gọi cùng điều phối với stage bronze/silver/gold, dùng cùng widget; Gold không dùng checkpoint riêng. Entry tương thích `01_bronze_job.py` đã bỏ. Gate E4 chạy nghiệm thu riêng, không thêm vào lịch Job; xem [E4_QUALITY.md](E4_QUALITY.md).
 
 ## Setup một lần
 

@@ -21,9 +21,11 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`API.md`](API.md) | In progress | Endpoint C0–C10 và P1–P4: auth, hồ sơ/địa chỉ, wishlist/sở thích/gợi ý, catalog, vận hành shop, đơn hàng, thống kê, admin, role và error contract |
 | [`WEB_DASHBOARDS.md`](WEB_DASHBOARDS.md) | Implemented | Dashboard website admin/shop: mục đích KPI, API, kỳ trước, biểu đồ và ưu tiên vận hành |
 | [`UI_UX.md`](UI_UX.md) | Implemented | Font tiếng Việt, layout theo role, responsive, bảng, trạng thái ảnh và kiểm tra giao diện |
-| [`DATA_PLATFORM.md`](DATA_PLATFORM.md) | Implemented (E1–E3) | CDC/checkpoint, Job serverless, setup/recovery và nghiệm thu; E4–E6 còn Planned |
+| [`DATA_PLATFORM.md`](DATA_PLATFORM.md) | Implemented (E1–E4, Genie) | CDC/checkpoint, Job serverless, setup/recovery; liên kết gate E4 và chatbot Genie |
 | [`E2_SILVER.md`](E2_SILVER.md) | Implemented | 7 bảng Silver, dependency skip, nghiệp vụ/transaction và kiểm thử |
 | [`E3_GOLD.md`](E3_GOLD.md) | Implemented | 6 bảng Gold, metric C9, overwrite, điều phối Spark/warehouse và nghiệm thu |
+| [`E4_QUALITY.md`](E4_QUALITY.md) | Implemented | Gate 5 kiểm tra, hai lượt pipeline và đối chiếu Lakebase |
+| [`GENIE_CHATBOT.md`](GENIE_CHATBOT.md) | Implemented | Chatbot website admin/shop, OAuth dịch vụ, Gold view riêng, cấu hình và nghiệm thu |
 | [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) | Implemented | Cài đặt Docker, chọn database local/Lakebase, cutover/rollback, migration, seed và kiểm tra local/demo |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |
 | [`TESTING.md`](TESTING.md) | In progress | Các lớp test hiện có, hook pre-commit và hướng dẫn chạy |

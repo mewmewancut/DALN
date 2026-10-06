@@ -5,6 +5,7 @@ from app.config import get_settings
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.cart import router as cart_router
+from app.routers.chatbot import router as chatbot_router
 from app.routers.inventory import router as inventory_router
 from app.routers.locations import router as locations_router
 from app.routers.orders import router as orders_router
@@ -44,6 +45,7 @@ app.include_router(preferences_router)
 app.include_router(recommendations_router)
 app.include_router(wishlist_router)
 app.include_router(cart_router)
+app.include_router(chatbot_router)
 app.include_router(orders_router)
 app.include_router(shop_orders_router)
 app.include_router(inventory_router)

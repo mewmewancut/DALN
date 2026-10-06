@@ -108,6 +108,7 @@ it("dashboard admin gọi số liệu toàn hệ thống 30 ngày gần nhất v
   const navLinks = [...container.querySelectorAll('nav[aria-label="Quản trị"] a')];
   expect(navLinks.map((link) => link.getAttribute("href"))).toEqual([
     "/admin/dashboard",
+    "/admin/chatbot",
     "/admin/users",
     "/admin/shops",
     "/admin/orders",

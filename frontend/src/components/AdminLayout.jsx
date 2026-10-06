@@ -4,6 +4,7 @@ import SidebarLayout from "./SidebarLayout.jsx";
 
 const ADMIN_LINKS = [
   { to: "/admin/dashboard", label: "Tổng quan" },
+  { to: "/admin/chatbot", label: "Chatbot Genie" },
   { to: "/admin/users", label: "Người dùng" },
   { to: "/admin/shops", label: "Shop" },
   { to: "/admin/orders", label: "Đơn hàng" },

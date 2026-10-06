@@ -13,6 +13,7 @@ const icons = {
   "purchase-orders": "orders",
   users: "user",
   shops: "store",
+  chatbot: "chat",
 };
 
 export default function SidebarLayout({ label, links, children }) {

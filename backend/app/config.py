@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     verify_email_expire_minutes: int = 480
     reset_password_expire_minutes: int = 30
     smtp_timeout_seconds: int = 10
+    genie_config_path: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
