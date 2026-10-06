@@ -191,7 +191,7 @@ export default function AdminUsersPage() {
                   <td>{user.email}</td>
                   <td>{user.full_name}</td>
                   <td>{ROLE_LABELS[user.role] ?? user.role}</td>
-                  <td>{formatDateTime(user.created_at)}</td>
+                  <td className="date-cell">{formatDateTime(user.created_at)}</td>
 
                   <td>
                     <span

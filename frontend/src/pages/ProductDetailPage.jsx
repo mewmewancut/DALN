@@ -5,6 +5,7 @@ import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import SiteLayout from "../components/SiteLayout.jsx";
+import ProductImage from "../components/ProductImage.jsx";
 import WishlistButton from "../components/WishlistButton.jsx";
 import { formatCurrency } from "../components/formatCurrency.js";
 import { formatDateTime } from "../components/orderPresentation.js";
@@ -130,11 +131,12 @@ export default function ProductDetailPage() {
         <>
           <div className="product-detail">
             <div className="detail-media">
-              {product.image_url ? (
-                <img className="detail-image" src={product.image_url} alt={product.name} />
-              ) : (
-                <div className="product-image-placeholder">Chưa có ảnh</div>
-              )}
+              <ProductImage
+                src={product.image_url}
+                alt={product.name}
+                className="detail-image"
+                loading="eager"
+              />
             </div>
             <div className="detail-content">
               <div className="detail-meta">

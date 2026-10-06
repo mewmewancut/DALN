@@ -146,9 +146,9 @@ export default function ShopProductsPage() {
               <tr>
                 <th>Sản phẩm</th>
                 <th>Danh mục</th>
-                <th>Giá từ</th>
-                <th>Biến thể</th>
-                <th>Tồn kho</th>
+                <th className="numeric-cell">Giá từ</th>
+                <th className="numeric-cell">Biến thể</th>
+                <th className="numeric-cell">Tồn kho</th>
                 <th>Trạng thái</th>
                 <th>Thao tác</th>
               </tr>
@@ -158,9 +158,11 @@ export default function ShopProductsPage() {
                 <tr key={product.id}>
                   <td>{product.name}</td>
                   <td>{categoryName(product.category_id)}</td>
-                  <td>{formatCurrency(product.price_from)}</td>
-                  <td>{product.variants.length}</td>
-                  <td>{product.variants.reduce((sum, variant) => sum + variant.quantity, 0)}</td>
+                  <td className="numeric-cell">{formatCurrency(product.price_from)}</td>
+                  <td className="numeric-cell">{product.variants.length}</td>
+                  <td className="numeric-cell">
+                    {product.variants.reduce((sum, variant) => sum + variant.quantity, 0)}
+                  </td>
                   <td>{product.is_active ? "Đang bán" : "Đã ẩn"}</td>
                   <td>
                     <div className="table-actions">

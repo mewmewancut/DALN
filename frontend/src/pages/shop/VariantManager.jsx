@@ -65,8 +65,8 @@ export default function VariantManager({ product }) {
               <th>Size</th>
               <th>Màu</th>
               <th>SKU</th>
-              <th>Giá (₫)</th>
-              <th>Tồn kho</th>
+              <th className="numeric-cell">Giá (₫)</th>
+              <th className="numeric-cell">Tồn kho</th>
               <th>Trạng thái</th>
               <th>Thao tác</th>
             </tr>
@@ -91,7 +91,7 @@ export default function VariantManager({ product }) {
                       }
                     />
                   </td>
-                  <td>{variant.quantity}</td>
+                  <td className="numeric-cell">{variant.quantity}</td>
                   <td>{variant.is_active ? "Đang bán" : "Đã ẩn"}</td>
                   <td>
                     <div className="table-actions">

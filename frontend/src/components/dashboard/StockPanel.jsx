@@ -32,9 +32,9 @@ export default function StockPanel({ stock, admin }) {
               <tr>
                 {admin && <th>Shop</th>}
                 <th>Sản phẩm / biến thể</th>
-                <th>Còn lại</th>
-                <th>Ngưỡng</th>
-                <th>Đã bán trong kỳ</th>
+                <th className="numeric-cell">Còn lại</th>
+                <th className="numeric-cell">Ngưỡng</th>
+                <th className="numeric-cell">Đã bán trong kỳ</th>
               </tr>
             </thead>
             <tbody>
@@ -47,13 +47,13 @@ export default function StockPanel({ stock, admin }) {
                       {item.size} · {item.color}
                     </small>
                   </td>
-                  <td>
+                  <td className="numeric-cell">
                     <span className={item.quantity === 0 ? "stock-zero" : "stock-low"}>
                       {item.quantity === 0 ? "Hết hàng" : item.quantity}
                     </span>
                   </td>
-                  <td>{item.threshold}</td>
-                  <td>{item.sold_quantity}</td>
+                  <td className="numeric-cell">{item.threshold}</td>
+                  <td className="numeric-cell">{item.sold_quantity}</td>
                 </tr>
               ))}
             </tbody>

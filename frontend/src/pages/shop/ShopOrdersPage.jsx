@@ -108,7 +108,7 @@ export default function ShopOrdersPage() {
               <tr>
                 <th>Mã đơn</th>
                 <th>Ngày đặt</th>
-                <th>Tổng tiền</th>
+                <th className="numeric-cell">Tổng tiền</th>
                 <th>Thanh toán</th>
                 <th>Trạng thái</th>
                 <th>Thao tác</th>
@@ -118,8 +118,8 @@ export default function ShopOrdersPage() {
               {result.items.map((order) => (
                 <tr key={order.id}>
                   <td>{order.code}</td>
-                  <td>{formatDateTime(order.created_at)}</td>
-                  <td>{formatCurrency(order.total_amount)}</td>
+                  <td className="date-cell">{formatDateTime(order.created_at)}</td>
+                  <td className="numeric-cell">{formatCurrency(order.total_amount)}</td>
                   <td>
                     {order.payment_method} · {order.payment_status}
                   </td>

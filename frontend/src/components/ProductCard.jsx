@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 
 import WishlistButton from "./WishlistButton.jsx";
+import ProductImage from "./ProductImage.jsx";
 import { formatCurrency } from "./formatCurrency.js";
 
 export default function ProductCard({ product, isFavorite, isBusy, onToggleFavorite }) {
@@ -8,11 +9,7 @@ export default function ProductCard({ product, isFavorite, isBusy, onToggleFavor
     <article className="product-card">
       <Link to={`/products/${product.id}`} className="product-card-link">
         <div className="product-card-media">
-          {product.image_url ? (
-            <img src={product.image_url} alt={product.name} />
-          ) : (
-            <div className="product-image-placeholder">Chưa có ảnh</div>
-          )}
+          <ProductImage src={product.image_url} alt={product.name} />
           <span className="view-product">Xem chi tiết</span>
         </div>
         <div className="product-card-body">

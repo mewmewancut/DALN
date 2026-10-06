@@ -67,7 +67,7 @@ export default function PurchaseOrderForm({ suppliers, variants, onCreated }) {
         <p className="muted">Chưa có nhà cung cấp đang hợp tác. Hãy thêm nhà cung cấp trước.</p>
       )}
       {lines.map((line, index) => (
-        <div className="variant-row" key={index}>
+        <div className="variant-row purchase-line" key={index}>
           <label>
             Biến thể
             <select

@@ -125,7 +125,7 @@ export default function ShopInventoryPage() {
                   <th>Size</th>
                   <th>Màu</th>
                   <th>SKU</th>
-                  <th>Tồn kho</th>
+                  <th className="numeric-cell">Tồn kho</th>
                   <th>Ngưỡng cảnh báo</th>
                   <th>Thao tác</th>
                 </tr>
@@ -140,7 +140,7 @@ export default function ShopInventoryPage() {
                       <td>{item.size}</td>
                       <td>{item.color}</td>
                       <td>{item.sku}</td>
-                      <td>
+                      <td className="numeric-cell">
                         {item.quantity}
                         {item.is_low && <span className="low-label"> Sắp hết</span>}
                       </td>

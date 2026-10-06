@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
 import SiteLayout from "../components/SiteLayout.jsx";
+import ProductImage from "../components/ProductImage.jsx";
 import { formatCurrency } from "../components/formatCurrency.js";
 
 export default function WishlistPage() {
@@ -69,11 +70,11 @@ export default function WishlistPage() {
         <div className="wishlist-grid">
           {items.map((item) => (
             <article className="wishlist-item" key={item.id}>
-              {item.image_url ? (
-                <img src={item.image_url} alt={item.name} />
-              ) : (
-                <div className="wishlist-image-placeholder">Chưa có ảnh</div>
-              )}
+              <ProductImage
+                src={item.image_url}
+                alt={item.name}
+                placeholderClassName="wishlist-image-placeholder"
+              />
               <div className="wishlist-item-content">
                 <p className="product-shop">{item.shop_name}</p>
                 <h2>{item.name}</h2>

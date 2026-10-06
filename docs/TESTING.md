@@ -5,6 +5,8 @@
 
 Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth, catalog/wishlist/preferences/recommendations, toàn bộ luồng buyer từ giỏ hàng tới review, toàn bộ trang quản lý của chủ shop và các trang admin.
 
+Test UI dùng chung kiểm tra skip link đến vùng nội dung có thể focus, nhãn điều hướng theo ba role và ảnh sản phẩm khi thiếu URL/tải lỗi/đổi URL. Quy ước trình bày và bằng chứng kiểm tra trình duyệt thủ công nằm ở [UI/UX](UI_UX.md); các kiểm tra này không thay browser end-to-end tự động còn Planned.
+
 ## Các lớp kiểm tra hiện có
 
 | Lớp | Công cụ | Phạm vi đang chạy |

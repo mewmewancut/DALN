@@ -81,7 +81,7 @@ export default function ShopAlertsPage() {
                   <th>Sản phẩm</th>
                   <th>Size</th>
                   <th>Màu</th>
-                  <th>Tồn kho lúc cảnh báo</th>
+                  <th className="numeric-cell">Tồn kho lúc cảnh báo</th>
                   <th>Thời điểm</th>
                 </tr>
               </thead>
@@ -91,8 +91,8 @@ export default function ShopAlertsPage() {
                     <td>{alert.product_name}</td>
                     <td>{alert.size}</td>
                     <td>{alert.color}</td>
-                    <td>{alert.quantity_at_alert}</td>
-                    <td>{formatDateTime(alert.created_at)}</td>
+                    <td className="numeric-cell">{alert.quantity_at_alert}</td>
+                    <td className="date-cell">{formatDateTime(alert.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

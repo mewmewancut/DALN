@@ -5,6 +5,7 @@ import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
 import { formatCurrency } from "../components/formatCurrency.js";
 import SiteLayout from "../components/SiteLayout.jsx";
+import ProductImage from "../components/ProductImage.jsx";
 
 const EMPTY_CART = { shop_id: null, shop_name: null, items: [], total_amount: 0 };
 
@@ -101,11 +102,11 @@ export default function CartPage() {
                 !Number.isInteger(quantity) || quantity < 1 || quantity > item.stock_quantity;
               return (
                 <article className="cart-item" key={item.id}>
-                  {item.image_url ? (
-                    <img src={item.image_url} alt={item.product_name} />
-                  ) : (
-                    <div className="cart-image-placeholder">Chưa có ảnh</div>
-                  )}
+                  <ProductImage
+                    src={item.image_url}
+                    alt={item.product_name}
+                    placeholderClassName="cart-image-placeholder"
+                  />
                   <div>
                     <h3>{item.product_name}</h3>
                     <p>

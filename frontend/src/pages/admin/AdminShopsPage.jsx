@@ -169,7 +169,7 @@ export default function AdminShopsPage() {
                 <tr key={shop.id}>
                   <td>{shop.name}</td>
                   <td>#{shop.owner_id}</td>
-                  <td>{formatDateTime(shop.created_at)}</td>
+                  <td className="date-cell">{formatDateTime(shop.created_at)}</td>
 
                   <td>
                     <span

@@ -135,9 +135,9 @@ export default function ProductListPage() {
       <header className="catalog-hero">
         <div>
           <p className="eyebrow">Bộ sưu tập chọn lọc</p>
-          <h1>Phong cách của bạn, lựa chọn của bạn.</h1>
+          <h1>Mặc đẹp theo cách của bạn.</h1>
           <p className="catalog-lead">
-            Khám phá sản phẩm từ nhiều gian hàng, xem đúng giá và tồn kho của từng biến thể.
+            Khám phá thời trang từ nhiều gian hàng, chọn món đồ hợp với bạn.
           </p>
         </div>
 

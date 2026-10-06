@@ -20,6 +20,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến backend C3–C10 và P1–P4, gồm sở thích và gợi ý sản phẩm |
 | [`API.md`](API.md) | In progress | Endpoint C0–C10 và P1–P4: auth, hồ sơ/địa chỉ, wishlist/sở thích/gợi ý, catalog, vận hành shop, đơn hàng, thống kê, admin, role và error contract |
 | [`WEB_DASHBOARDS.md`](WEB_DASHBOARDS.md) | Implemented | Dashboard website admin/shop: mục đích KPI, API, kỳ trước, biểu đồ và ưu tiên vận hành |
+| [`UI_UX.md`](UI_UX.md) | Implemented | Font tiếng Việt, layout theo role, responsive, bảng, trạng thái ảnh và kiểm tra giao diện |
 | [`DATA_PLATFORM.md`](DATA_PLATFORM.md) | Implemented (E1–E3) | CDC/checkpoint, Job serverless, setup/recovery và nghiệm thu; E4–E6 còn Planned |
 | [`E2_SILVER.md`](E2_SILVER.md) | Implemented | 7 bảng Silver, dependency skip, nghiệp vụ/transaction và kiểm thử |
 | [`E3_GOLD.md`](E3_GOLD.md) | Implemented | 6 bảng Gold, metric C9, overwrite, điều phối Spark/warehouse và nghiệm thu |

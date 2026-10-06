@@ -149,7 +149,7 @@ export default function AdminOrdersPage() {
                   <th>Shop</th>
                   <th>Người mua</th>
                   <th>Ngày đặt</th>
-                  <th>Tổng tiền</th>
+                  <th className="numeric-cell">Tổng tiền</th>
                   <th>Thanh toán</th>
                   <th>Trạng thái</th>
                 </tr>
@@ -160,8 +160,8 @@ export default function AdminOrdersPage() {
                     <td>{order.code}</td>
                     <td>{shopName(order.shop_id)}</td>
                     <td>#{order.buyer_id}</td>
-                    <td>{formatDateTime(order.created_at)}</td>
-                    <td>{formatCurrency(order.total_amount)}</td>
+                    <td className="date-cell">{formatDateTime(order.created_at)}</td>
+                    <td className="numeric-cell">{formatCurrency(order.total_amount)}</td>
                     <td>
                       {order.payment_method} · {order.payment_status}
                     </td>

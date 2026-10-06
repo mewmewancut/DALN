@@ -35,20 +35,22 @@ export default function ShopPerformancePanel({ shops, revenue }) {
             <thead>
               <tr>
                 <th>Shop</th>
-                <th>Đơn tạo</th>
-                <th>Đơn hủy</th>
-                <th>Tỷ lệ hủy</th>
-                <th>AOV</th>
+                <th className="numeric-cell">Đơn tạo</th>
+                <th className="numeric-cell">Đơn hủy</th>
+                <th className="numeric-cell">Tỷ lệ hủy</th>
+                <th className="numeric-cell">AOV</th>
               </tr>
             </thead>
             <tbody>
               {shops.map((shop) => (
                 <tr key={shop.shop_id}>
                   <td>{shop.shop_name}</td>
-                  <td>{shop.order_count}</td>
-                  <td>{shop.cancelled_count}</td>
-                  <td>{formatRate(shop.cancel_rate)}</td>
-                  <td>{shop.aov == null ? "—" : formatCurrency(Math.round(shop.aov))}</td>
+                  <td className="numeric-cell">{shop.order_count}</td>
+                  <td className="numeric-cell">{shop.cancelled_count}</td>
+                  <td className="numeric-cell">{formatRate(shop.cancel_rate)}</td>
+                  <td className="numeric-cell">
+                    {shop.aov == null ? "—" : formatCurrency(Math.round(shop.aov))}
+                  </td>
                 </tr>
               ))}
             </tbody>
