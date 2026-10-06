@@ -34,4 +34,4 @@ Dùng `data/00_pipeline.py` hai lượt với nguồn ổn định, sau đó `da
 
 Test Delta local cover đủ 7 bảng, sáu status, decimal/inactive, rating biên/NULL, giờ 17:00 UTC, TIMESTAMP/TIMESTAMP_NTZ trong UTC/VN/Los Angeles, invalid→valid và ngược lại, join fanout/schema/rollback/dọn stage; test dependency cover no-op, order→items, variant→inventory, đổi exclusion, sửa target và retry khi marker chưa tiến.
 
-E3–E6 còn Planned; nghiệm thu E1/E2 không thay thế gate Gold E4.
+Gold E3 được mô tả tại [E3_GOLD.md](E3_GOLD.md); E4–E6 còn Planned. Nghiệm thu E1/E2 không thay thế gate Gold E4.

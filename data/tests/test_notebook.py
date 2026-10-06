@@ -61,7 +61,11 @@ def test_widgets_reject_ephemeral_checkpoint(monkeypatch):
 
 @pytest.mark.parametrize(
     "notebook,stage",
-    [("01_bronze_ingest.py", "bronze"), ("02_silver_transform.py", "silver")],
+    [
+        ("01_bronze_ingest.py", "bronze"),
+        ("02_silver_transform.py", "silver"),
+        ("03_gold_aggregate.py", "gold"),
+    ],
 )
 @pytest.mark.parametrize("fails", [False, True])
 def test_separate_notebook_runs_only_its_stage_and_reports_success_after_completion(
@@ -82,7 +86,9 @@ def test_separate_notebook_runs_only_its_stage_and_reports_success_after_complet
     monkeypatch.setattr(pipeline_job, "CDCIngest", Mock(return_value=ingest))
     silver = Mock(return_value={"dim_shops": 3})
     monkeypatch.setattr(pipeline_job, "run_silver", silver)
-    selected = ingest.run if stage == "bronze" else silver
+    gold = Mock(return_value={"revenue_daily": 2})
+    monkeypatch.setattr(pipeline_job, "run_gold", gold)
+    selected = {"bronze": ingest.run, "silver": silver, "gold": gold}[stage]
     if fails:
         selected.side_effect = IngestionError("demo stage failed")
 
@@ -101,14 +107,27 @@ def test_separate_notebook_runs_only_its_stage_and_reports_success_after_complet
         utils.notebook.exit.assert_called_once()
         result = json.loads(utils.notebook.exit.call_args.args[0])
         assert set(result) == {stage, "timings_seconds"}
-        assert result[stage] == ({"users": "CDC"} if stage == "bronze" else {"dim_shops": 3})
+        assert (
+            result[stage]
+            == {
+                "bronze": {"users": "CDC"},
+                "silver": {"dim_shops": 3},
+                "gold": {"revenue_daily": 2},
+            }[stage]
+        )
         assert set(result["timings_seconds"]) == {stage, "spark_startup"}
 
     selected.assert_called_once()
     if stage == "bronze":
         silver.assert_not_called()
-    else:
+        gold.assert_not_called()
+    elif stage == "silver":
         ingest.run.assert_not_called()
         silver.assert_called_once_with(
             spark, "fashion", values["checkpoint_root"], (), report=print, snapshots=None
         )
+        gold.assert_not_called()
+    else:
+        ingest.run.assert_not_called()
+        silver.assert_not_called()
+        gold.assert_called_once_with(spark, "fashion", report=print)

@@ -19,8 +19,9 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`DATABASE.md`](DATABASE.md) | Implemented | Schema, quan hệ, constraint, migration, hồ sơ/sổ địa chỉ và seed data |
 | [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến backend C3–C10 và P1–P4, gồm sở thích và gợi ý sản phẩm |
 | [`API.md`](API.md) | In progress | Endpoint C0–C10 và P1–P4: auth, hồ sơ/địa chỉ, wishlist/sở thích/gợi ý, catalog, vận hành shop, đơn hàng, thống kê, admin, role và error contract |
-| [`DATA_PLATFORM.md`](DATA_PLATFORM.md) | Implemented (E1/E2) | CDC/checkpoint, Job serverless, setup/recovery và nghiệm thu; E3–E6 còn Planned |
+| [`DATA_PLATFORM.md`](DATA_PLATFORM.md) | Implemented (E1–E3) | CDC/checkpoint, Job serverless, setup/recovery và nghiệm thu; E4–E6 còn Planned |
 | [`E2_SILVER.md`](E2_SILVER.md) | Implemented | 7 bảng Silver, dependency skip, nghiệp vụ/transaction và kiểm thử |
+| [`E3_GOLD.md`](E3_GOLD.md) | Implemented | 6 bảng Gold, metric C9, overwrite, điều phối Spark/warehouse và nghiệm thu |
 | [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) | Implemented | Cài đặt Docker, chọn database local/Lakebase, cutover/rollback, migration, seed và kiểm tra local/demo |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |
 | [`TESTING.md`](TESTING.md) | In progress | Các lớp test hiện có, hook pre-commit và hướng dẫn chạy |

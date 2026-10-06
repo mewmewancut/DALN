@@ -1,12 +1,12 @@
-# Data platform — E1/E2
+# Data platform — E1/E2/E3
 
-E1/E2 dùng Lakebase CDC và Spark trên serverless notebook compute. E3–E6 còn **Planned**. Không triển khai Dashboard/Genie trước gate E4. Phạm vi bảng và nghiệp vụ vẫn theo [Planning phần E](PLANNING.md#phần-e--data-platform-databricks).
+E1/E2 dùng Lakebase CDC và Spark trên serverless notebook compute. E3 đã triển khai và nghiệm thu sáu bảng Gold; nghiệp vụ, cách chạy và bằng chứng nằm ở [E3_GOLD.md](E3_GOLD.md). E4–E6 còn **Planned**. Không triển khai Dashboard/Genie trước gate E4. Phạm vi bảng và nghiệp vụ theo [Planning phần E](PLANNING.md#phần-e--data-platform-databricks), cách xử lý ngày tạo/ngày giao E3 được ghi rõ trong tài liệu Gold.
 
 Người dùng đã duyệt đổi cách lấy dữ liệu E1 từ đọc Lakebase đầy đủ mỗi lượt sang CDC để tối ưu Job. Catalog đích vẫn là `fashion`; Bronze vẫn 13 bảng E1 và Silver vẫn 7 bảng E2. Feed nguồn có thể chứa nhiều bảng hơn nhưng pipeline không sao chép bảng ngoài allow-list E1.
 
 ## Luồng chạy
 
-`Lakebase → fashion_cdc.bronze.lb_*_history → fashion.bronze → fashion.silver`
+`Lakebase → fashion_cdc.bronze.lb_*_history → fashion.bronze → fashion.silver → fashion.gold`
 
 - Lakebase CDF ghi thay đổi vào Delta history trên external managed storage S3. [Yêu cầu chính thức](https://docs.databricks.com/aws/en/oltp/projects/lakebase-cdf): Postgres 16+, REPLICA IDENTITY FULL và catalog đích không dùng default storage. Free Edition cần external catalog cho feed.
 - Lần đầu, E1 chốt một version Delta nguồn, dựng trạng thái mới nhất theo id và MERGE snapshot vào Bronze. Xóa dòng Bronze cũ không còn trong snapshot, bao gồm khi nguồn rỗng.
@@ -22,15 +22,18 @@ Người dùng đã duyệt đổi cách lấy dữ liệu E1 từ đọc Lakeba
 
 Job dùng SDK có sẵn trong runtime cho preflight khi bật `metadata_warehouse_id`; không cài pip hoặc restart Python trong lượt chạy. Không chạy kiểm tra count nguồn hai lần và không tạo staging Bronze. Silver chỉ tạo staging khi cần refresh để kiểm tra khóa, rejection và MERGE cùng một snapshot. MERGE chỉ update dòng có giá trị khác. Để trống warehouse ID thì chạy trực tiếp bằng Spark như trước.
 
-`timings_seconds` tách `preflight`, `spark_startup`, `bronze`, `silver`. `spark_startup` đo từ trước query đầu `SELECT 1` đến khi nhận kết quả; log thông báo trước lúc chờ. Khi SKIP sớm, startup và thời gian xử lý các tầng bằng 0; chi phí kiểm tra nằm ở `preflight`. Thời gian tổng Job vẫn gồm khởi tạo Python/điều phối ngoài các số đo này. Không có cam kết latency cố định từ serverless.
+`timings_seconds` tách `preflight`, `spark_startup`, `bronze`, `silver`, `gold`. `spark_startup` đo từ trước query đầu `SELECT 1` đến khi nhận kết quả; log thông báo trước lúc chờ. Khi E1/E2 SKIP sớm, startup và thời gian hai tầng bằng 0; Gold vẫn overwrite qua warehouse đã cấu hình. Notebook E1/E2 riêng vẫn có thể SKIP và không ghi bảng. Thời gian tổng Job gồm khởi tạo Python/điều phối ngoài các số đo này. Không có cam kết latency cố định từ serverless.
 
 ## File
 
 | File | Vai trò |
 |---|---|
-| `data/00_pipeline.py` | Entry Job chính: E1 rồi E2 trong một phiên compute |
+| `data/00_pipeline.py` | Entry Job chính: E1 rồi E2 rồi E3; dùng warehouse cho Gold khi E1/E2 SKIP sớm |
 | `data/01_bronze_ingest.py` | Notebook demo riêng: chỉ nạp CDC vào Bronze |
 | `data/02_silver_transform.py` | Notebook demo riêng: chỉ cập nhật Silver từ Bronze hiện có |
+| `data/03_gold_aggregate.py` | Notebook riêng: overwrite 6 Gold từ Silver hiện có |
+| `data/gold_queries.py`, `gold_transform.py`, `gold_job.py` | SQL metric và full overwrite Gold trên Spark/warehouse |
+| `data/gold_acceptance.py` | Nghiệm thu E3 chỉ đọc, projection và tổng số liệu so Lakebase; không thay gate E4 |
 | `data/cdc_ingest.py`, `cdc_merge.py` | Bootstrap, offsets, validation và MERGE CDC |
 | `data/silver_job.py`, `silver_transform.py`, `silver_queries.py` | Dependency skip và biến đổi Silver |
 | `data/pipeline_job.py`, `bronze_ingest.py` | Điều phối, widget và allow-list/identifier |
@@ -40,7 +43,7 @@ Job dùng SDK có sẵn trong runtime cho preflight khi bật `metadata_warehous
 | `data/acceptance.py` | Nghiệm thu chỉ đọc, chạy riêng qua warehouse |
 | `data/tests/`, `Dockerfile.test`, `requirements-test.txt`, `requirements.txt`, `ruff.toml`, `.dockerignore` | Test Delta local, dependency và cấu hình kiểm tra |
 
-`data/00_pipeline.py` vẫn là entry của Job chính. Hai notebook demo riêng gọi lại cùng logic điều phối với `stage="bronze"` hoặc `stage="silver"`, dùng cùng widget và checkpoint; không sao chép logic ingestion/biến đổi và không thay đổi Job đang chạy. Entry tương thích `01_bronze_job.py` đã bỏ. Placeholder E3/E4 đã bỏ; Gold và gate chất lượng vẫn **Planned**, sẽ tạo source khi bắt đầu triển khai. Tên bước trong Planning là đặc tả dự kiến; danh sách file hiện có nằm ở bảng trên.
+`data/00_pipeline.py` vẫn là entry của Job chính. Ba notebook riêng gọi cùng điều phối với stage bronze/silver/gold, dùng cùng widget; Gold không dùng checkpoint riêng. Entry tương thích `01_bronze_job.py` đã bỏ. Gate chất lượng E4 còn **Planned**; danh sách file hiện có nằm ở bảng trên.
 
 ## Setup một lần
 
@@ -52,6 +55,7 @@ Job dùng SDK có sẵn trong runtime cho preflight khi bật `metadata_warehous
    CREATE VOLUME IF NOT EXISTS fashion_cdc.bronze.pipeline_checkpoints;
    CREATE SCHEMA IF NOT EXISTS fashion.bronze;
    CREATE SCHEMA IF NOT EXISTS fashion.silver;
+   CREATE SCHEMA IF NOT EXISTS fashion.gold;
    ```
 5. Đồng bộ toàn bộ thư mục `data` trong Git folder. Các file có header Databricks notebook là notebook, module hỗ trợ giữ dạng Workspace file. Không chỉ copy notebook thiếu module.
 6. Tạo một Notebook task trỏ tới `data/00_pipeline.py` trên serverless compute, **Maximum concurrent runs = 1**, **Performance optimized = bật**. Runtime cung cấp Spark/Delta và SDK; không cài requirements-test vào Databricks.
@@ -66,7 +70,7 @@ Job dùng SDK có sẵn trong runtime cho preflight khi bật `metadata_warehous
 | `excluded_shop_ids` | Rỗng; chỉ điền ID shop test đã biết |
 | `metadata_warehouse_id` | Rỗng để dùng Spark trực tiếp; điền SQL warehouse ID để bật SKIP trước Spark |
 
-Run as cần SELECT history, USE CATALOG/SCHEMA, READ/WRITE VOLUME checkpoint, CREATE TABLE và SELECT/MODIFY Bronze/Silver; quyền quản lý staging Silver. Chạy tay trước demo hoặc lịch 15 phút theo Planning. Dừng lịch/Job Bronze cũ trước khi bật Job mới; không chạy notebook chính chồng Job.
+Run as cần SELECT history, USE CATALOG/SCHEMA, READ/WRITE VOLUME checkpoint, CREATE TABLE và SELECT/MODIFY Bronze/Silver/Gold; quyền quản lý staging Silver. Gold có thể tạo schema khi thiếu; dùng warehouse cần CAN USE và quyền ghi Gold. Chạy tay trước demo hoặc lịch 15 phút theo Planning. Dừng lịch/Job Bronze cũ trước khi bật Job mới; không chạy notebook chính chồng Job.
 
 Preflight cần thêm CAN USE trên warehouse được chọn, dùng danh tính Run as hiện có; không đặt token trong widget/code. Warehouse dừng có thể cần startup và phát sinh compute để kiểm tra metadata. Bản tối ưu không bật chế độ giữ warehouse chạy liên tục. Workspace DALN dùng warehouse sẵn có `261b45209f3d8a59`; đây là cấu hình task, không hard-code trong Python. Muốn tắt preflight chỉ cần đặt `metadata_warehouse_id` rỗng.
 
@@ -138,7 +142,7 @@ Sau nghiệm thu E1/E2 ở trên, backend trên máy đã chuyển sang database
 - Nghiệm thu chỉ đọc sau Job: 13 Bronze khớp count/khóa với Lakebase và cả 7 Silver khớp projection hai chiều. `updated_at` variant 10 từ lần ghi API khớp giữa Lakebase và Bronze (`2026-10-04 12:45:51.837233` UTC); phép đối chiếu Silver xác nhận fact_inventory đã nhận cùng trạng thái.
 - Test sau cutover: 162 backend, 3 cấu hình Compose và 7 hook pass; lint/format, frontend HTTP smoke và diff check pass. Hook khôi phục `.env` sau kiểm thử local; ba regression về khôi phục đều fail trên hook cũ.
 
-Gold E3, gate E4, Dashboard/Genie vẫn **Planned**. Job hiện chạy tay; dữ liệu Bronze/Silver chỉ cập nhật khi Job chạy, không phải website ghi tới đâu Silver cập nhật ngay tới đó.
+Tại thời điểm cutover 04/10/2026, Gold E3, gate E4 và Dashboard/Genie còn **Planned**. Job chạy tay; Bronze/Silver chỉ cập nhật khi Job chạy. Trạng thái E3 mới nhất nằm ở [E3_GOLD.md](E3_GOLD.md).
 
 ### Tối ưu lượt không thay đổi — 04/10/2026
 

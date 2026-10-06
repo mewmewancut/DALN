@@ -155,9 +155,13 @@ def test_no_change_job_never_touches_spark_or_stage_writers(metadata, monkeypatc
     silver = Mock()
     monkeypatch.setattr(pipeline_job.CDCIngest, "run", bronze)
     monkeypatch.setattr(pipeline_job, "run_silver", silver)
+    gold = Mock(return_value={"revenue_daily": 2})
+    monkeypatch.setattr(pipeline_job, "run_gold_on_warehouse", gold)
     result = pipeline_job.run_pipeline(spark, "cdc", ROOT, metadata_warehouse_id="wh")
     assert len(result["bronze"]) == 13
     assert len(result["silver"]) == 7
+    assert result["gold"] == {"revenue_daily": 2}
+    gold.assert_called_once_with("wh", "fashion", report=print)
     assert result["timings_seconds"]["spark_startup"] == 0
     assert result["timings_seconds"]["preflight"] >= 0
     assert spark.mock_calls == []
@@ -168,12 +172,16 @@ def test_no_change_job_never_touches_spark_or_stage_writers(metadata, monkeypatc
 def test_pending_data_uses_normal_pipeline_and_keeps_startup_out_of_stage_timings(monkeypatch):
     monkeypatch.setattr(pipeline_job, "preflight", Mock(return_value=None))
     monkeypatch.setattr(
-        pipeline_job.time, "monotonic", Mock(side_effect=[0, 1, 2, 722, 723, 725, 726, 729])
+        pipeline_job.time,
+        "monotonic",
+        Mock(side_effect=[0, 1, 2, 722, 723, 725, 726, 729, 730, 734]),
     )
     bronze = Mock(return_value={"users": "CDC"})
     monkeypatch.setattr(pipeline_job.CDCIngest, "run", bronze)
     silver = Mock(return_value={"dim_shops": 3})
     monkeypatch.setattr(pipeline_job, "run_silver", silver)
+    gold = Mock(return_value={"revenue_daily": 2})
+    monkeypatch.setattr(pipeline_job, "run_gold", gold)
     result = pipeline_job.run_pipeline(Mock(), "cdc", ROOT, metadata_warehouse_id="wh")
     assert result["bronze"] == {"users": "CDC"}
     assert result["silver"] == {"dim_shops": 3}
@@ -182,9 +190,11 @@ def test_pending_data_uses_normal_pipeline_and_keeps_startup_out_of_stage_timing
         "spark_startup": 720,
         "bronze": 2,
         "silver": 3,
+        "gold": 4,
     }
     bronze.assert_called_once()
     silver.assert_called_once()
+    gold.assert_called_once()
 
 
 def test_startup_failure_never_reports_stage_success(monkeypatch):

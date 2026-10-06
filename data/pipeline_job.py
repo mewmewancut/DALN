@@ -1,8 +1,9 @@
-"""E1/E2 job orchestration on one serverless notebook session."""
+"""E1/E2/E3 orchestration; Gold overwrites even when Bronze/Silver are unchanged."""
 
 import time
 
 from cdc_ingest import CDCIngest
+from gold_job import run_gold, run_gold_on_warehouse
 from pipeline_preflight import preflight
 from silver_job import run_silver
 from silver_transform import validate_shop_ids
@@ -20,7 +21,7 @@ def run_pipeline(
     report=print,
     metadata_warehouse_id="",
 ):
-    if stage not in ("all", "bronze", "silver"):
+    if stage not in ("all", "bronze", "silver", "gold"):
         raise ValueError("Unknown pipeline stage")
     excluded_shop_ids = validate_shop_ids(excluded_shop_ids)
     ingest = CDCIngest(
@@ -28,7 +29,7 @@ def run_pipeline(
     )
     results = {}
     timings = {}
-    if metadata_warehouse_id:
+    if metadata_warehouse_id and stage != "gold":
         started = time.monotonic()
         report("Checking Delta versions/checkpoints before starting Spark", flush=True)
         unchanged = preflight(
@@ -44,8 +45,23 @@ def run_pipeline(
         if unchanged is not None:
             timings.update(dict.fromkeys(unchanged, 0.0))
             timings["spark_startup"] = 0.0
-            report("All requested tables unchanged; notebook Spark session not needed", flush=True)
+            report(
+                "Requested Bronze/Silver unchanged; notebook Spark session not needed", flush=True
+            )
+            if stage == "all":
+                started = time.monotonic()
+                unchanged["gold"] = run_gold_on_warehouse(
+                    metadata_warehouse_id, target_catalog, report=report
+                )
+                timings["gold"] = round(time.monotonic() - started, 3)
             return {**unchanged, "timings_seconds": timings}
+    if stage == "gold" and metadata_warehouse_id:
+        started = time.monotonic()
+        results["gold"] = run_gold_on_warehouse(
+            metadata_warehouse_id, target_catalog, report=report
+        )
+        timings.update(gold=round(time.monotonic() - started, 3), spark_startup=0.0)
+        return {**results, "timings_seconds": timings}
     report("Starting Spark session; waiting for first query", flush=True)
     started = time.monotonic()
     spark.sql("SELECT 1").collect()
@@ -66,6 +82,10 @@ def run_pipeline(
             snapshots=ingest.target_snapshots if stage == "all" else None,
         )
         timings["silver"] = round(time.monotonic() - started, 3)
+    if stage in ("all", "gold"):
+        started = time.monotonic()
+        results["gold"] = run_gold(spark, target_catalog, report=report)
+        timings["gold"] = round(time.monotonic() - started, 3)
     results["timings_seconds"] = timings
     return results
 

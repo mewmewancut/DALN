@@ -12,12 +12,15 @@ def test_silver_runs_only_after_successful_bronze(monkeypatch, tmp_path):
     monkeypatch.setattr(pipeline_job, "CDCIngest", Mock(return_value=ingest))
     silver = Mock()
     monkeypatch.setattr(pipeline_job, "run_silver", silver)
+    gold = Mock()
+    monkeypatch.setattr(pipeline_job, "run_gold", gold)
     with pytest.raises(IngestionError):
         pipeline_job.run_pipeline(Mock(), "cdc", str(tmp_path))
     silver.assert_not_called()
+    gold.assert_not_called()
 
 
-def test_both_stages_share_session_and_complete_in_order(monkeypatch, tmp_path):
+def test_all_stages_share_session_and_complete_in_order(monkeypatch, tmp_path):
     events = []
     spark = Mock()
     snapshots = {"`fashion`.`bronze`.`users`": {"id": "users-id", "version": 4}}
@@ -33,11 +36,19 @@ def test_both_stages_share_session_and_complete_in_order(monkeypatch, tmp_path):
         return {"dim_shops": 3}
 
     monkeypatch.setattr(pipeline_job, "run_silver", silver)
+
+    def gold(session, catalog, **kwargs):
+        assert session is spark and catalog == "fashion"
+        events.append("gold")
+        return {"revenue_daily": 2}
+
+    monkeypatch.setattr(pipeline_job, "run_gold", gold)
     result = pipeline_job.run_pipeline(spark, "cdc", str(tmp_path))
-    assert events == ["bronze", "silver"]
+    assert events == ["bronze", "silver", "gold"]
     assert result["bronze"] == {"users": "CDC"}
     assert result["silver"] == {"dim_shops": 3}
-    assert set(result["timings_seconds"]) == {"bronze", "silver", "spark_startup"}
+    assert result["gold"] == {"revenue_daily": 2}
+    assert set(result["timings_seconds"]) == {"bronze", "silver", "gold", "spark_startup"}
     assert all(value >= 0 for value in result["timings_seconds"].values())
 
 

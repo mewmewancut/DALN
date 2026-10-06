@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # E1 → E2 — incremental Job
-# MAGIC One serverless session; no pip install, restart or SQL warehouse.
+# MAGIC # E1 → E2 → E3 — incremental ingestion, full Gold refresh
+# MAGIC Gold uses the warehouse when E1/E2 preflight certifies unchanged inputs.
 # MAGIC Keep the repository modules beside this notebook. See docs/DATA_PLATFORM.md.
 
 # COMMAND ----------
