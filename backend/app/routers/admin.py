@@ -14,13 +14,24 @@ from app.schemas.admin import (
     ShopStatusUpdate,
     UserStatusUpdate,
 )
+from app.schemas.dashboard import DashboardResponse
 from app.schemas.orders import OrderPage, OrderStatus
 from app.schemas.shop_stats import ShopStatsOverview
-from app.services import admin_service, shop_stats_service
+from app.services import admin_service, dashboard_service, shop_stats_service
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 Admin = Annotated[User, Depends(require_role("ADMIN"))]
 Database = Annotated[Session, Depends(get_db)]
+
+
+@router.get("/stats/dashboard", response_model=DashboardResponse)
+def dashboard(
+    admin: Admin,
+    db: Database,
+    from_date: Annotated[date, Query(alias="from")],
+    to_date: Annotated[date, Query(alias="to")],
+) -> DashboardResponse:
+    return dashboard_service.get_dashboard(db, from_date, to_date)
 
 
 @router.get("/users", response_model=AdminUserPage)

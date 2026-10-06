@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import client from "../../api/client.js";
+import { dashboardFixture } from "../../testing/dashboardFixture.js";
 import { fillDailyRevenue } from "../../components/RevenueChart.jsx";
 import {
   alertText,
@@ -43,10 +44,7 @@ const overview = {
 
 function dashboardRoutes(overrides = {}) {
   return {
-    "/shop/stats/overview": overview,
-    "/shop/stats/revenue-by-day": [],
-    "/shop/alerts": [],
-    ...overrides,
+    "/shop/stats/dashboard": ({ params }) => dashboardFixture(params, { overview, ...overrides }),
   };
 }
 
@@ -124,30 +122,47 @@ it("giữ form tạo shop và hiện lỗi API khi tạo thất bại", async ()
   expect(container.textContent).toContain("Tạo shop của bạn");
 });
 
-it("dashboard gọi số liệu 30 ngày gần nhất, hiện 4 chỉ số, badge cảnh báo và biểu đồ theo ngày", async () => {
+it("dashboard gọi số liệu 30 ngày gần nhất, hiện 4 chỉ số, ưu tiên tồn kho và biểu đồ theo ngày", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2026, 8, 24, 10, 0));
   signInAs("SHOP_OWNER", 7);
   const get = routeGet(
     dashboardRoutes({
-      "/shop/stats/revenue-by-day": [{ date: "2026-09-20", revenue: 1500000, order_count: 2 }],
-      "/shop/alerts": [{ id: 1 }, { id: 2 }],
+      revenue_daily: [{ date: "2026-09-20", revenue: 1500000, order_count: 2 }],
+      stock: {
+        tracked_variants: 10,
+        out_of_stock: 1,
+        low_stock: 0,
+        priorities: [
+          {
+            variant_id: 1,
+            product_name: "Áo",
+            shop_name: "Shop A",
+            size: "M",
+            color: "Đỏ",
+            quantity: 0,
+            threshold: 5,
+            sold_quantity: 2,
+          },
+        ],
+      },
     }),
   );
   await renderAt("/shop/dashboard");
 
   const params = { from: "2026-08-26", to: "2026-09-24" };
-  expect(get).toHaveBeenCalledWith("/shop/stats/overview", { params });
-  expect(get).toHaveBeenCalledWith("/shop/stats/revenue-by-day", { params });
+  expect(get).toHaveBeenCalledWith("/shop/stats/dashboard", { params });
   expect(container.textContent).toContain("1.500.000 ₫");
   expect(container.textContent).toContain("25%");
   expect(container.textContent).toContain("750.000 ₫");
-  expect(container.querySelector(".alert-badge").textContent).toBe("Cảnh báo tồn kho: 2");
-  expect(container.querySelector(".alert-badge").getAttribute("href")).toBe("/shop/alerts");
+  expect(container.textContent).toContain("Hết hàng");
+  expect(container.querySelector('.dashboard-body a[href="/shop/inventory"]').textContent).toBe(
+    "Mở tồn kho",
+  );
   expect(container.querySelectorAll(".chart-point")).toHaveLength(30);
 
   await fill("Từ ngày", "2026-09-20");
-  expect(get).toHaveBeenCalledWith("/shop/stats/overview", {
+  expect(get).toHaveBeenCalledWith("/shop/stats/dashboard", {
     params: { from: "2026-09-20", to: "2026-09-24" },
   });
   expect(container.querySelectorAll(".chart-point")).toHaveLength(5);
@@ -157,7 +172,7 @@ it("dashboard hiện — khi chưa có mẫu số và báo lỗi API khi khoản
   signInAs("SHOP_OWNER", 7);
   const get = routeGet(
     dashboardRoutes({
-      "/shop/stats/overview": { ...overview, revenue: 0, cancel_rate: null, aov: null },
+      overview: { ...overview, revenue: 0, cancel_rate: null, aov: null },
     }),
   );
   await renderAt("/shop/dashboard");

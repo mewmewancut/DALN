@@ -5,6 +5,7 @@ import { MemoryRouter, useNavigate } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import App from "./App.jsx";
+import { dashboardFixture } from "./testing/dashboardFixture.js";
 import client from "./api/client.js";
 import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 
@@ -17,10 +18,10 @@ beforeEach(() => {
   container = document.createElement("div");
   document.body.appendChild(container);
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-  vi.spyOn(client, "get").mockImplementation(async (url) => ({
+  vi.spyOn(client, "get").mockImplementation(async (url, options) => ({
     data:
-      url === "/shop/stats/overview" || url === "/admin/stats/overview"
-        ? { revenue: 0, order_count: 0, cancelled_count: 0, cancel_rate: null, aov: null }
+      url === "/shop/stats/dashboard" || url === "/admin/stats/dashboard"
+        ? dashboardFixture(options.params)
         : [],
   }));
 });

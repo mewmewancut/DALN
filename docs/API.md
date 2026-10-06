@@ -208,6 +208,7 @@ Tất cả endpoint dưới đây yêu cầu token `SHOP_OWNER` và chỉ tính 
 
 | Method | Path | Request | Response thành công |
 |---|---|---|---|
+| GET | `/shop/stats/dashboard` | `from`, `to` (ngày, bắt buộc) | `200` với overview/kỳ trước, doanh thu ngày, trạng thái, sản phẩm bán chạy, tồn đọng và ưu tiên tồn kho; [contract chi tiết](WEB_DASHBOARDS.md#contract-api) |
 | GET | `/shop/stats/overview` | `from`, `to` (ngày, bắt buộc) | `200` với `{revenue, order_count, cancelled_count, cancel_rate, aov}` |
 | GET | `/shop/stats/revenue-by-day` | `from`, `to` (ngày, bắt buộc) | `200` với mảng `{date, revenue, order_count}` theo ngày |
 | GET | `/shop/stats/top-products` | `limit` (mặc định 10, tối đa 100) | `200` với mảng `{product_id, product_name, total_quantity_sold, total_revenue}`, sắp xếp giảm dần theo số lượng bán, toàn bộ lịch sử |
@@ -234,6 +235,7 @@ Tất cả endpoint dưới đây yêu cầu token `ADMIN`.
 | GET | `/admin/shops` | `keyword?` (tìm theo tên), `is_active?`, phân trang `page`, `page_size` | `200` với `{items, total, page, page_size}` |
 | PATCH | `/admin/shops/{id}` | `{is_active}` | `200` với shop đã sửa |
 | GET | `/admin/orders` | `shop_id?`, `status?`, `from?`, `to?` (lọc theo ngày `created_at`), phân trang | `200` với `{items, total, page, page_size}`, không giới hạn theo shop |
+| GET | `/admin/stats/dashboard` | `from`, `to` (ngày, bắt buộc) | `200` với dashboard toàn hệ thống và top 10 shop; [contract chi tiết](WEB_DASHBOARDS.md#contract-api) |
 | GET | `/admin/stats/overview` | `from`, `to` (ngày, bắt buộc) | `200` với `{revenue, order_count, cancelled_count, cancel_rate, aov}` giống C9 nhưng tính trên toàn hệ thống |
 
 `AdminUserResponse` gồm `{id, email, full_name, role, is_active, created_at}`. Khóa tài khoản chính mình (`PATCH /admin/users/{id}` với `is_active=false` và `id` là chính admin đang gọi) trả `400`; mở lại chính mình vẫn cho phép. User không tồn tại trả `404`.

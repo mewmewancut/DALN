@@ -6,12 +6,23 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_current_shop, get_db
 from app.models.shop import Shop
+from app.schemas.dashboard import DashboardResponse
 from app.schemas.shop_stats import RevenueByDayItem, ShopStatsOverview, TopProductItem
-from app.services import shop_stats_service
+from app.services import dashboard_service, shop_stats_service
 
 router = APIRouter(prefix="/shop/stats", tags=["shop-stats"])
 CurrentShop = Annotated[Shop, Depends(get_current_shop)]
 Database = Annotated[Session, Depends(get_db)]
+
+
+@router.get("/dashboard", response_model=DashboardResponse)
+def dashboard(
+    shop: CurrentShop,
+    db: Database,
+    from_date: Annotated[date, Query(alias="from")],
+    to_date: Annotated[date, Query(alias="to")],
+) -> DashboardResponse:
+    return dashboard_service.get_dashboard(db, from_date, to_date, shop_id=shop.id)
 
 
 @router.get("/overview", response_model=ShopStatsOverview)

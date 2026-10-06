@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import client from "../../api/client.js";
+import { dashboardFixture } from "../../testing/dashboardFixture.js";
 import {
   alertText,
   button,
@@ -81,9 +82,7 @@ function page(items) {
 it("chỉ admin vào được khu quản trị; vai trò khác bị đưa về trang của mình", async () => {
   signInAs("SHOP_OWNER", 7);
   routeGet({
-    "/shop/stats/overview": overview,
-    "/shop/stats/revenue-by-day": [],
-    "/shop/alerts": [],
+    "/shop/stats/dashboard": ({ params }) => dashboardFixture(params, { overview }),
   });
   await renderAt("/admin/users");
   expect(container.textContent).toContain("Tổng quan shop");
@@ -93,11 +92,13 @@ it("chỉ admin vào được khu quản trị; vai trò khác bị đưa về t
 it("dashboard admin gọi số liệu toàn hệ thống 30 ngày gần nhất và báo lỗi API", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2026, 8, 24, 10, 0));
-  const get = routeGet({ "/admin/stats/overview": overview });
+  const get = routeGet({
+    "/admin/stats/dashboard": ({ params }) => dashboardFixture(params, { overview }),
+  });
   await renderAt("/admin");
 
   expect(container.textContent).toContain("Quản trị hệ thống");
-  expect(get).toHaveBeenCalledWith("/admin/stats/overview", {
+  expect(get).toHaveBeenCalledWith("/admin/stats/dashboard", {
     params: { from: "2026-08-26", to: "2026-09-24" },
   });
   const cards = [...container.querySelectorAll(".stat-card strong")].map(
@@ -121,7 +122,7 @@ it("dashboard admin gọi số liệu toàn hệ thống 30 ngày gần nhất v
 it("không hiện link Databricks khi chưa cấu hình, hiện link mở tab mới khi đã cấu hình", async () => {
   vi.stubEnv("VITE_DATABRICKS_DASHBOARD_URL", "");
   vi.stubEnv("VITE_DATABRICKS_GENIE_URL", "");
-  routeGet({ "/admin/stats/overview": overview });
+  routeGet({ "/admin/stats/dashboard": ({ params }) => dashboardFixture(params, { overview }) });
   await renderAt("/admin/dashboard");
   const links = container.querySelector(".analytics-links");
   expect(links.querySelectorAll("a")).toHaveLength(0);

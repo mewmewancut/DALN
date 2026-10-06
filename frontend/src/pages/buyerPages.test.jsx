@@ -7,6 +7,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import App from "../App.jsx";
 import client from "../api/client.js";
 import { AuthProvider } from "../auth/AuthContext.jsx";
+import { dashboardFixture } from "../testing/dashboardFixture.js";
 
 let container;
 let root;
@@ -77,7 +78,9 @@ it("đăng nhập bằng API, lưu phiên và chuyển tới trang đúng vai tr
   const post = vi
     .spyOn(client, "post")
     .mockResolvedValue({ data: { access_token: "token", role: "SHOP_OWNER", shop_id: 2 } });
-  vi.spyOn(client, "get").mockResolvedValue({ data: [] });
+  vi.spyOn(client, "get").mockImplementation(async (_, { params }) => ({
+    data: dashboardFixture(params),
+  }));
   await renderAt("/login");
   await fill("Email", "owner@example.com");
   await fill("Mật khẩu", "secret123");
