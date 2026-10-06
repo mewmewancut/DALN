@@ -18,10 +18,17 @@ export default function CartPage() {
   const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
 
-  const applyCart = useCallback((nextCart) => {
+  const applyCart = useCallback((nextCart, changedItemId = null) => {
     setCart(nextCart);
-    setQuantities(
-      Object.fromEntries(nextCart.items.map((item) => [item.id, String(item.quantity)])),
+    setQuantities((current) =>
+      Object.fromEntries(
+        nextCart.items.map((item) => [
+          item.id,
+          changedItemId !== null && item.id !== changedItemId
+            ? (current[item.id] ?? String(item.quantity))
+            : String(item.quantity),
+        ]),
+      ),
     );
   }, []);
 
@@ -44,13 +51,14 @@ export default function CartPage() {
   }, [applyCart]);
 
   async function updateItem(item) {
+    if (pendingItem !== null) return;
     const quantity = Number(quantities[item.id]);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > item.stock_quantity) return;
     setPendingItem(item.id);
     setActionError("");
     try {
       const response = await client.put(`/cart/items/${item.id}`, { quantity });
-      applyCart(response.data);
+      applyCart(response.data, item.id);
     } catch (requestError) {
       setActionError(errorMessage(requestError));
     } finally {
@@ -59,17 +67,24 @@ export default function CartPage() {
   }
 
   async function removeItem(itemId) {
+    if (pendingItem !== null) return;
     setPendingItem(itemId);
     setActionError("");
     try {
       const response = await client.delete(`/cart/items/${itemId}`);
-      applyCart(response.data);
+      applyCart(response.data, itemId);
     } catch (requestError) {
       setActionError(errorMessage(requestError));
     } finally {
       setPendingItem(null);
     }
   }
+
+  const hasDraft = cart.items.some((item) => Number(quantities[item.id]) !== item.quantity);
+  const hasInvalidQuantity = cart.items.some((item) => {
+    const quantity = Number(quantities[item.id]);
+    return !Number.isInteger(quantity) || quantity < 1 || quantity > item.stock_quantity;
+  });
 
   return (
     <SiteLayout wide>
@@ -123,6 +138,7 @@ export default function CartPage() {
                         type="number"
                         min="1"
                         max={item.stock_quantity}
+                        disabled={pendingItem !== null}
                         value={quantities[item.id] ?? item.quantity}
                         onChange={(event) =>
                           setQuantities((current) => ({
@@ -134,13 +150,15 @@ export default function CartPage() {
                     </label>
                     {invalidQuantity && (
                       <span className="form-error">
-                        Số lượng phải từ 1 đến {item.stock_quantity}.
+                        {item.stock_quantity === 0
+                          ? "Sản phẩm đã hết hàng. Hãy xóa khỏi giỏ."
+                          : `Số lượng phải từ 1 đến ${item.stock_quantity}.`}
                       </span>
                     )}
                     <button
                       type="button"
                       disabled={
-                        invalidQuantity || quantity === item.quantity || pendingItem === item.id
+                        invalidQuantity || quantity === item.quantity || pendingItem !== null
                       }
                       onClick={() => updateItem(item)}
                     >
@@ -148,7 +166,7 @@ export default function CartPage() {
                     </button>
                     <button
                       type="button"
-                      disabled={pendingItem === item.id}
+                      disabled={pendingItem !== null}
                       onClick={() => removeItem(item.id)}
                     >
                       Xóa
@@ -160,7 +178,14 @@ export default function CartPage() {
           </div>
           <div className="cart-summary">
             <strong>Tổng cộng: {formatCurrency(cart.total_amount)}</strong>
-            <button className="primary-button" type="button" onClick={() => navigate("/checkout")}>
+            {pendingItem !== null && <p role="status">Đang cập nhật giỏ hàng...</p>}
+            {hasDraft && <p role="status">Cập nhật số lượng trước khi thanh toán.</p>}
+            <button
+              className="primary-button"
+              type="button"
+              disabled={pendingItem !== null || hasDraft || hasInvalidQuantity}
+              onClick={() => navigate("/checkout")}
+            >
               Thanh toán
             </button>
           </div>

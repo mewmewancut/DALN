@@ -1,5 +1,5 @@
 .genie-chat {
-  max-width: 1000px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 .genie-scope {
@@ -65,5 +65,67 @@
   }
   .genie-suggestions {
     flex-direction: column;
+  }
+}
+
+.genie-workspace {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  gap: 24px;
+}
+.genie-main {
+  min-width: 0;
+}
+.genie-history {
+  padding: 16px;
+  border: 1px solid #deded8;
+  border-radius: 12px;
+  align-self: start;
+}
+.genie-history h2 {
+  font-size: 1rem;
+}
+.genie-history ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.genie-history li {
+  padding: 10px 0;
+  border-bottom: 1px solid #deded8;
+}
+.genie-history-title {
+  width: 100%;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.genie-history-title[aria-pressed="true"] {
+  background: #dfeee8;
+  color: #17483d;
+}
+.genie-history-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.genie-history-actions button {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}
+.genie-history input {
+  width: 100%;
+}
+.genie-transcript {
+  max-height: 65vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+@media (max-width: 800px) {
+  .genie-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .genie-history {
+    max-height: 260px;
+    overflow-y: auto;
   }
 }

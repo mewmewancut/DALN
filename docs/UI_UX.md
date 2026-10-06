@@ -61,3 +61,11 @@ git diff --check
 Test mục tiêu: **7 pass**. Toàn bộ Vitest: **105 pass / 16 file**. Build, ESLint, Prettier và diff check: **Pass**. Backend không có thay đổi trong task này.
 
 Browser end-to-end tự động, thử nghiệm với người dùng và các luồng email thật còn **Planned**. Dữ liệu seed vẫn dùng ảnh placeholder; lượt chỉnh UI không thay ảnh hoặc tạo đơn trên database đang chạy.
+
+### Cải thiện thao tác sau rà soát người dùng
+
+Giỏ hàng giữ số lượng nháp của dòng khác khi cập nhật/xóa một dòng; các thao tác ghi được khóa trong lúc request đang chạy. Thanh toán chỉ mở khi số lượng đã lưu, hợp lệ và đủ tồn kho. Hồ sơ và checkout chặn submit trùng khi đang gửi.
+
+Mã đơn trong bảng shop/admin mở dialog chi tiết bằng API `/orders/{id}` hiện có. Dialog native giữ focus, hỗ trợ Escape, trạng thái tải/lỗi/thử lại và snapshot giao hàng/sản phẩm/lịch sử; backend vẫn quyết định quyền. Buyer dùng chung phần hiển thị snapshot, giữ quyền đánh giá của người mua. Ngày giờ đơn/đánh giá/phiếu nhập luôn hiển thị theo `Asia/Ho_Chi_Minh`, độc lập timezone máy người dùng.
+
+Đổi route chi tiết đơn xóa đơn/dialog đánh giá cũ và bỏ response trễ. Chi tiết sản phẩm có trạng thái tải/lỗi đánh giá riêng; không hiển thị đánh giá của sản phẩm trước hoặc trạng thái rỗng giả khi request thất bại. Phạm vi sử dụng trực tiếp và bằng chứng kiểm tra ở [Rà soát người dùng](USER_JOURNEY_REVIEW.md).

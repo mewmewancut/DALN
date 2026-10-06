@@ -22,6 +22,7 @@ class GenieConfig(BaseModel):
         pattern=r"^https://[a-zA-Z0-9.-]+\.(cloud\.databricks\.com|azuredatabricks\.net)$"
     )
     e4_passed: bool
+    shared_shop_space_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{32}$")
     admin: GenieIdentity
     shops: dict[str, GenieIdentity]
 
@@ -32,9 +33,15 @@ class GenieConfig(BaseModel):
         if any(not key.isdigit() or int(key) <= 0 or str(int(key)) != key for key in self.shops):
             raise ValueError("Shop IDs must be positive canonical integers")
         identities = [self.admin, *self.shops.values()]
-        for field in ("client_id", "space_id"):
-            if len({getattr(i, field) for i in identities}) != len(identities):
-                raise ValueError("Each scope must have a distinct identity and Genie space")
+        if len({i.client_id for i in identities}) != len(identities):
+            raise ValueError("Each scope must have a distinct identity")
+        if self.shared_shop_space_id:
+            if self.admin.space_id == self.shared_shop_space_id or any(
+                i.space_id != self.shared_shop_space_id for i in self.shops.values()
+            ):
+                raise ValueError("Shared shop space must be separate from admin")
+        elif len({i.space_id for i in identities}) != len(identities):
+            raise ValueError("Legacy spaces must be distinct")
         if any(not i.client_secret.get_secret_value().strip() for i in identities):
             raise ValueError("OAuth secrets are required")
         return self

@@ -88,17 +88,24 @@ cho buyer/shop qua frontend và không đưa credential vào notebook/widget.
 ## Kiểm thử
 
 ```powershell
-docker run --rm -v D:/DALN/data:/data daln-data-test pytest -q tests/test_gold_transform.py tests/test_gold_job.py tests/test_bronze_job.py tests/test_pipeline_preflight.py tests/test_notebook.py
-docker run --rm -v D:/DALN/data:/data daln-data-test pytest -q tests
+docker run --rm -v D:/DALN/data:/data daln-data-test pytest -q tests/test_gold_transform.py tests/test_gold_job.py tests/test_gold_acceptance.py tests/test_bronze_job.py tests/test_pipeline_preflight.py tests/test_notebook.py
+docker run --rm -v D:/DALN/data:/data daln-data-test pytest -q tests --ignore-glob=tests/test_genie*.py
 docker run --rm -v D:/DALN/data:/data daln-data-test ruff check .
 docker run --rm -v D:/DALN/data:/data daln-data-test ruff format --check .
 ```
 
+Lệnh suite rộng chạy toàn bộ pipeline E1–E4; test Genie nằm ngoài phạm vi E3.
+
 Test Delta kiểm tra đủ sáu bảng, hai mốc ngày/tháng, timezone session khác UTC,
 snapshot giá, nhiều variant/review/product, không có rating, shop/product ẩn,
-shop rỗng/thiếu dimension, chia 0, chạy lại không nhân đôi và overwrite nguồn
-rỗng. Test điều phối kiểm tra E1/E2 lỗi chặn Gold, notebook riêng chỉ chạy Gold,
-preflight vẫn bắt thay đổi nguồn và Gold warehouse fail không báo thành công.
+shop rỗng/thiếu dimension, shop chỉ có product và biên năm, chia 0, chạy lại
+không nhân đôi và overwrite nguồn rỗng. Lỗi biểu thức SQL trong overwrite Delta
+ở bảng thứ hai giữ nguyên bảng bị lỗi và các bảng sau; retry refresh đủ sáu
+bảng và khớp tổng/AOV mới, lượt tiếp theo không nhân đôi. Input thiếu shop_id,
+ngày tạo hoặc ngày giao DELIVERED bị từ chối; kiểm tra cả khi Gold đã có dữ liệu
+để bảo đảm không ghi đè kết quả cũ. Test điều phối kiểm tra E1/E2 lỗi chặn Gold,
+notebook riêng chỉ chạy Gold, preflight vẫn bắt thay đổi nguồn và Gold warehouse
+fail không báo thành công.
 Nghiệm thu chỉ đọc (nguồn ổn định, Job chính đã thành công):
 
 ```powershell
@@ -107,7 +114,11 @@ python data/gold_acceptance.py --profile daln-cdc --warehouse-id 261b45209f3d8a5
 
 Công cụ so projection sáu bảng bằng EXCEPT ALL hai chiều, rồi đối chiếu tổng
 doanh thu/số đơn/số đơn giao với Lakebase federation. Không chạy tự động trong
-Job; E3 không thay gate E4.
+Job; E3 không thay gate E4. Test chạy SQL nghiệm thu trên Delta thật, phát hiện
+projection sai dù count không đổi và tổng nguồn lệch; CLI trả exit code 1 khi
+lỗi, không in PASS hay dữ liệu lỗi. Thông báo cuối chỉ xác nhận E3 và nêu rõ
+không chứng nhận E4. Dashboard/Genie chỉ được mở sau khi gate E4 PASS đủ 5/5;
+chúng nằm ngoài phạm vi rà soát E3 này.
 
 ## Bằng chứng nghiệm thu — 06/10/2026
 
@@ -146,3 +157,17 @@ kiểm chứng bằng Delta local, chưa chạy riêng trên workspace. Notebook
 Các số đo trên là hai lượt với nguồn ổn định và warehouse sẵn sàng, không phải
 cam kết thời gian cho nguồn có thay đổi/startup compute. Tại lần nghiệm thu E3,
 E4–E6 chưa thực hiện; trạng thái mới nằm ở tài liệu gate/chatbot liên kết đầu trang.
+
+## Rà soát local bổ sung — 06/10/2026
+
+Gold E3 đã nằm trong HEAD ở đầu lượt rà soát này; các thay đổi chatbot/UI đang
+mở được giữ nguyên. Không đổi query, schema hoặc metric. Sửa thông báo CLI về
+E4 sau khi regression test tái hiện lỗi; bổ sung các nhánh kiểm chứng mô tả ở trên.
+Suite E3/điều phối **59 passed**; toàn bộ pipeline E1–E4 (loại test Genie theo
+lệnh ở mục Kiểm thử) **151 passed**. Ruff lint, format (55 file), Compose config
+với `.env.example` và `git diff --check` PASS.
+
+Không chạy lại Job hoặc nghiệm thu trên Databricks trong lượt này; kết quả local
+không chứng nhận gate E4 trên workspace. Bằng chứng workspace ở phần trên và
+[E4 Quality](E4_QUALITY.md) thuộc các lượt nghiệm thu trước. Dashboard/Genie
+nằm ngoài phạm vi thay đổi này.

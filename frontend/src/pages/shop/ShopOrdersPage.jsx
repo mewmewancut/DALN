@@ -9,6 +9,7 @@ import {
   orderStatusLabel,
 } from "../../components/orderPresentation.js";
 import { shopOrderActions } from "./shopOrderActions.js";
+import OrderDetailDialog from "../../components/orders/OrderDetailDialog.jsx";
 
 const PAGE_SIZE = 20;
 
@@ -23,6 +24,7 @@ export default function ShopOrdersPage() {
   const [cancelOrder, setCancelOrder] = useState(null);
   const [reason, setReason] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [detailId, setDetailId] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -117,7 +119,11 @@ export default function ShopOrdersPage() {
             <tbody>
               {result.items.map((order) => (
                 <tr key={order.id}>
-                  <td>{order.code}</td>
+                  <td>
+                    <button className="text-button" onClick={() => setDetailId(order.id)}>
+                      {order.code}
+                    </button>
+                  </td>
                   <td className="date-cell">{formatDateTime(order.created_at)}</td>
                   <td className="numeric-cell">{formatCurrency(order.total_amount)}</td>
                   <td>
@@ -170,6 +176,9 @@ export default function ShopOrdersPage() {
           Trang sau
         </button>
       </div>
+      {detailId !== null && (
+        <OrderDetailDialog orderId={detailId} onClose={() => setDetailId(null)} />
+      )}
       {cancelOrder && (
         <div className="dialog-backdrop">
           <section className="dialog" role="dialog" aria-modal="true" aria-label="Hủy đơn hàng">

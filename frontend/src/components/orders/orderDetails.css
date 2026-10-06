@@ -1,0 +1,13 @@
+.order-preview::backdrop {
+  background: rgb(31 30 28 / 58%);
+  backdrop-filter: blur(4px);
+}
+.order-preview {
+  color: var(--ink);
+}
+.order-preview .page-heading {
+  align-items: center;
+}
+html:has(.order-preview[open]) {
+  overflow: hidden;
+}

@@ -23,6 +23,7 @@ const LABELS = {
   product_count: "Số sản phẩm",
   date: "Ngày",
   month: "Tháng",
+  year: "Năm",
   size: "Kích cỡ",
   color: "Màu",
   quantity: "Tồn kho",

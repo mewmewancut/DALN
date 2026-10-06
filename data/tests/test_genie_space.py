@@ -41,7 +41,7 @@ def test_space_has_only_six_gold_sources_descriptions_vn_metrics_and_sorted_vali
     else:
         assert "admin scope covering all shops" in instruction
     assert len(payload["config"]["sample_questions"]) == 6
-    assert len(payload["instructions"]["example_question_sqls"]) == 5
+    assert len(payload["instructions"]["example_question_sqls"]) >= 20
     assert build_space("fashion", columns(), shop_id) == build_space("fashion", columns(), shop_id)
 
 
@@ -93,19 +93,20 @@ def test_provision_gives_shop_only_fixed_views_and_reuses_credentials_and_spaces
         SimpleNamespace(space_id=str(i) * 32) for i in (1, 2, 3)
     ]
     output = tmp_path / ".env.genie.json"
-    result = provision(client, sql, "fashion", output, e4_passed=True, report=Mock())
+    result = provision(client, sql, "fashion", output, e4_passed=True, report=Mock(), verify=Mock())
     assert set(result["shops"]) == {"7", "8"}
     statements = [c.args[0] for c in sql.execute.call_args_list]
     for shop in (7, 8):
         grants = [q for q in statements if q.startswith("GRANT SELECT") and f"{shop:012d}" in q]
-        assert len(grants) == 6 and all(f"shop_{shop}_" in q for q in grants)
-        views = [
-            q for q in statements if q.startswith("CREATE OR REPLACE VIEW") and f"shop_{shop}_" in q
-        ]
-        assert len(views) == 6 and all(q.endswith(f"WHERE shop_id = {shop}") for q in views)
+        assert len(grants) == 6 and all("chatbot_" in q for q in grants)
+    views = [q for q in statements if q.startswith("CREATE OR REPLACE VIEW")]
+    assert len(views) == 6
+    assert all("session_user()" in q and "m.shop_id = g.shop_id" in q for q in views)
+    assert result["shops"]["7"]["space_id"] == result["shops"]["8"]["space_id"]
+    assert result["admin"]["space_id"] != result["shared_shop_space_id"]
     assert json.loads(output.read_text()) == result
-    provision(client, sql, "fashion", output, e4_passed=True, report=Mock())
+    provision(client, sql, "fashion", output, e4_passed=True, report=Mock(), verify=Mock())
     assert client.service_principals.create.call_count == 3
     assert client.service_principal_secrets_proxy.create.call_count == 3
-    assert client.genie.create_space.call_count == 3
-    assert client.genie.update_space.call_count == 3
+    assert client.genie.create_space.call_count == 2
+    assert client.genie.update_space.call_count == 0

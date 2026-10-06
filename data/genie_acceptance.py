@@ -7,6 +7,7 @@ from pathlib import Path
 
 from databricks.sdk import WorkspaceClient
 
+from genie_security import shared_view
 from genie_space import view_name
 from gold_queries import GOLD_TABLES
 from warehouse_sql import WarehouseSQL
@@ -49,6 +50,12 @@ def verify(config, warehouse_id, *, factory=WorkspaceClient, report=print):
     )
     denied(admin.statement_execution, warehouse_id, "SELECT * FROM fashion.bronze.orders LIMIT 1")
     report("PASS admin: six Gold tables readable; Bronze denied", flush=True)
+
+    def table_name(table, shop_id):
+        return (
+            shared_view(table) if config.get("shared_shop_space_id") else view_name(table, shop_id)
+        )
+
     for shop_id, identity in config["shops"].items():
         shop_id = int(shop_id)
         shop = connect(identity)
@@ -57,7 +64,7 @@ def verify(config, warehouse_id, *, factory=WorkspaceClient, report=print):
             " UNION ALL ".join(
                 f"SELECT '{t}', COUNT(*), COUNT(CASE "
                 f"WHEN shop_id <> {shop_id} OR shop_id IS NULL THEN 1 END) "
-                f"FROM fashion.gold.{view_name(t, shop_id)}"
+                f"FROM fashion.gold.{table_name(t, shop_id)}"
                 for t in GOLD_TABLES
             )
         )
@@ -83,12 +90,14 @@ def verify(config, warehouse_id, *, factory=WorkspaceClient, report=print):
             "fashion.silver.fact_orders",
             "daln_source.public.orders",
         ]
-        if other is not None:
+        if config.get("shared_shop_space_id"):
+            forbidden.append("fashion.genie_security.shop_identities")
+        elif other is not None:
             forbidden.append(f"fashion.gold.{view_name('revenue_daily', other)}")
         for table in forbidden:
             denied(shop.statement_execution, warehouse_id, f"SELECT * FROM {table} LIMIT 1")
         report(
-            f"PASS shop {shop_id}: six own views match; base Gold/other shop/raw data denied",
+            f"PASS shop {shop_id}: six views match own scope; forbidden sources denied",
             flush=True,
         )
 

@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
 import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
-import { formatCurrency } from "../components/formatCurrency.js";
+import OrderSnapshot from "../components/orders/OrderSnapshot.jsx";
 import { formatDateTime, orderStatusLabel } from "../components/orderPresentation.js";
 import SiteLayout from "../components/SiteLayout.jsx";
 
@@ -16,9 +16,17 @@ export default function OrderDetailPage() {
   const [rating, setRating] = useState("5");
   const [comment, setComment] = useState("");
   const [reviewing, setReviewing] = useState(false);
+  const generation = useRef(null);
 
   useEffect(() => {
     let active = true;
+    const current = Symbol("order-detail");
+    generation.current = current;
+    setOrder(null);
+    setError("");
+    setLoading(true);
+    setReviewItem(null);
+    setReviewing(false);
     client
       .get(`/orders/${id}`)
       .then((response) => {
@@ -32,11 +40,14 @@ export default function OrderDetailPage() {
       });
     return () => {
       active = false;
+      if (generation.current === current) generation.current = null;
     };
   }, [id]);
 
   async function submitReview(event) {
     event.preventDefault();
+    if (!reviewItem || reviewing) return;
+    const current = generation.current;
     setReviewing(true);
     setError("");
     try {
@@ -45,6 +56,7 @@ export default function OrderDetailPage() {
         rating: Number(rating),
         comment: comment || null,
       });
+      if (generation.current !== current) return;
       setOrder((current) => ({
         ...current,
         items: current.items.map((item) =>
@@ -55,9 +67,9 @@ export default function OrderDetailPage() {
       setRating("5");
       setComment("");
     } catch (requestError) {
-      setError(errorMessage(requestError));
+      if (generation.current === current) setError(errorMessage(requestError));
     } finally {
-      setReviewing(false);
+      if (generation.current === current) setReviewing(false);
     }
   }
 
@@ -83,57 +95,14 @@ export default function OrderDetailPage() {
               {orderStatusLabel(order.status)}
             </span>
           </div>
-          <div className="order-detail-grid">
-            <section>
-              <h2>Sản phẩm</h2>
-              {order.items.map((item) => (
-                <article className="order-item" key={item.id}>
-                  <div>
-                    <strong>{item.product_name}</strong>
-                    <p>
-                      {item.color}/{item.size} × {item.quantity}
-                    </p>
-                  </div>
-                  <strong>{formatCurrency(item.unit_price * item.quantity)}</strong>
-                  {order.status === "DELIVERED" && item.review_id == null && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setReviewItem(item);
-                        setRating("5");
-                        setComment("");
-                      }}
-                    >
-                      Đánh giá
-                    </button>
-                  )}
-                  {item.review_id != null && <span className="muted">Đã đánh giá</span>}
-                </article>
-              ))}
-              <p className="order-total">Tổng cộng: {formatCurrency(order.total_amount)}</p>
-            </section>
-            <aside className="order-box">
-              <h2>Giao hàng</h2>
-              <p>{order.receiver_name}</p>
-              <p>{order.receiver_phone}</p>
-              <p>{order.shipping_address}</p>
-              <p>
-                Thanh toán: {order.payment_method} — {order.payment_status}
-              </p>
-            </aside>
-          </div>
-          <section className="order-history">
-            <h2>Lịch sử trạng thái</h2>
-            <ol>
-              {order.status_history.map((entry) => (
-                <li key={entry.id}>
-                  <strong>{orderStatusLabel(entry.to_status)}</strong>
-                  <span>{formatDateTime(entry.created_at)}</span>
-                  {entry.note && <p>{entry.note}</p>}
-                </li>
-              ))}
-            </ol>
-          </section>
+          <OrderSnapshot
+            order={order}
+            onReview={(item) => {
+              setReviewItem(item);
+              setRating("5");
+              setComment("");
+            }}
+          />
         </>
       )}
       {reviewItem && (

@@ -1,4 +1,15 @@
 services:
+  genie-provisioner:
+    profiles: ["chatbot"]
+    build:
+      context: ./data
+      dockerfile: Dockerfile.genie
+    restart: unless-stopped
+    environment:
+      SOURCE_DATABASE_URL: ${DATABASE_URL:-}
+    volumes:
+      - ./.env.genie-worker.json:/run/genie-worker.json:ro
+      - ./backend:/runtime
   db:
     image: postgres:16-alpine
     environment:

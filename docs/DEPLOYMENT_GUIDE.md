@@ -572,14 +572,14 @@ Tất cả `can_use` phải là `true`, sau đó thử đăng ký lại và ki�
 
 ### Pipeline phân tích
 
-E1 Bronze và E2 Silver đã có notebook, test Delta local và nghiệm thu trên workspace thật. E3 Gold và gate E4 còn Planned. Setup E1/E2 dùng CDC đã được duyệt, giữ nguyên bảng và nghiệp vụ Planning:
+E1 Bronze và E2 Silver đã có notebook, test Delta local và nghiệm thu trên workspace thật. E3 Gold và gate E4 đã nghiệm thu; chatbot hiện dùng Space shop chung với worker cấp quyền tự động, xem [Genie Chatbot](GENIE_CHATBOT.md). Setup E1/E2 dùng CDC đã được duyệt, giữ nguyên bảng và nghiệp vụ Planning:
 
 1. Chuẩn bị database ứng dụng trên Lakebase; chuyển backend bằng `DATABASE_URL` theo hướng dẫn trên.
 2. Bật Lakebase CDF vào external catalog S3 và tạo Volume checkpoint, schema Bronze/Silver theo [`DATA_PLATFORM.md`](DATA_PLATFORM.md).
 3. Đồng bộ Git folder; cấu hình một task serverless `data/00_pipeline.py`, maximum concurrent runs = 1. Chạy tay trước demo hoặc lịch 15 phút; dừng Job Bronze cũ trước khi bật lịch mới.
 4. Chạy Job hai lượt và nghiệm thu riêng bằng `data/acceptance.py`; xem [`E2_SILVER.md`](E2_SILVER.md). Ngày Việt Nam chỉ tính ở Silver. Không chạy audit/đếm nguồn trong mỗi lượt Job.
-5. **Planned:** triển khai E3 Gold theo định nghĩa metric C9; source chưa có.
-6. **Planned:** triển khai và chạy gate E4; cả năm kiểm tra phải PASS trước Dashboard/Genie. Danh sách file pipeline hiện có nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md#file).
+5. E3 Gold đã triển khai theo C9; xem [E3 Gold](E3_GOLD.md).
+6. E4 đã PASS; chạy lại khi cần nghiệm thu dữ liệu thay đổi; cả năm kiểm tra phải PASS trước Dashboard/Genie. Danh sách file pipeline hiện có nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md#file).
 7. Chỉ sau khi E4 PASS mới tạo AI/BI Dashboard và Genie space.
 8. Điền URL thật vào `VITE_DATABRICKS_DASHBOARD_URL` và `VITE_DATABRICKS_GENIE_URL`, rồi build lại frontend.
 
@@ -592,7 +592,7 @@ Cấu hình Docker hiện tại là môi trường phát triển/local demo:
 - Backend chạy Uvicorn với `--reload`.
 - Frontend chạy Vite development server.
 - Chưa có HTTPS, reverse proxy, domain hoặc quản lý secret production.
-- CORS backend chỉ cho phép `http://localhost:5173`.
+- CORS backend chỉ cho phép origin của `FRONTEND_PUBLIC_URL` (mặc định `http://localhost:5173`); path trong URL không thuộc origin. Khi đổi hostname/cổng frontend, cập nhật biến này và URL API của frontend rồi khởi động lại backend/frontend. Origin khác bị từ chối, không dùng wildcard.
 - PostgreSQL được publish trực tiếp ra cổng `5432`.
 - Chưa có backup/restore production, monitoring hoặc CI/CD triển khai public.
 - Chưa có script `reset_demo.sh` và `DEMO.md` theo Planning G.

@@ -11,12 +11,15 @@ import {
   fill,
   mountContainer,
   renderAt,
-  routeGet,
+  routeGet as rawRouteGet,
   signInAs,
   submit,
   unmountContainer,
 } from "../testing/appHarness.jsx";
 
+function routeGet(routes) {
+  return rawRouteGet({ "/analytics/chat/conversations": [], ...routes });
+}
 let container;
 beforeEach(() => {
   container = mountContainer();
@@ -43,6 +46,163 @@ const completed = {
     },
   ],
 };
+
+it("sends with Enter, keeps Shift+Enter multiline and does not submit during IME composition", async () => {
+  routeGet({ "/analytics/chat/config": ready });
+  const post = vi.spyOn(client, "post").mockResolvedValue({ data: completed });
+  await renderAt("/admin/chatbot");
+  await fill("Câu hỏi", "doanh thu thang 9");
+  const input = container.querySelector("textarea");
+  for (const options of [{ shiftKey: true }, { isComposing: true }, { keyCode: 229 }]) {
+    await act(async () =>
+      input.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true, ...options }),
+      ),
+    );
+    expect(post).not.toHaveBeenCalled();
+  }
+  await act(async () =>
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true }),
+    ),
+  );
+  expect(post).toHaveBeenCalledExactlyOnceWith("/analytics/chat/messages", {
+    question: "doanh thu thang 9",
+  });
+  expect(input.value).toBe("");
+});
+
+it("automatically checks again while a new shop is being provisioned", async () => {
+  vi.useFakeTimers();
+  let waiting = true;
+  const get = routeGet({
+    "/analytics/chat/config": () =>
+      waiting
+        ? { ...ready, available: false, provisioning: true, message: "Đang cấp quyền" }
+        : ready,
+  });
+  await renderAt("/admin/chatbot");
+  expect(container.querySelector(".genie-form")).toBeNull();
+  waiting = false;
+  await act(async () => vi.advanceTimersByTimeAsync(5000));
+  expect(container.querySelector(".genie-form")).not.toBeNull();
+  expect(get.mock.calls.filter(([url]) => url === "/analytics/chat/config")).toHaveLength(2);
+});
+
+it("reopens stored history with a fresh token, renames and deletes only after confirmation", async () => {
+  const historyUrl = "/analytics/chat/conversations";
+  const detailUrl = `${historyUrl}/42`;
+  let items = [{ id: 42, title: "Doanh thu tháng 9", updated_at: "2026-10-06T00:00:00Z" }];
+  routeGet({
+    "/analytics/chat/config": ready,
+    [historyUrl]: () => items,
+    [detailUrl]: {
+      id: 42,
+      title: "Doanh thu tháng 9",
+      can_resume: true,
+      has_more: false,
+      conversation_token: "fresh-owned-token",
+      messages: [{ ...completed, question: "doanh thu thang 9", conversation_id: 42 }],
+    },
+  });
+  const patch = vi.spyOn(client, "patch").mockImplementation(async (url, data) => {
+    items = [{ ...items[0], title: data.title }];
+    return { data: items[0] };
+  });
+  const remove = vi.spyOn(client, "delete").mockImplementation(async () => {
+    items = [];
+    return {};
+  });
+  const post = vi
+    .spyOn(client, "post")
+    .mockResolvedValue({ data: { ...completed, message_id: "new" } });
+  await renderAt("/admin/chatbot");
+  await click(button("Doanh thu tháng 9"));
+  expect(container.textContent).toContain("doanh thu thang 9");
+  await fill("Câu hỏi", "Còn tháng 8?");
+  await submit(container.querySelector(".genie-form"));
+  expect(post).toHaveBeenCalledWith("/analytics/chat/messages", {
+    question: "Còn tháng 8?",
+    conversation_token: "fresh-owned-token",
+  });
+  await click(button("Đổi tên"));
+  await fill("Tên cuộc trò chuyện", "So sánh doanh thu");
+  await submit(container.querySelector(".genie-history form"));
+  expect(patch).toHaveBeenCalledWith(detailUrl, { title: "So sánh doanh thu" });
+  await click(button("Xóa"));
+  expect(remove).not.toHaveBeenCalled();
+  await click(button("Xác nhận xóa"));
+  expect(remove).toHaveBeenCalledWith(detailUrl);
+  expect(container.querySelectorAll(".genie-turn")).toHaveLength(0);
+});
+
+it("does not restore private history after leaving the session", async () => {
+  let finish;
+  routeGet({
+    "/analytics/chat/config": ready,
+    "/analytics/chat/conversations": [{ id: 42, title: "Chat cũ" }],
+  });
+  const original = client.get.getMockImplementation();
+  client.get.mockImplementation((url, options) =>
+    url.endsWith("/42")
+      ? new Promise((resolve) => {
+          finish = resolve;
+        })
+      : original(url, options),
+  );
+  await renderAt("/admin/chatbot");
+  await click(button("Chat cũ"));
+  expect(button("Gửi câu hỏi").disabled).toBe(true);
+  await unmountContainer();
+  container = mountContainer();
+  signInAs("SHOP_OWNER", 7);
+  await renderAt("/shop/chatbot");
+  await act(async () =>
+    finish({
+      data: { messages: [{ ...completed, question: "private-old-question" }], can_resume: true },
+    }),
+  );
+  expect(container.textContent).not.toContain("private-old-question");
+});
+
+it("keeps archived chat readable when its old space cannot be resumed", async () => {
+  routeGet({
+    "/analytics/chat/config": ready,
+    "/analytics/chat/conversations": [{ id: 42, title: "Chat cũ" }],
+    "/analytics/chat/conversations/42": {
+      id: 42,
+      can_resume: false,
+      conversation_token: null,
+      has_more: false,
+      messages: [{ ...completed, question: "Doanh thu cũ" }],
+    },
+  });
+  await renderAt("/admin/chatbot");
+  await click(button("Chat cũ"));
+  expect(container.textContent).toContain("Doanh thu cũ");
+  expect(container.querySelector("textarea").disabled).toBe(true);
+  await click(button("Cuộc trò chuyện mới"));
+  expect(container.querySelector("textarea").disabled).toBe(false);
+});
+
+it("keeps saved results readable while Genie configuration is unavailable", async () => {
+  routeGet({
+    "/analytics/chat/config": { ...ready, available: false, message: "Chatbot tạm chưa khả dụng" },
+    "/analytics/chat/conversations": [{ id: 42, title: "Chat đã lưu" }],
+    "/analytics/chat/conversations/42": {
+      id: 42,
+      can_resume: false,
+      conversation_token: null,
+      has_more: false,
+      messages: [{ ...completed, question: "Doanh thu cũ" }],
+    },
+  });
+  await renderAt("/admin/chatbot");
+  await click(button("Chat đã lưu"));
+  expect(container.textContent).toContain("Doanh thu cũ");
+  expect(container.textContent).toContain("123.000 ₫");
+  expect(container.querySelector(".genie-form")).toBeNull();
+});
 
 it.each([
   ["ADMIN", "/admin/chatbot", null],
@@ -202,7 +362,8 @@ it("shows unavailable or load error without an active question form", async () =
 it("retries config load failure and keeps question on send failure", async () => {
   vi.spyOn(client, "get")
     .mockRejectedValueOnce({ response: { data: { detail: "Shop đã bị khóa" } } })
-    .mockResolvedValueOnce({ data: ready });
+    .mockResolvedValueOnce({ data: ready })
+    .mockResolvedValue({ data: [] });
   vi.spyOn(client, "post").mockRejectedValue({
     response: { data: { detail: "Không thể kết nối Genie" } },
   });

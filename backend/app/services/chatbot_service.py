@@ -10,6 +10,8 @@ from app.config import get_settings
 from app.models.shop import Shop
 from app.models.user import User
 from app.schemas.chatbot import ChatConfig, ChatMessage, ChatTable
+from app.services import chat_history_service
+from app.services.chat_question_service import prompt
 from app.services.genie_client import get_genie_client
 from app.services.genie_config import load_genie_config
 
@@ -48,13 +50,17 @@ def context(db: Session, user: User, *, required=True):
 
 
 def configuration(db: Session, user: User) -> ChatConfig:
-    shop_id, _, identity = context(db, user, required=False)
+    shop_id, config, identity = context(db, user, required=False)
+    provisioning = bool(shop_id and config and config.shared_shop_space_id and not identity)
     return ChatConfig(
         available=identity is not None,
+        provisioning=provisioning,
         scope="Toàn hệ thống" if shop_id is None else "Shop của bạn",
         message=(
             "Hỏi dữ liệu kinh doanh. Số liệu cập nhật theo lần đồng bộ dữ liệu."
             if identity
+            else "Chatbot đang được cấp quyền tự động. Vui lòng chờ ít phút."
+            if provisioning
             else "Chatbot chưa được cấu hình cho tài khoản này."
         ),
     )
@@ -179,10 +185,10 @@ def ask(db: Session, user: User, question: str, conversation_token: str | None):
     if conversation_token:
         conversation = read_conversation(conversation_token, user, shop_id, config, identity)
         base = f"{identity.space_id}/conversations/{conversation}"
-        message = client.request("POST", f"{base}/messages", {"content": question})
+        message = client.request("POST", f"{base}/messages", {"content": prompt(question)})
     else:
         response = client.request(
-            "POST", f"{identity.space_id}/start-conversation", {"content": question}
+            "POST", f"{identity.space_id}/start-conversation", {"content": prompt(question)}
         )
         conversation = identifier(
             response.get("conversation_id")
@@ -191,7 +197,10 @@ def ask(db: Session, user: User, question: str, conversation_token: str | None):
         message = response.get("message", {})
         base = f"{identity.space_id}/conversations/{conversation}"
     token = sign_conversation(conversation, user, shop_id, config, identity)
-    return render_message(client, base, message, token)
+    result = render_message(client, base, message, token)
+    return chat_history_service.save(
+        db, user, shop_id, config, identity, conversation, question, result
+    )
 
 
 def poll(db: Session, user: User, message_id: str, conversation_token: str):
@@ -203,4 +212,7 @@ def poll(db: Session, user: User, message_id: str, conversation_token: str):
     )
     base = f"{identity.space_id}/conversations/{conversation}"
     message = client.request("GET", f"{base}/messages/{message_id}")
-    return render_message(client, base, message, conversation_token)
+    result = render_message(client, base, message, conversation_token)
+    return chat_history_service.save(
+        db, user, shop_id, config, identity, conversation, None, result
+    )

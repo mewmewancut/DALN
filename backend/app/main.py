@@ -1,3 +1,5 @@
+from urllib.parse import urlsplit
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -5,6 +7,7 @@ from app.config import get_settings
 from app.routers.admin import router as admin_router
 from app.routers.auth import router as auth_router
 from app.routers.cart import router as cart_router
+from app.routers.chat_history import router as chat_history_router
 from app.routers.chatbot import router as chatbot_router
 from app.routers.inventory import router as inventory_router
 from app.routers.locations import router as locations_router
@@ -28,11 +31,12 @@ from app.routers.users import router as users_router
 from app.routers.wishlist import router as wishlist_router
 
 settings = get_settings()
+frontend_url = urlsplit(settings.frontend_public_url)
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[f"{frontend_url.scheme}://{frontend_url.netloc}"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,6 +50,7 @@ app.include_router(recommendations_router)
 app.include_router(wishlist_router)
 app.include_router(cart_router)
 app.include_router(chatbot_router)
+app.include_router(chat_history_router)
 app.include_router(orders_router)
 app.include_router(shop_orders_router)
 app.include_router(inventory_router)

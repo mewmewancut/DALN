@@ -82,6 +82,26 @@ async function chooseCombobox(label, query, optionText, keyboard = false) {
 }
 
 describe("trang hồ sơ và sổ địa chỉ", () => {
+  it("không gửi hai lần lưu hồ sơ khi request trước chưa xong", async () => {
+    mockProfileLoad();
+    let finish;
+    const patch = vi.spyOn(client, "patch").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    await renderAt("/account/profile");
+    await fill("Họ và tên", "Tên mới");
+    const form = field("Họ và tên").closest("form");
+    await submit(form);
+    await submit(form);
+    expect(patch).toHaveBeenCalledTimes(1);
+    expect(button("Đang lưu...").disabled).toBe(true);
+    await act(async () => finish({ data: { ...profile, full_name: "Tên mới" } }));
+    expect(container.textContent).toContain("Đã cập nhật hồ sơ");
+    expect(button("Lưu hồ sơ").disabled).toBe(false);
+  });
   it("cập nhật hồ sơ nhưng giữ email và vai trò chỉ đọc", async () => {
     mockProfileLoad();
     const patch = vi.spyOn(client, "patch").mockResolvedValue({

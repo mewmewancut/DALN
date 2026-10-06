@@ -104,7 +104,9 @@ def test_admin_and_shop_use_distinct_server_identities_and_database_shop_not_jwt
         assert (
             ctx["remote"].request.call_args.args[1] == expected["space_id"] + "/start-conversation"
         )
-        assert ctx["remote"].request.call_args.args[2] == {"content": "Doanh thu?"}
+        content = ctx["remote"].request.call_args.args[2]["content"]
+        assert content.endswith("User question: Doanh thu?")
+        assert "Asia/Ho_Chi_Minh" in content
 
 
 def test_followup_and_poll_keep_owned_conversation_context(ctx, client):

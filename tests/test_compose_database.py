@@ -32,6 +32,21 @@ class ComposeDatabaseTests(unittest.TestCase):
             "postgresql+psycopg://fashion:fashion@db:5432/fashion",
         )
 
+    def test_management_credential_is_only_mounted_in_optional_worker(self):
+        result = subprocess.run(
+            ["docker", "compose", "--env-file", str(ROOT / ".env.example"),
+             "--profile", "chatbot", "config", "--format", "json"],
+            cwd=ROOT, capture_output=True, text=True, check=True,
+        )
+        services = json.loads(result.stdout)["services"]
+        worker = services["genie-provisioner"]
+        self.assertEqual(worker["profiles"], ["chatbot"])
+        self.assertEqual(worker["restart"], "unless-stopped")
+        self.assertTrue(any(v["target"] == "/run/genie-worker.json" and v["read_only"]
+                            for v in worker["volumes"]))
+        self.assertFalse(any(v["target"] == "/run/genie-worker.json"
+                             for v in services["backend"]["volumes"]))
+
     def test_lakebase_override_preserves_isolated_test_database(self):
         url = "postgresql+psycopg://demo:fake-password@demo.database.databricks.com:5432/fashion?sslmode=require"
         with tempfile.TemporaryDirectory() as directory:

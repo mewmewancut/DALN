@@ -25,5 +25,14 @@ export function formatDateTime(value) {
   return new Intl.DateTimeFormat("vi-VN", {
     dateStyle: "short",
     timeStyle: "short",
+    timeZone: "Asia/Ho_Chi_Minh",
   }).format(new Date(value));
+}
+
+export function paymentMethodLabel(value) {
+  return { COD: "Thanh toán khi nhận hàng", MOCK_CARD: "Thẻ mô phỏng" }[value] ?? value;
+}
+
+export function paymentStatusLabel(value) {
+  return { PAID: "Đã thanh toán", UNPAID: "Chưa thanh toán" }[value] ?? value;
 }

@@ -24,8 +24,8 @@ Test UI dùng chung kiểm tra skip link đến vùng nội dung có thể focus
 | Runtime và dependency | HTTP smoke + Vite build + npm audit | Health backend, frontend phục vụ trang, build và lỗ hổng mức moderate trở lên |
 | Bronze E1 | pytest + Spark/Delta local | Bootstrap 13 bảng, checkpoint/skip qua restart, CDC update/insert/delete/preimage, replay, schema/key lỗi, transaction/retry và thay đổi identity |
 | Silver E2 | pytest + Spark/Delta local | MERGE 7 bảng, no-op/dependency skip, order→items, variant→inventory, config/target/retry, nghiệp vụ status/amount/rating, timezone, snapshot item/decimal/inactive, khóa/join/schema lỗi và dọn staging |
-| Gold E3 | pytest + Spark/Delta local | 6 bảng, metric ngày tạo/giao và tháng, snapshot giá, join review/variant/product không nhân số liệu, NULL/chia 0, shop ẩn/rỗng/thiếu dimension, overwrite lặp lại/nguồn rỗng và lỗi ngày báo cáo |
-| Điều phối/nghiệm thu E3 | pytest | E1/E2 lỗi chặn Gold, notebook riêng, refresh Gold qua warehouse khi E1/E2 SKIP, lỗi Gold làm Job fail; projection và tổng độc lập với Lakebase |
+| Gold E3 | pytest + Spark/Delta local | 6 bảng, metric ngày tạo/giao và tháng/biên năm, snapshot giá, join review/variant/product không nhân số liệu, NULL/chia 0, shop ẩn/rỗng/thiếu dimension/chỉ có product, overwrite lặp lại/nguồn rỗng, lỗi ghi Delta giữa chừng/retry và input báo cáo lỗi không thay Gold cũ |
+| Điều phối/nghiệm thu E3 | pytest + Spark/Delta local | E1/E2 lỗi chặn Gold, notebook riêng, refresh Gold qua warehouse khi E1/E2 SKIP, lỗi Gold làm Job fail; SQL EXCEPT ALL thật và tổng độc lập với Lakebase, CLI lỗi không báo PASS và không chứng nhận gate E4 |
 | Điều phối/metadata/nghiệm thu E1–E2 | pytest | E1 fail thì không chạy E2, dùng chung phiên/snapshot, giới hạn metadata Spark/warehouse, SKIP trước Spark, thay đổi ID/version/config và marker lỗi, fallback, deadline, đo startup riêng và đối chiếu thiếu/trùng/sai giá trị |
 | Gate E4 | pytest + nghiệm thu workspace | Hai lượt pipeline, đối chiếu năm mục và phát hiện nguồn biến động |
 | Chatbot Genie | pytest + Vitest + nghiệm thu OAuth/browser | Role/shop/database, token hội thoại, bất đồng bộ, view và principal riêng, câu hỏi đối chiếu SQL |
@@ -152,7 +152,7 @@ contract Axios, hội thoại tiếp nối/reset, chặn gửi trùng, polling/r
 response trễ, lỗi/rỗng/truncated, text HTML an toàn và định dạng VND.
 
 `data/tests/test_genie_space.py` kiểm tra metadata chỉ dùng Gold, metric C9,
-gate trước provision, fixed shop view/grant, retry dùng lại principal/space.
+gate trước provision, shared shop view/grant, retry dùng lại principal/space.
 `test_genie_acceptance.py` chỉ chấp nhận permission denial thật, phân biệt lỗi
 bảng thiếu và lỗi hạ tầng. Nghiệm thu bằng OAuth của từng principal, đối chiếu
 câu hỏi thực bằng SQL độc lập và kiểm tra browser nằm ở [Genie Chatbot](GENIE_CHATBOT.md).
@@ -162,3 +162,43 @@ docker compose --env-file .env.example exec -T backend pytest -q app/tests/test_
 docker compose --env-file .env.example exec -T frontend npm test -- src/pages/chatbot.test.jsx
 docker run --rm -v D:/DALN/data:/data daln-data-test pytest -q tests/test_quality_check.py tests/test_quality_notebook.py tests/test_quality_acceptance.py tests/test_genie_space.py tests/test_genie_acceptance.py
 ```
+
+
+## Nâng cấp chatbot Space chung và lịch sử (06/10/2026)
+
+`test_chat_history.py` kiểm tra ownership riêng từng tài khoản kể cả admin,
+Space chung nhưng principal riêng, token chéo shop bị chặn, mở lại/lưu/poll
+không nhân đôi, phân trang không mất/trùng tin, đổi tên/xóa, cấu hình cũ hoặc
+Genie không khả dụng vẫn đọc snapshot nhưng không resume, rollback và trạng thái
+đang cấp quyền. `test_chat_migration.py` tái hiện lỗi URL email percent-encoded.
+Frontend có test lịch sử mở lại/fresh token, đọc snapshot khi Genie không khả dụng, đổi tên/xóa sau xác nhận, response
+trễ sau đổi session, lịch sử cũ và tự kiểm tra quyền đang provision.
+Data test worker kiểm tra thay đổi shop/owner, retry/backoff, publication sau
+acceptance, không tạo trùng Space/secret, mapping fail closed, không tạo
+metadata chứa mẫu khách hàng, lock concurrent writer và polling native không
+đánh thức warehouse. Test Compose kiểm tra credential quản trị chỉ mount vào
+worker tùy chọn. `test_genie_worker_setup.py` kiểm tra cấp workspace admin chỉ
+cho worker, reuse secret, không sửa runtime chatbot và chặn bootstrap trước E4/
+sai workspace/đường dẫn secret. `test_genie_language.py` kiểm tra đối chiếu đúng
+cột metric và chỉ dọn hội thoại do lượt nghiệm thu tạo, không ghi token vào report.
+Nghiệm thu thực và giới hạn ở [Genie Chatbot](GENIE_CHATBOT.md).
+
+`python -m unittest discover -s tests -v` kiểm tra Compose và Docker build
+context thật với credential giả: image backend phải loại `.env`, runtime,
+journal và file tạm/lock của Genie, vẫn giữ source và cấu hình mẫu không có secret.
+
+## Regression sau rà soát người dùng
+
+`test_cors.py` dùng preflight thật kiểm tra origin lấy từ cấu hình, bỏ path và
+từ chối origin ngoài cấu hình. `cartSafety.test.jsx` kiểm tra checkout khi còn
+nháp/đang ghi/hết hàng và giữ nháp dòng khác. `profilePage.test.jsx` và
+`buyerFlow.test.jsx` kiểm tra request đang chờ không tạo submit thứ hai.
+`orderDetailNavigation.test.jsx` và `productDetailNavigation.test.jsx` kiểm tra
+đổi route không giữ đơn/dialog/đánh giá cũ, lỗi không bị hiểu là dữ liệu rỗng.
+`components/orders/orderDetails.test.jsx` kiểm tra hai role gọi endpoint chi
+tiết, hiển thị snapshot, lỗi quyền/thử lại và Escape; không cấp quyền đánh giá
+cho shop/admin. `orderPresentation.test.js` kiểm tra mốc UTC qua ngày Việt Nam.
+`chatbot.test.jsx` kiểm tra Enter, Shift+Enter và IME. Các regression giỏ/hồ
+sơ/đổi route/CORS đã tái hiện fail trước khi sửa và pass sau sửa.
+
+Kết quả dùng thử và giới hạn ở [Rà soát người dùng](USER_JOURNEY_REVIEW.md).

@@ -1,6 +1,6 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { MemoryRouter } from "react-router";
+import { Link, MemoryRouter } from "react-router";
 import { vi } from "vitest";
 
 import App from "../App.jsx";
@@ -41,7 +41,7 @@ export function signInAs(role, shopId = null) {
   );
 }
 
-export async function renderAt(path) {
+export async function renderAt(path, navigationPaths = []) {
   root = createRoot(container);
 
   await act(async () =>
@@ -50,6 +50,13 @@ export async function renderAt(path) {
         <AuthProvider>
           <ToastProvider>
             <App />
+            <nav aria-label="Test navigation">
+              {navigationPaths.map((next) => (
+                <Link key={next} to={next}>
+                  {next}
+                </Link>
+              ))}
+            </nav>
           </ToastProvider>
         </AuthProvider>
       </MemoryRouter>,

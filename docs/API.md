@@ -252,8 +252,8 @@ Thiếu/sai token trả `401`; vai trò khác `ADMIN` trả `403`. Quy tắc chi
 
 | Method | Path | Body | Kết quả |
 |---|---|---|---|
-| GET | `/analytics/chat/config` | — | `{available, scope, message}`; không trả credential/space ID |
-| POST | `/analytics/chat/messages` | `{question, conversation_token?}` | `{message_id, conversation_token, status, text, tables}` |
+| GET | `/analytics/chat/config` | — | `{available, provisioning, scope, message}`; không trả credential/space ID |
+| POST | `/analytics/chat/messages` | `{question, conversation_token?}` | `{conversation_id, message_id, conversation_token, status, text, tables}` |
 | POST | `/analytics/chat/messages/{message_id}` | `{conversation_token}` | Cùng schema, đọc tiến độ/kết quả; không gửi lại câu hỏi |
 
 Chỉ ADMIN và SHOP_OWNER đã có shop hoạt động được gọi; scope lấy từ user/shop
@@ -267,3 +267,23 @@ Thiếu/sai JWT: 401; role/shop/quyền hội thoại sai: 403; payload sai: 422
 quá tải: 429; thiếu cấu hình scope: 503; kết nối/kết quả Genie lỗi: 502.
 Chi tiết phân quyền, luồng UI, giới hạn Gold và setup tại
 [`GENIE_CHATBOT.md`](GENIE_CHATBOT.md).
+
+
+### Lịch sử chatbot riêng theo tài khoản
+
+| Method | Path | Request | Response |
+|---|---|---|---|
+| GET | `/analytics/chat/conversations` | `limit=30` (1–100), `offset=0` | Mảng `{id,title,updated_at}` mới cập nhật trước |
+| GET | `/analytics/chat/conversations/{id}` | `before_id?` ID tin nhắn để lấy trang cũ | Summary + `{conversation_token,can_resume,messages,has_more}` |
+| PATCH | `/analytics/chat/conversations/{id}` | `{title}` trim 1–120 ký tự | Summary |
+| DELETE | `/analytics/chat/conversations/{id}` | — | 204; xóa snapshot lịch sử trong ứng dụng |
+
+Chỉ ADMIN/SHOP_OWNER có shop hoạt động. Mọi thao tác kiểm tra user sở hữu và
+role/shop trong database; admin không được đọc chat của tài khoản khác. 403
+khi sai quyền/phạm vi, 404 khi không tồn tại, 422 khi request không hợp lệ.
+Chi tiết trả 100 tin gần nhất theo thứ tự cũ→mới; mỗi tin có `saved_id`, câu hỏi
+gốc và snapshot schema ChatMessage (không lưu token). Mở lại cấp token mới
+nếu identity/host/space khớp; nếu không, `can_resume=false`, token null và vẫn
+đọc được snapshot riêng. Xóa lịch sử ứng dụng không gọi xóa hội thoại Databricks.
+`provisioning=true` chỉ áp dụng shop thiếu mapping trong cấu hình Space chung;
+POST vẫn fail closed 503 trong lúc chờ cấp quyền.

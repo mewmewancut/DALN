@@ -180,3 +180,24 @@ docker compose --env-file .env.example exec -T backend alembic current
 `python -m app.seed` tạo dữ liệu demo idempotent theo Planning B15. Mật khẩu được hash bằng bcrypt; SKU theo đúng định dạng của B5; đơn hàng mới được rải trong 30 ngày tính từ ngày chạy. Chạy lại, kể cả vào ngày khác, không nhân đôi dữ liệu.
 
 Các invariant cần transaction hoặc kiểm tra quyền đã được triển khai trong service tương ứng ở phần C; tài liệu chi tiết nằm trong [`BUSINESS_RULES.md`](BUSINESS_RULES.md).
+
+
+## Lịch sử chatbot — nâng cấp được duyệt 06/10/2026
+
+Migration `20261006_0009_add_chat_history.py` tạo:
+
+- `chat_conversations`: FK user (cascade), FK shop nullable cho admin, role,
+  title (120), remote_id, space_id, principal, host, timestamp UTC. Unique
+  `(user_id, space_id, remote_id)`; index `(user_id, updated_at)`.
+- `chat_messages`: FK conversation (cascade), remote_id, question và answer
+  JSON gồm status/text/bảng giới hạn 100 dòng. Unique `(conversation_id,
+  remote_id)` giúp polling không nhân đôi tin; index conversation.
+
+Token hội thoại/JWT/OAuth không lưu ở hai bảng này. Tạo/sửa snapshot hội thoại
+và tin nhắn cùng transaction, rollback khi lỗi. Không thêm chat vào CDC E1,
+Silver, Gold hoặc nguồn Genie. Quyền đọc/tiếp tục/đổi tên/xóa ở
+[Genie Chatbot](GENIE_CHATBOT.md). Chủ sở hữu migration Lakebase lần này là
+OAuth user triển khai, có DDL và UPDATE alembic_version; `daln_app` được cấp
+DML hai bảng và USAGE/SELECT/UPDATE hai sequence mới, không cấp DDL.
+Alembic escape `%` khi đưa URL vào ConfigParser để username email/password
+URL-encoded không gây lỗi interpolation; token OAuth không lưu thành URL cố định.

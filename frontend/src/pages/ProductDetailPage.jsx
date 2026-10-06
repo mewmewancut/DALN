@@ -17,6 +17,8 @@ export default function ProductDetailPage() {
   const { session } = useAuth();
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState({ items: [], total: 0 });
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [reviewsError, setReviewsError] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [cartMessage, setCartMessage] = useState("");
@@ -33,6 +35,9 @@ export default function ProductDetailPage() {
     setLoading(true);
     setError("");
     setProduct(null);
+    setReviews({ items: [], total: 0 });
+    setReviewsLoading(true);
+    setReviewsError("");
     setColor("");
     setSize("");
     async function loadProduct() {
@@ -40,6 +45,7 @@ export default function ProductDetailPage() {
         const response = await client.get(`/products/${id}`);
         if (!active) return;
         setProduct(response.data);
+        setLoading(false);
         try {
           const reviewResponse = await client.get(`/products/${id}/reviews`, {
             params: { page: 1, page_size: 20 },
@@ -51,7 +57,9 @@ export default function ProductDetailPage() {
             });
           }
         } catch (requestError) {
-          if (active) setError(`Không tải được đánh giá: ${errorMessage(requestError)}`);
+          if (active) setReviewsError(`Không tải được đánh giá: ${errorMessage(requestError)}`);
+        } finally {
+          if (active) setReviewsLoading(false);
         }
       } catch (requestError) {
         if (active) setError(errorMessage(requestError));
@@ -250,7 +258,11 @@ export default function ProductDetailPage() {
                 ★ {product.rating_average == null ? "—" : Number(product.rating_average).toFixed(1)}
               </strong>
             </div>
-            {reviews.items.length === 0 ? (
+            {reviewsLoading ? (
+              <p role="status">Đang tải đánh giá...</p>
+            ) : reviewsError ? (
+              <p role="alert">{reviewsError}</p>
+            ) : reviews.items.length === 0 ? (
               <p className="muted">Chưa có nhận xét nào.</p>
             ) : (
               <div className="review-list">

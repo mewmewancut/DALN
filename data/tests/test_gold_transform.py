@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from gold_acceptance import verify
 from gold_queries import GOLD_TABLES, build_query
 from gold_transform import GoldTransform
 
@@ -138,6 +139,22 @@ def test_six_tables_match_c9_without_review_variant_or_product_fanout(gold_sql):
     assert sum(r.revenue for r in daily) == Decimal(1450)
     assert sum(r.total_orders for r in summary) == 7
 
+    # Execute acceptance's EXCEPT ALL queries against real Delta tables as well as mocks.
+    sql.execute("CREATE DATABASE public")
+    try:
+        sql.execute("CREATE TABLE public.orders USING DELTA AS SELECT * FROM silver.fact_orders")
+        assert verify(sql, "spark_catalog", "spark_catalog") == dict(
+            zip(GOLD_TABLES, (4, 3, 6, 2, 2, 4), strict=True)
+        )
+        sql.execute("UPDATE public.orders SET total_amount = total_amount + 1 WHERE id = 1")
+        with pytest.raises(ValueError, match="totals differ from Lakebase"):
+            verify(sql, "spark_catalog", "spark_catalog")
+        sql.execute("UPDATE gold.revenue_monthly SET revenue = revenue + 1")
+        with pytest.raises(ValueError, match="revenue_monthly: Gold differs"):
+            verify(sql, "spark_catalog", "spark_catalog")
+    finally:
+        sql.execute("DROP DATABASE public CASCADE")
+
 
 def test_overwrite_is_repeatable_and_removes_old_groups_even_when_sources_empty(gold_sql):
     sql = gold_sql
@@ -167,18 +184,120 @@ def test_overwrite_is_repeatable_and_removes_old_groups_even_when_sources_empty(
 
 
 @pytest.mark.parametrize(
-    "created,delivered", [("NULL", "DATE '2026-10-01'"), ("DATE '2026-10-01'", "NULL")]
+    "shop,status,created,delivered",
+    [
+        ("1", "DELIVERED", "NULL", "DATE '2026-10-01'"),
+        ("1", "DELIVERED", "DATE '2026-10-01'", "NULL"),
+        ("NULL", "DELIVERED", "DATE '2026-10-01'", "DATE '2026-10-01'"),
+        ("1", "PENDING", "NULL", "NULL"),
+    ],
 )
 def test_missing_reporting_dates_fail_before_any_gold_table_is_written(
-    gold_sql, created, delivered
+    gold_sql, shop, status, created, delivered
 ):
     sql = gold_sql
     sql.execute(
-        f"INSERT INTO silver.fact_orders VALUES (1, 1, 'DELIVERED', 100, {created}, {delivered})"
+        "INSERT INTO silver.fact_orders VALUES "
+        f"(1, {shop}, '{status}', 100, {created}, {delivered})"
     )
     with pytest.raises(ValueError, match="Gold requires"):
         transform(sql).run()
     assert not sql.execute("SHOW TABLES IN gold")
+
+
+def test_missing_dimensions_preserve_sales_stock_and_product_only_shop(gold_sql):
+    sql = gold_sql
+    sql.execute("INSERT INTO silver.dim_shops VALUES (1, 'Empty shop', true)")
+    sql.execute("INSERT INTO silver.dim_products VALUES (10, 2, 'Unsold hidden product', false)")
+    sql.execute("INSERT INTO silver.dim_variants VALUES (20, 99)")
+    sql.execute(
+        "INSERT INTO silver.fact_orders VALUES "
+        "(1, 3, 'DELIVERED', 700, DATE '2026-12-31', DATE '2027-01-01')"
+    )
+    sql.execute("INSERT INTO silver.fact_order_items VALUES (1, 20, 3, 'DELIVERED', 350, 2)")
+    sql.execute("INSERT INTO silver.fact_inventory VALUES (1, 3, 99, 'M', 'Blue', 0, 5, true)")
+    assert transform(sql).run() == dict(zip(GOLD_TABLES, (1, 1, 2, 1, 1, 3), strict=True))
+    top = rows(sql, "top_products", "shop_id")[0]
+    assert (top.product_id, top.product_name, top.total_quantity_sold, top.total_revenue) == (
+        99,
+        None,
+        2,
+        Decimal(700),
+    )
+    assert top.avg_rating is None
+    stock = rows(sql, "low_stock_current", "shop_id")[0]
+    assert (stock.shop_id, stock.shop_name, stock.product_name, stock.quantity) == (
+        3,
+        None,
+        None,
+        0,
+    )
+    shops = rows(sql, "shop_performance", "shop_id")
+    assert [
+        (r.shop_id, r.shop_name, r.revenue, r.total_orders, r.cancel_rate, r.aov, r.product_count)
+        for r in shops
+    ] == [
+        (1, "Empty shop", Decimal(0), 0, None, None, 0),
+        (2, None, Decimal(0), 0, None, None, 1),
+        (3, None, Decimal(700), 1, 0, Decimal(700), 0),
+    ]
+    monthly = rows(sql, "revenue_monthly", "month")[0]
+    assert (monthly.month, monthly.revenue, monthly.delivered_orders) == (
+        date(2027, 1, 1),
+        Decimal(700),
+        1,
+    )
+    summary = rows(sql, "orders_summary_daily", "date")
+    assert [(r.date, r.total_orders, r.delivered, r.cancel_rate, r.aov) for r in summary] == [
+        (date(2026, 12, 31), 1, 0, 0, None),
+        (date(2027, 1, 1), 0, 1, None, Decimal(700)),
+    ]
+
+
+def test_failed_delta_overwrite_preserves_table_and_retry_refreshes_all_tables(gold_sql):
+    sql = gold_sql
+    seed(sql)
+    runner = transform(sql)
+    runner.run()
+    before = {table: sql.execute(f"SELECT * FROM gold.{table}") for table in GOLD_TABLES}
+    sql.execute("UPDATE silver.fact_orders SET total_amount = total_amount + 100")
+
+    class FailingSQL:
+        def execute(self, statement):
+            if statement.startswith("INSERT OVERWRITE TABLE") and "`revenue_monthly`" in statement:
+                # Fail during actual Delta write evaluation, after revenue_daily committed.
+                return sql.execute(
+                    "INSERT OVERWRITE TABLE gold.revenue_monthly "
+                    "SELECT CAST(raise_error('injected Gold write failure') AS DATE), "
+                    "shop_id, shop_name, revenue, delivered_orders FROM gold.revenue_monthly"
+                )
+            return sql.execute(statement)
+
+    report = Mock()
+    with pytest.raises(Exception, match="injected Gold write failure"):
+        GoldTransform(FailingSQL(), "spark_catalog", report=report).run()
+    assert sql.execute("SELECT * FROM gold.revenue_daily") != before["revenue_daily"]
+    for table in GOLD_TABLES[1:]:
+        assert sql.execute(f"SELECT * FROM gold.{table}") == before[table]
+    assert not any("Gold completed" in call.args[0] for call in report.call_args_list)
+
+    counts = runner.run()
+    assert counts == dict(zip(GOLD_TABLES, (4, 3, 6, 2, 2, 4), strict=True))
+    assert sql.execute("SELECT SUM(revenue) FROM gold.revenue_daily")[0][0] == Decimal(1950)
+    assert sql.execute("SELECT SUM(revenue) FROM gold.revenue_monthly")[0][0] == Decimal(1950)
+    assert sql.execute("SELECT SUM(revenue) FROM gold.shop_performance")[0][0] == Decimal(1950)
+    assert rows(sql, "orders_summary_daily", "shop_id, date")[1].aov == Decimal(250)
+    after = {table: sql.execute(f"SELECT * FROM gold.{table}") for table in GOLD_TABLES}
+    runner.run()
+    for table in GOLD_TABLES:
+        assert sql.execute(f"SELECT * FROM gold.{table}") == after[table]
+
+    # Invalid input on a later refresh must leave the published six tables intact.
+    sql.execute("UPDATE silver.fact_orders SET shop_id = NULL WHERE id = 1")
+    with pytest.raises(ValueError, match="Gold requires"):
+        runner.run()
+    for table in GOLD_TABLES:
+        assert sql.execute(f"SELECT * FROM gold.{table}") == after[table]
 
 
 def test_unknown_table_and_unsafe_catalog_are_rejected():

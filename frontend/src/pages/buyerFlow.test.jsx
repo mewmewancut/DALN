@@ -264,6 +264,29 @@ it("hiện lỗi thiếu hàng từ checkout rồi chuyển tới chi tiết đ�
   expect(container.textContent).toContain("ORD-20260923-0009");
 });
 
+it("chặn gửi trùng checkout khi đơn đang được tạo", async () => {
+  vi.spyOn(client, "get").mockImplementation(async (url) => {
+    if (url === "/cart") return { data: cart };
+    if (url === "/users/me/profile") return { data: { full_name: "An", phone: "0900000000" } };
+    if (url === "/users/me/addresses") return { data: [] };
+    return { data: deliveredOrder };
+  });
+  let finish;
+  const post = vi.spyOn(client, "post").mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  await renderAt("/checkout");
+  await fill("Địa chỉ giao hàng", "Địa chỉ test");
+  await submitVisibleForm();
+  await submitVisibleForm();
+  expect(post).toHaveBeenCalledTimes(1);
+  await act(async () => finish({ data: { id: 9 } }));
+  expect(container.textContent).toContain(deliveredOrder.code);
+});
+
 it("lọc đơn theo trạng thái và chỉ cho hủy đơn PENDING với lý do", async () => {
   const pending = {
     id: 7,

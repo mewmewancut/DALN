@@ -23,6 +23,7 @@ class ChatPoll(BaseModel):
 
 class ChatConfig(BaseModel):
     available: bool
+    provisioning: bool = False
     scope: str
     message: str
 
@@ -40,6 +41,7 @@ class ChatTable(BaseModel):
 
 
 class ChatMessage(BaseModel):
+    conversation_id: int | None = None
     message_id: str
     conversation_token: str
     status: str

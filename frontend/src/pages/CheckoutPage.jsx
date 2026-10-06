@@ -81,6 +81,7 @@ export default function CheckoutPage() {
 
   async function submit(event) {
     event.preventDefault();
+    if (submitting) return;
     setSubmitting(true);
     setSubmitError("");
     try {

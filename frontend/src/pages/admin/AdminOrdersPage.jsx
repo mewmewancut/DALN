@@ -11,6 +11,7 @@ import {
 } from "../../components/orderPresentation.js";
 import Pagination from "../../components/Pagination.jsx";
 import { loadAllAdminShops } from "./loadAllAdminShops.js";
+import OrderDetailDialog from "../../components/orders/OrderDetailDialog.jsx";
 
 const PAGE_SIZE = 20;
 
@@ -23,6 +24,7 @@ export default function AdminOrdersPage() {
   const [result, setResult] = useState({ items: [], total: 0, page: 1, page_size: PAGE_SIZE });
   const [loading, setLoading] = useState(true);
   const [ordersError, setOrdersError] = useState("");
+  const [detailId, setDetailId] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -157,7 +159,11 @@ export default function AdminOrdersPage() {
               <tbody>
                 {result.items.map((order) => (
                   <tr key={order.id}>
-                    <td>{order.code}</td>
+                    <td>
+                      <button className="text-button" onClick={() => setDetailId(order.id)}>
+                        {order.code}
+                      </button>
+                    </td>
                     <td>{shopName(order.shop_id)}</td>
                     <td>#{order.buyer_id}</td>
                     <td className="date-cell">{formatDateTime(order.created_at)}</td>
@@ -184,6 +190,9 @@ export default function AdminOrdersPage() {
         loading={loading}
         onChange={setPage}
       />
+      {detailId !== null && (
+        <OrderDetailDialog orderId={detailId} onClose={() => setDetailId(null)} />
+      )}
     </>
   );
 }

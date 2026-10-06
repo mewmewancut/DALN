@@ -68,7 +68,7 @@ def main():
         parser.exit(1, f"E3 acceptance failed ({type(error).__name__}); inspect diagnostics\n")
     for table, count in counts.items():
         print(f"PASS gold.{table}: {count} rows")
-    print("PASS Gold totals vs Lakebase; E4 gate not yet implemented")
+    print("PASS Gold totals vs Lakebase; E3 acceptance does not certify the E4 gate")
 
 
 if __name__ == "__main__":

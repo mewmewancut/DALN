@@ -13,6 +13,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [saving, setSaving] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const showError = useCallback((message) => setError(message), []);
   const showNotice = useCallback((message) => setNotice(message), []);
@@ -43,6 +44,8 @@ export default function ProfilePage() {
 
   async function saveProfile(event) {
     event.preventDefault();
+    if (saving) return;
+    setSaving(true);
     setError("");
     setNotice("");
     try {
@@ -55,6 +58,8 @@ export default function ProfilePage() {
       setNotice("Đã cập nhật hồ sơ");
     } catch (requestError) {
       setError(errorMessage(requestError));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -106,6 +111,7 @@ export default function ProfilePage() {
                 required
                 maxLength="255"
                 value={form.full_name}
+                disabled={saving}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, full_name: event.target.value }))
                 }
@@ -117,6 +123,7 @@ export default function ProfilePage() {
                 type="tel"
                 maxLength="20"
                 value={form.phone}
+                disabled={saving}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, phone: event.target.value }))
                 }
@@ -127,12 +134,15 @@ export default function ProfilePage() {
               <input
                 type="url"
                 value={form.avatar_url}
+                disabled={saving}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, avatar_url: event.target.value }))
                 }
               />
             </label>
-            <button type="submit">Lưu hồ sơ</button>
+            <button type="submit" disabled={saving}>
+              {saving ? "Đang lưu..." : "Lưu hồ sơ"}
+            </button>
           </form>
         </div>
       )}
