@@ -75,7 +75,7 @@ def seed_cart(db_session: Session, *, stock: int = 5) -> dict:
     db_session.add(variant)
     db_session.flush()
     db_session.add(Inventory(variant_id=variant.id, shop_id=shop.id, quantity=stock))
-    cart = Cart(buyer_id=buyer.id, shop_id=shop.id)
+    cart = Cart(buyer_id=buyer.id)
     db_session.add(cart)
     db_session.flush()
     db_session.add(CartItem(cart_id=cart.id, variant_id=variant.id, quantity=2))
@@ -165,7 +165,7 @@ def test_checkout_success_deducts_stock_clears_cart_and_records_history(
         select(func.count()).select_from(CartItem).where(CartItem.cart_id == ctx["cart"].id)
     )
     assert remaining_items == 0
-    assert db_session.scalar(select(Cart.shop_id).where(Cart.id == ctx["cart"].id)) is None
+    assert db_session.scalar(select(Cart).where(Cart.id == ctx["cart"].id)) is not None
     assert (
         db_session.scalar(
             select(func.count())
@@ -221,7 +221,7 @@ def test_checkout_ignores_client_supplied_total_amount(
     assert (
         client.post(
             "/orders/checkout",
-            json={**CHECKOUT_BODY, "shop_id": ctx["shop"].id},
+            json={**CHECKOUT_BODY, "buyer_id": ctx["buyer"].id},
             headers=ctx["headers"],
         ).status_code
         == 422
@@ -331,8 +331,8 @@ def test_concurrent_checkout_on_shared_stock_allows_only_one_winner() -> None:
             setup.add(variant)
             setup.flush()
             setup.add(Inventory(variant_id=variant.id, shop_id=shop.id, quantity=1))
-            cart_a = Cart(buyer_id=buyer_a.id, shop_id=shop.id)
-            cart_b = Cart(buyer_id=buyer_b.id, shop_id=shop.id)
+            cart_a = Cart(buyer_id=buyer_a.id)
+            cart_b = Cart(buyer_id=buyer_b.id)
             setup.add_all([cart_a, cart_b])
             setup.flush()
             setup.add(CartItem(cart_id=cart_a.id, variant_id=variant.id, quantity=1))
@@ -409,7 +409,7 @@ def test_concurrent_checkout_on_same_cart_creates_only_one_order() -> None:
             setup.add(variant)
             setup.flush()
             setup.add(Inventory(variant_id=variant.id, shop_id=shop.id, quantity=2))
-            cart = Cart(buyer_id=buyer.id, shop_id=shop.id)
+            cart = Cart(buyer_id=buyer.id)
             setup.add(cart)
             setup.flush()
             setup.add(CartItem(cart_id=cart.id, variant_id=variant.id, quantity=1))

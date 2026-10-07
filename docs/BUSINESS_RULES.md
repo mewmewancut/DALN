@@ -49,26 +49,27 @@ Contract và mã lỗi nằm tại [`API.md`](API.md#auth); cấu hình Gmail n�
 
 ## Giỏ hàng C3
 
-- Mỗi buyer có tối đa một giỏ. Giỏ không có item có `shop_id=NULL`; giỏ có item chỉ chứa variant thuộc cùng một shop.
-- Thêm cùng variant cộng số lượng vào dòng hiện có. Sửa số lượng thay thế giá trị hiện tại. Thêm hàng khác shop trả lỗi và không tự xóa giỏ của buyer.
-- Giá và thông tin sản phẩm lấy từ database hiện tại. Giỏ không giữ giá và không giữ chỗ tồn kho. Tồn kho có thể giảm sau khi thêm; kiểm tra cứng được thực hiện khi checkout theo C4.
-- Mọi thao tác ghi giỏ khóa dòng buyer rồi dòng cart trong một transaction. Khóa buyer bảo vệ cả lần tạo giỏ đầu tiên khi chưa có dòng cart để khóa; các request cùng buyer được xử lý tuần tự. Lỗi nghiệp vụ hoặc database làm rollback toàn bộ thay đổi của thao tác.
-- Xóa item cuối cùng hoặc xóa sạch giỏ đặt lại `shop_id=NULL`, cho phép thêm hàng của shop khác. Xóa giỏ nhiều lần không thay đổi tồn kho.
-- Chỉ buyer sở hữu giỏ mới được sửa/xóa item. Thêm và đổi số lượng kiểm tra trạng thái hoạt động của variant, sản phẩm và shop, cùng tồn kho hiện tại. Các item đã ngừng bán vẫn được trả về trong giỏ để buyer có thể xóa.
+- Mỗi buyer có tối đa một giỏ server, có thể chứa nhiều shop. Shop của từng item được suy từ variant/product; không còn cột `carts.shop_id`.
+- Thêm trùng variant cộng số lượng, sửa thay thế số lượng. Giá, thông tin và tồn kho đọc từ database; giỏ không giữ giá hoặc giữ kho.
+- Mọi thao tác ghi (gồm import giỏ khách) khóa buyer rồi cart trong một transaction; lỗi rollback toàn bộ. Thêm/sửa kiểm tra catalog hoạt động và tồn kho trên số lượng tổng.
+- Khách dùng giỏ `localStorage` chứa variant/số lượng. Preview public giải quyết dữ liệu hiện tại qua API, không ghi database; hàng bị ẩn/không tồn tại trả dòng không khả dụng để xóa, không công khai thông tin catalog bị ẩn.
+- BUYER import giỏ khách bằng UUID. Receipt và item commit cùng nhau; retry cùng mã/nội dung không cộng lại, kể cả sau checkout. Đổi nội dung của mã đã dùng bị từ chối. Chỉ xóa giỏ tạm khi nhận thành công; lỗi mạng giữ nội dung/mã và yêu cầu đồng bộ lại trước khi sửa.
+- Chỉ buyer sở hữu item được sửa/xóa. Item cũ ngừng bán vẫn hiện trạng thái không khả dụng và được xóa; xóa giỏ không thay tồn kho.
+- Giới hạn payload và contract nằm ở [API](API.md#giỏ-hàng); luồng frontend chuẩn ở [Planning C3](PLANNING.md#c3-router-cartpy--giỏ-nhiều-shop-checkout-một-shop).
 
-Contract endpoint và mã lỗi nằm tại [`API.md`](API.md#giỏ-hàng). Test và cách chạy nằm tại [`TESTING.md`](TESTING.md).
+
 
 ## Checkout C4
 
-- Checkout khóa dòng buyer rồi dòng giỏ trước khi đọc item. Mọi thao tác giỏ của cùng buyer vì vậy chạy tuần tự; hai request checkout đồng thời trên cùng một giỏ chỉ một request được tạo đơn, request còn lại nhận lỗi giỏ rỗng.
-- Checkout đọc giỏ và item hiện tại của buyer; giỏ rỗng hoặc chưa tồn tại bị từ chối trong transaction và toàn bộ transaction được rollback.
-- Mỗi variant, product và shop được kiểm tra lại trạng thái hoạt động dưới khóa đọc chia sẻ trong transaction checkout. Nhiều checkout vẫn có thể đọc đồng thời, nhưng thao tác ẩn catalog phải chờ transaction checkout kết thúc. Item bị ẩn sau khi thêm vào giỏ, item không còn thuộc shop của giỏ hoặc shop bị admin khóa đều trả `409`; không tạo đơn, không trừ kho và không xóa giỏ.
-- Toàn bộ thao tác (tạo đơn, trừ kho từng item, ghi order item, ghi lịch sử trạng thái, xóa giỏ) nằm trong một transaction. Bất kỳ item nào lỗi làm rollback toàn bộ: không tạo đơn, không trừ kho item nào, giỏ giữ nguyên.
+- Checkout khóa dòng buyer rồi dòng giỏ trước khi đọc item. Mọi thao tác giỏ của cùng buyer vì vậy chạy tuần tự; hai request checkout cùng shop chỉ một request được tạo đơn. Hai shop khác nhau có thể checkout tuần tự từ cùng giỏ.
+- Checkout chọn đúng một nhóm shop từ giỏ hiện tại của buyer; thiếu lựa chọn ở giỏ nhiều shop hoặc shop không có trong giỏ trả 400; giỏ rỗng hoặc chưa tồn tại bị từ chối trong transaction và toàn bộ transaction được rollback.
+- Mỗi variant, product và shop được kiểm tra lại trạng thái hoạt động dưới khóa đọc chia sẻ trong transaction checkout. Nhiều checkout vẫn có thể đọc đồng thời, nhưng thao tác ẩn catalog phải chờ transaction checkout kết thúc. Item bị ẩn sau khi thêm vào giỏ, item không còn thuộc shop đã chọn hoặc shop bị admin khóa đều trả `409`; không tạo đơn, không trừ kho và không xóa giỏ.
+- Toàn bộ thao tác (tạo đơn, trừ kho từng item, ghi order item, ghi lịch sử trạng thái, xóa item của shop đã chọn) nằm trong một transaction. Bất kỳ item nào lỗi làm rollback toàn bộ: không tạo đơn, không trừ kho item nào, giỏ giữ nguyên.
 - Trừ kho dùng `UPDATE inventory SET quantity = quantity - :n WHERE variant_id = :id AND quantity >= :n`, không đọc rồi so sánh rồi ghi. Nếu số dòng bị ảnh hưởng bằng 0 (không đủ hàng), giao dịch rollback và trả lỗi nêu rõ sản phẩm/size/màu. Cách này chống được hai request checkout đồng thời cùng làm âm kho.
 - Giá và tên sản phẩm trong `order_items` là snapshot tại thời điểm checkout, lấy bằng truy vấn variant hiện tại trong cùng transaction — không lấy từ giỏ hàng (giỏ không giữ giá) và không lấy từ payload client. Đơn đã tạo không đổi khi shop sửa giá sau đó.
 - `total_amount` luôn do backend cộng dồn `unit_price × quantity` của từng order item. Trường `total_amount` không xuất hiện trong OpenAPI request contract; nếu client vẫn gửi thì backend loại bỏ trước khi validate và không dùng giá trị đó.
 - Đơn mới luôn ở `status=PENDING` và có đúng một dòng `order_status_history` (`from_status=NULL → to_status=PENDING`). `payment_status=PAID` ngay khi `payment_method=MOCK_CARD`, còn `COD` giữ `UNPAID` đến khi giao hàng theo C5.
-- Sau khi đơn tạo thành công, toàn bộ `cart_items` bị xóa và `cart.shop_id` đặt `NULL` trong cùng transaction — không có bước riêng có thể thất bại giữa chừng.
+- Sau khi đơn tạo thành công, chỉ `cart_items` thuộc shop đã chọn bị xóa trong cùng transaction — không có bước riêng có thể thất bại giữa chừng.
 - Mã đơn (`code`) được gán từ một giá trị tạm duy nhất (UUID) trước, sau đó ghi đè bằng `ORD-{YYYYMMDD}-{order.id}` sau khi `id` đã có — tránh hai transaction đồng thời tranh chấp cùng một giá trị `code` trước khi mỗi đơn có `id` riêng.
 - Sau khi transaction trừ kho commit thành công, backend kiểm tra `low_stock_alerts` cho từng variant vừa trừ theo C6. Bước này chạy ngoài transaction checkout nên không bao giờ làm rollback hoặc fail đơn đã đặt thành công.
 

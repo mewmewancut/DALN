@@ -1,4 +1,6 @@
-from pydantic import BaseModel, ConfigDict, Field
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class CartItemAdd(BaseModel):
@@ -17,7 +19,10 @@ class CartItemUpdate(BaseModel):
 class CartItemResponse(BaseModel):
     id: int
     variant_id: int
-    product_id: int
+    product_id: int | None
+    shop_id: int | None
+    shop_name: str
+    is_available: bool
     product_name: str
     image_url: str | None
     size: str
@@ -32,3 +37,19 @@ class CartResponse(BaseModel):
     shop_name: str | None
     items: list[CartItemResponse]
     total_amount: int
+
+
+class CartPreviewRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[CartItemAdd] = Field(max_length=200)
+
+    @model_validator(mode="after")
+    def unique_variants(self):
+        if len({item.variant_id for item in self.items}) != len(self.items):
+            raise ValueError("Mỗi biến thể chỉ được xuất hiện một lần")
+        return self
+
+
+class CartMergeRequest(CartPreviewRequest):
+    merge_id: UUID

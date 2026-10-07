@@ -18,6 +18,7 @@ class CheckoutRequest(BaseModel):
     receiver_phone: str = Field(min_length=1, max_length=20)
     shipping_address: str = Field(min_length=1)
     payment_method: Literal["COD", "MOCK_CARD"]
+    shop_id: int | None = Field(default=None, gt=0, strict=True)
 
 
 class OrderItemResponse(BaseModel):

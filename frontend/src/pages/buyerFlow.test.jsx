@@ -135,7 +135,7 @@ async function submitVisibleForm() {
   );
 }
 
-it("thêm đúng variant vào giỏ và xử lý xác nhận đổi shop", async () => {
+it("thêm đúng variant khác shop vào giỏ mà không xóa sản phẩm cũ", async () => {
   vi.spyOn(client, "get").mockImplementation(async (url) => {
     if (url.endsWith("/reviews")) {
       return { data: { items: [], total: 0, page: 1, page_size: 20, rating_average: null } };
@@ -153,18 +153,7 @@ it("thêm đúng variant vào giỏ và xử lý xác nhận đổi shop", async
       },
     };
   });
-  const post = vi
-    .spyOn(client, "post")
-    .mockRejectedValueOnce({
-      response: {
-        status: 409,
-        data: {
-          detail: "Giỏ hàng đang chứa sản phẩm của shop khác",
-          current_shop: { name: "Shop A" },
-        },
-      },
-    })
-    .mockResolvedValueOnce({ data: cart });
+  const post = vi.spyOn(client, "post").mockResolvedValue({ data: cart });
   const remove = vi.spyOn(client, "delete").mockResolvedValue({ data: {} });
 
   await renderAt("/products/5");
@@ -172,12 +161,10 @@ it("thêm đúng variant vào giỏ và xử lý xác nhận đổi shop", async
   await click("M");
   expect(button("Thêm vào giỏ").disabled).toBe(false);
   await click("Thêm vào giỏ");
-  expect(container.querySelector('[role="dialog"]').textContent).toContain("Shop A");
-  await click("Xóa giỏ và thêm");
-
-  expect(remove).toHaveBeenCalledWith("/cart");
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+  expect(remove).not.toHaveBeenCalled();
   expect(post).toHaveBeenLastCalledWith("/cart/items", { variant_id: 21, quantity: 1 });
-  expect(container.textContent).toContain("Đã thay giỏ hàng và thêm sản phẩm");
+  expect(container.textContent).toContain("Đã thêm sản phẩm vào giỏ hàng");
 });
 
 it("sửa và xóa item trong giỏ, đồng thời chặn số lượng vượt tồn kho", async () => {
@@ -259,6 +246,7 @@ it("hiện lỗi thiếu hàng từ checkout rồi chuyển tới chi tiết đ�
     receiver_phone: "0900000000",
     shipping_address: "Quận 1",
     payment_method: "MOCK_CARD",
+    shop_id: 2,
   });
   expect(get).toHaveBeenCalledWith("/orders/9");
   expect(container.textContent).toContain("ORD-20260923-0009");

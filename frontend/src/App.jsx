@@ -5,6 +5,7 @@ import { useAuth } from "./auth/AuthContext.jsx";
 import RequireRole from "./auth/RequireRole.jsx";
 import RequireAuth from "./auth/RequireAuth.jsx";
 import { homeForRole } from "./auth/session.js";
+import { loginDestination } from "./auth/loginDestination.js";
 import AdminLayout from "./components/AdminLayout.jsx";
 import ShopLayout from "./components/ShopLayout.jsx";
 import ChatbotSession from "./components/chatbot/ChatbotSession.jsx";
@@ -47,7 +48,7 @@ function BuyerRoute({ children }) {
 function GuestRoute({ children }) {
   const { session } = useAuth();
   if (session) {
-    return <Navigate to={homeForRole(session.role)} replace />;
+    return <Navigate to={loginDestination(session.role)} replace />;
   }
   return children;
 }
@@ -86,9 +87,9 @@ export default function App() {
         <Route
           path="/cart"
           element={
-            <RequireRole role="BUYER">
+            <BuyerRoute>
               <CartPage />
-            </RequireRole>
+            </BuyerRoute>
           }
         />
         <Route

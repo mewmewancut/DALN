@@ -1,94 +1,116 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-
-import client from "../api/client.js";
-import { errorMessage } from "../api/errorMessage.js";
+import { useAuth } from "../auth/AuthContext.jsx";
+import { cartErrorMessage as errorMessage } from "../cart/errorMessage.js";
+import { groupCart } from "../cart/groupCart.js";
+import { readCheckoutSelection, readGuestCart, saveCheckoutSelection } from "../cart/guestCart.js";
+import useCart from "../cart/useCart.js";
 import { formatCurrency } from "../components/formatCurrency.js";
 import SiteLayout from "../components/SiteLayout.jsx";
-import ProductImage from "../components/ProductImage.jsx";
-
-const EMPTY_CART = { shop_id: null, shop_name: null, items: [], total_amount: 0 };
+import CartShopGroup from "../components/cart/CartShopGroup.jsx";
+import GuestCartRecovery from "../components/cart/GuestCartRecovery.jsx";
 
 export default function CartPage() {
   const navigate = useNavigate();
-  const [cart, setCart] = useState(EMPTY_CART);
+  const { session } = useAuth();
+  const { cart, setCart, loading, loadError, mergeError, refresh, updateItem, removeItem } =
+    useCart(session);
   const [quantities, setQuantities] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState(() => readCheckoutSelection().shop_id);
   const [pendingItem, setPendingItem] = useState(null);
-  const [loadError, setLoadError] = useState("");
   const [actionError, setActionError] = useState("");
-
-  const applyCart = useCallback((nextCart, changedItemId = null) => {
-    setCart(nextCart);
-    setQuantities((current) =>
-      Object.fromEntries(
-        nextCart.items.map((item) => [
-          item.id,
-          changedItemId !== null && item.id !== changedItemId
-            ? (current[item.id] ?? String(item.quantity))
-            : String(item.quantity),
-        ]),
-      ),
-    );
-  }, []);
+  const groups = groupCart(cart);
+  const selected =
+    groups.find((group) => group.shop_id === selectedId) ??
+    (groups.length === 1 ? groups[0] : null);
 
   useEffect(() => {
-    let active = true;
-    client
-      .get("/cart")
-      .then((response) => {
-        if (active) applyCart(response.data);
-      })
-      .catch((requestError) => {
-        if (active) setLoadError(errorMessage(requestError));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [applyCart]);
+    setQuantities((current) =>
+      Object.fromEntries(
+        cart.items.map((item) => [item.id, current[item.id] ?? String(item.quantity)]),
+      ),
+    );
+  }, [cart]);
 
-  async function updateItem(item) {
+  useEffect(() => {
+    if (loading || loadError || mergeError || !session || readGuestCart().items.length) return;
+    const selection = readCheckoutSelection();
+    if (selection.resume && cart.items.some((item) => item.shop_id === selection.shop_id)) {
+      try {
+        saveCheckoutSelection(selection.shop_id);
+        navigate("/checkout", { state: { shopId: selection.shop_id }, replace: true });
+      } catch (failure) {
+        setActionError(errorMessage(failure));
+      }
+    }
+  }, [cart, loading, loadError, mergeError, session, navigate]);
+
+  async function update(item, quantity) {
     if (pendingItem !== null) return;
-    const quantity = Number(quantities[item.id]);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > item.stock_quantity) return;
     setPendingItem(item.id);
     setActionError("");
     try {
-      const response = await client.put(`/cart/items/${item.id}`, { quantity });
-      applyCart(response.data, item.id);
-    } catch (requestError) {
-      setActionError(errorMessage(requestError));
+      const next = await updateItem(item, quantity);
+      setQuantities((current) => ({ ...current, [item.id]: String(quantity) }));
+      setCart(next);
+    } catch (failure) {
+      setActionError(errorMessage(failure));
     } finally {
       setPendingItem(null);
     }
   }
-
-  async function removeItem(itemId) {
+  async function remove(item) {
     if (pendingItem !== null) return;
-    setPendingItem(itemId);
+    setPendingItem(item.id);
     setActionError("");
     try {
-      const response = await client.delete(`/cart/items/${itemId}`);
-      applyCart(response.data, itemId);
-    } catch (requestError) {
-      setActionError(errorMessage(requestError));
+      setCart(await removeItem(item));
+    } catch (failure) {
+      setActionError(errorMessage(failure));
     } finally {
       setPendingItem(null);
     }
   }
-
-  const hasDraft = cart.items.some((item) => Number(quantities[item.id]) !== item.quantity);
-  const hasInvalidQuantity = cart.items.some((item) => {
-    const quantity = Number(quantities[item.id]);
-    return !Number.isInteger(quantity) || quantity < 1 || quantity > item.stock_quantity;
+  function select(group) {
+    try {
+      saveCheckoutSelection(group.shop_id);
+      setSelectedId(group.shop_id);
+      setActionError("");
+    } catch (failure) {
+      setActionError(errorMessage(failure));
+    }
+  }
+  function checkout() {
+    if (!selected) return;
+    try {
+      saveCheckoutSelection(selected.shop_id, !session);
+      navigate(session ? "/checkout" : "/login", {
+        state: session ? { shopId: selected.shop_id } : { from: "/checkout" },
+      });
+    } catch (failure) {
+      setActionError(errorMessage(failure));
+    }
+  }
+  const hasDraft = selected?.items.some(
+    (item) => Number(quantities[item.id] ?? item.quantity) !== item.quantity,
+  );
+  const invalid = selected?.items.some((item) => {
+    const quantity = Number(quantities[item.id] ?? item.quantity);
+    return (
+      item.is_available === false ||
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > item.stock_quantity
+    );
   });
 
   return (
     <SiteLayout wide>
       <h1>Giỏ hàng</h1>
+      <p className="muted">
+        Mỗi lần thanh toán một shop. Hàng của shop khác vẫn được giữ trong giỏ.
+      </p>
+      {!session && <p>Giỏ tạm được lưu trên trình duyệt này. Bạn đăng nhập khi thanh toán.</p>}
       {loading && <p role="status">Đang tải giỏ hàng...</p>}
       {loadError && (
         <p className="form-error" role="alert">
@@ -100,95 +122,60 @@ export default function CartPage() {
           {actionError}
         </p>
       )}
-      {!loading && !loadError && cart.items.length === 0 && (
+      {mergeError && (
+        <p className="form-error" role="alert">
+          {mergeError}
+        </p>
+      )}
+      {!loading && !loadError && !mergeError && cart.items.length === 0 && (
         <div className="empty-state">
           <p>Giỏ hàng đang trống.</p>
           <Link to="/">Tiếp tục mua sắm</Link>
         </div>
       )}
+      {!loading &&
+        !loadError &&
+        groups.map((group) => (
+          <CartShopGroup
+            key={group.shop_id ?? "unavailable"}
+            group={group}
+            quantities={quantities}
+            busy={pendingItem !== null}
+            selected={selected?.shop_id === group.shop_id}
+            onSelect={() => select(group)}
+            onQuantity={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))}
+            onUpdate={update}
+            onRemove={remove}
+          />
+        ))}
       {!loading && !loadError && cart.items.length > 0 && (
-        <>
-          <h2>{cart.shop_name}</h2>
-          <div className="cart-list">
-            {cart.items.map((item) => {
-              const quantity = Number(quantities[item.id]);
-              const invalidQuantity =
-                !Number.isInteger(quantity) || quantity < 1 || quantity > item.stock_quantity;
-              return (
-                <article className="cart-item" key={item.id}>
-                  <ProductImage
-                    src={item.image_url}
-                    alt={item.product_name}
-                    placeholderClassName="cart-image-placeholder"
-                  />
-                  <div>
-                    <h3>{item.product_name}</h3>
-                    <p>
-                      {item.color} / {item.size}
-                    </p>
-                    <p>{formatCurrency(item.unit_price)}</p>
-                    <p className="muted">Tồn kho: {item.stock_quantity}</p>
-                  </div>
-                  <div className="cart-actions">
-                    <label>
-                      Số lượng
-                      <input
-                        aria-label={`Số lượng ${item.product_name}`}
-                        type="number"
-                        min="1"
-                        max={item.stock_quantity}
-                        disabled={pendingItem !== null}
-                        value={quantities[item.id] ?? item.quantity}
-                        onChange={(event) =>
-                          setQuantities((current) => ({
-                            ...current,
-                            [item.id]: event.target.value,
-                          }))
-                        }
-                      />
-                    </label>
-                    {invalidQuantity && (
-                      <span className="form-error">
-                        {item.stock_quantity === 0
-                          ? "Sản phẩm đã hết hàng. Hãy xóa khỏi giỏ."
-                          : `Số lượng phải từ 1 đến ${item.stock_quantity}.`}
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      disabled={
-                        invalidQuantity || quantity === item.quantity || pendingItem !== null
-                      }
-                      onClick={() => updateItem(item)}
-                    >
-                      Cập nhật
-                    </button>
-                    <button
-                      type="button"
-                      disabled={pendingItem !== null}
-                      onClick={() => removeItem(item.id)}
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-          <div className="cart-summary">
-            <strong>Tổng cộng: {formatCurrency(cart.total_amount)}</strong>
-            {pendingItem !== null && <p role="status">Đang cập nhật giỏ hàng...</p>}
-            {hasDraft && <p role="status">Cập nhật số lượng trước khi thanh toán.</p>}
-            <button
-              className="primary-button"
-              type="button"
-              disabled={pendingItem !== null || hasDraft || hasInvalidQuantity}
-              onClick={() => navigate("/checkout")}
-            >
-              Thanh toán
-            </button>
-          </div>
-        </>
+        <div className="cart-summary">
+          <strong>Tổng thanh toán: {formatCurrency(selected?.total_amount ?? 0)}</strong>
+          {!selected && <p>Chọn một shop để thanh toán.</p>}
+          {pendingItem !== null && <p role="status">Đang cập nhật giỏ hàng...</p>}
+          {hasDraft && <p role="status">Cập nhật số lượng trước khi thanh toán.</p>}
+          <button
+            className="primary-button"
+            type="button"
+            disabled={
+              !selected ||
+              selected.shop_id == null ||
+              pendingItem !== null ||
+              hasDraft ||
+              invalid ||
+              !!mergeError
+            }
+            onClick={checkout}
+          >
+            Thanh toán
+          </button>
+        </div>
+      )}
+      {!loading && !loadError && mergeError && <GuestCartRecovery onRetry={refresh} />}
+      {loadError && (
+        <button type="button" onClick={refresh}>
+          Tải lại giỏ hàng
+        </button>
       )}
     </SiteLayout>
   );

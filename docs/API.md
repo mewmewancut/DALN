@@ -99,40 +99,39 @@ Thứ tự dựa trên sở thích hiện tại của buyer và ba tiêu chí đ
 
 ## Giỏ hàng
 
-Tất cả endpoint dưới đây yêu cầu token của `BUYER`. Thiếu/sai token trả `401`, vai trò khác trả `403`. Buyer được xác định từ phiên đăng nhập.
+Các endpoint giỏ server yêu cầu BUYER; thiếu/sai token trả `401`, role khác trả `403`. `/cart/preview` là public và không ghi dữ liệu.
 
 | Method | Path | Request | Response thành công |
 |---|---|---|---|
-| GET | `/cart` | — | `200`, giỏ hiện tại; buyer chưa có giỏ nhận giỏ rỗng |
-| POST | `/cart/items` | `{variant_id, quantity}` | `200`, giỏ sau khi thêm/cộng dồn |
+| GET | `/cart` | — | `200`, giỏ của buyer; chưa có giỏ nhận giỏ rỗng |
+| POST | `/cart/items` | `{variant_id, quantity}` | `200`, thêm/cộng dồn, kể cả hàng khác shop |
 | PUT | `/cart/items/{id}` | `{quantity}` | `200`, giỏ sau khi thay số lượng |
 | DELETE | `/cart/items/{id}` | — | `200`, giỏ sau khi xóa item |
 | DELETE | `/cart` | — | `200`, giỏ rỗng; gọi lại vẫn thành công |
+| POST | `/cart/preview` | `{items: [{variant_id, quantity}]}` | `200`, dữ liệu hiện tại cho giỏ khách |
+| POST | `/cart/merge` | `{merge_id: UUID, items: [...]}` | `200`, giỏ server sau khi import nguyên tử/idempotent |
 
-Response giỏ gồm `{shop_id, shop_name, items, total_amount}`. Mỗi item có `id` (ID cart item), `variant_id`, `product_id`, `product_name`, `image_url`, `size`, `color`, `quantity`, `unit_price` và `stock_quantity`. Giá, ảnh, tên và tồn kho lấy từ database hiện tại; `total_amount` là tổng `quantity × unit_price` của giỏ, không phải snapshot đơn hàng. Giỏ rỗng có `shop_id=null`, `shop_name=null`, `items=[]`, `total_amount=0`.
+Response giỏ vẫn gồm `{shop_id, shop_name, items, total_amount}`. Hai trường shop cấp giỏ là tóm tắt tương thích cho giỏ chỉ có một shop; giỏ rỗng/nhiều shop có giá trị `null`. **Shop của từng item mới là nguồn để nhóm/checkout**. Item gồm `id`, `variant_id`, `product_id`, `shop_id`, `shop_name`, `is_available`, `product_name`, `image_url`, `size`, `color`, `quantity`, `unit_price`, `stock_quantity`. Tổng cấp giỏ cộng mọi shop; tổng checkout chỉ cộng nhóm được chọn.
 
-`quantity` phải là số nguyên từ 1 đến 2.147.483.647; `variant_id` là số nguyên dương. Body chứa trường ngoài schema, kể cả `buyer_id`, `shop_id` hoặc giá từ client, bị từ chối với `422`. Item không tồn tại trả `404`; sửa/xóa item của buyer khác trả `403`. Thêm hoặc sửa variant đã ẩn, sản phẩm đã ẩn hoặc shop ngừng hoạt động trả `404`; item cũ vẫn có thể được xóa khỏi giỏ. Số lượng mới vượt tồn kho trả `409` với `{"detail":"Không đủ hàng"}` và giữ nguyên giỏ.
+Giá/tồn kho lấy từ database hiện tại. Giỏ server dùng `id` của cart item; preview dùng `id=variant_id` để nhận diện dòng cục bộ. Preview không tạo cart/item/order hoặc giữ kho. Hàng ẩn/không tồn tại có `is_available=false`, `product_id=null`, tên thông báo, giá/tồn 0 và ảnh null; item vẫn được giữ để khách xóa. Shop không xác định có `shop_id=null`.
 
-Khi thêm hàng khác shop, response `409` có đúng dạng:
+`quantity` là số nguyên 1–2.147.483.647; `variant_id` là số nguyên dương. Preview/merge tối đa 200 variant duy nhất. Trường ngoài schema (gồm buyer/shop/giá), quantity sai hoặc variant trùng trong một payload trả `422`. Item server không tồn tại trả `404`; sửa/xóa item của buyer khác trả `403`. Thêm/sửa catalog ngừng hoạt động trả `404`; số lượng tổng vượt tồn trả `409`, giữ nguyên giỏ.
 
-```json
-{
-  "detail": "CART_DIFFERENT_SHOP",
-  "current_shop": { "id": 1, "name": "Shop A" }
-}
-```
+Merge cộng vào số lượng server hiện có. UUID/nội dung canonical được ghi cùng item trong một transaction; retry không cộng lại và trả giỏ hiện tại. UUID đã dùng với nội dung khác trả `409`. Bất kỳ item lỗi thì toàn bộ merge rollback; frontend giữ giỏ tạm để sửa/thử lại. Không còn lỗi `CART_DIFFERENT_SHOP`.
 
-Frontend xử lý theo Planning C3: chỉ sau khi buyer xác nhận xóa giỏ mới gọi `DELETE /cart`, rồi thêm sản phẩm lại. Quy tắc transaction và tồn kho được mô tả tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#giỏ-hàng-c3).
+Quy tắc chuẩn nằm ở [Business rules](BUSINESS_RULES.md#giỏ-hàng-c3).
+
+
 
 ## Checkout
 
 | Method | Path | Quyền | Request | Response thành công |
 |---|---|---|---|---|
-| POST | `/orders/checkout` | BUYER | `receiver_name`, `receiver_phone`, `shipping_address`, `payment_method` (`COD` hoặc `MOCK_CARD`) | `200` với đơn hàng vừa tạo |
+| POST | `/orders/checkout` | BUYER | `receiver_name`, `receiver_phone`, `shipping_address`, `payment_method` (`COD` hoặc `MOCK_CARD`), `shop_id?` | `200` với đơn hàng vừa tạo |
 
 Response gồm `{id, code, shop_id, status, receiver_name, receiver_phone, shipping_address, payment_method, payment_status, total_amount, items}`. `code` sinh dạng `ORD-YYYYMMDD-{id}` theo ngày UTC. `items` là snapshot lúc đặt: `{id, variant_id, product_name, size, color, unit_price, quantity, review_id}`; `review_id=null` khi chưa đánh giá. Đơn mới luôn ở `status=PENDING`; `payment_status=PAID` ngay nếu `payment_method=MOCK_CARD`, ngược lại `UNPAID`.
 
-Giỏ rỗng hoặc buyer chưa có giỏ trả `400`. Nếu client gửi `total_amount`, backend bỏ trường này và vẫn tự tính tổng từ giá variant hiện tại trong database; các trường ngoài contract khác bị từ chối với `422`. Checkout khóa và kiểm tra lại variant, product và shop; item đã bị ẩn, chuyển sang shop khác hoặc shop đã bị khóa trả `409`, giữ nguyên giỏ và tồn kho. Nếu bất kỳ item nào không đủ tồn kho, toàn bộ giao dịch rollback (không tạo đơn, không trừ kho item nào khác) và trả `409` với thông báo nêu rõ sản phẩm/size/màu thiếu hàng. Trừ kho dùng `UPDATE` có điều kiện nguyên tử nên hai buyer checkout đồng thời trên cùng variant chỉ một request thành công khi tồn kho chỉ đủ cho một đơn. Buyer và giỏ được khóa trước khi đọc item nên hai checkout đồng thời trên cùng giỏ không thể tạo đơn trùng. Sau khi tạo đơn thành công, giỏ hàng được xóa sạch và `cart.shop_id` đặt về `null`. Quy tắc transaction và tồn kho được mô tả tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#checkout-c4).
+Giỏ rỗng hoặc buyer chưa có giỏ trả `400`. Nếu client gửi `total_amount`, backend bỏ trường này và vẫn tự tính tổng từ giá variant hiện tại trong database; các trường ngoài contract khác bị từ chối với `422`. Checkout khóa và kiểm tra lại variant, product và shop; item của shop đã chọn bị ẩn hoặc shop đã bị khóa trả `409`, giữ nguyên giỏ và tồn kho. Nếu bất kỳ item nào không đủ tồn kho, toàn bộ giao dịch rollback (không tạo đơn, không trừ kho item nào khác) và trả `409` với thông báo nêu rõ sản phẩm/size/màu thiếu hàng. Trừ kho dùng `UPDATE` có điều kiện nguyên tử nên hai buyer checkout đồng thời trên cùng variant chỉ một request thành công khi tồn kho chỉ đủ cho một đơn. Buyer và giỏ được khóa trước khi đọc item nên hai checkout đồng thời trên cùng giỏ không thể tạo đơn trùng. Checkout chỉ tạo một đơn cho shop đã chọn và xóa các item của shop đó; hàng của shop khác vẫn giữ nguyên. Giỏ nhiều shop phải gửi `shop_id`; thiếu lựa chọn hoặc shop không có trong giỏ buyer trả `400`. Giỏ một shop có thể bỏ `shop_id` để tương thích client cũ. Quy tắc transaction và tồn kho được mô tả tại [`BUSINESS_RULES.md`](BUSINESS_RULES.md#checkout-c4).
 
 ## Đơn hàng và state machine
 

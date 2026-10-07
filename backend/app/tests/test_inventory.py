@@ -223,7 +223,6 @@ def test_checkout_below_threshold_creates_single_alert_until_resolved(
 
     # Thêm hàng vào giỏ và checkout tiếp, vẫn dưới ngưỡng -> KHÔNG sinh alert thứ 2.
     db_session.add(CartItem(cart_id=context["cart"].id, variant_id=variant_id, quantity=1))
-    context["cart"].shop_id = context["shop"].id
     db_session.commit()
     second = client.post("/orders/checkout", json=CHECKOUT_BODY, headers=context["headers"])
     assert second.status_code == 200

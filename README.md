@@ -44,7 +44,7 @@ Xây dựng một hệ thống thương mại điện tử thời trang có kh�
 - Xem lịch sử mua hàng.
 - Đánh giá và nhận xét sản phẩm sau khi nhận hàng.
 
-> Để đơn giản hóa nghiệp vụ, **một giỏ hàng chỉ chứa sản phẩm của một shop**.
+> Để đơn giản hóa nghiệp vụ, **mỗi lần thanh toán chỉ tạo một đơn cho một shop**; giỏ có thể chứa hàng nhiều shop, hàng chưa thanh toán vẫn được giữ. Khách vãng lai lưu giỏ trên trình duyệt và đăng nhập khi thanh toán.
 
 ### Chủ shop
 

@@ -203,11 +203,17 @@ describe("trang hồ sơ và sổ địa chỉ", () => {
       if (url === "/cart") {
         return {
           data: {
+            shop_id: 1,
             shop_name: "Shop A",
             total_amount: 100000,
             items: [
               {
                 id: 1,
+                shop_id: 1,
+                shop_name: "Shop A",
+                is_available: true,
+                unit_price: 100000,
+                stock_quantity: 5,
                 product_name: "Áo",
                 color: "Đen",
                 size: "M",

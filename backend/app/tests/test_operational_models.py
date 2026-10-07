@@ -153,7 +153,7 @@ def test_purchase_order_cannot_repeat_variant(db_session: Session) -> None:
 
 def test_buyer_has_only_one_cart(db_session: Session) -> None:
     _, buyer, shop, _, _ = create_catalog(db_session)
-    db_session.add_all([Cart(buyer=buyer), Cart(buyer=buyer, shop=shop)])
+    db_session.add_all([Cart(buyer=buyer), Cart(buyer=buyer)])
 
     with pytest.raises(IntegrityError):
         db_session.flush()
@@ -165,13 +165,13 @@ def test_empty_cart_can_have_no_shop(db_session: Session) -> None:
     db_session.add(cart)
     db_session.flush()
 
-    assert cart.shop_id is None
+    assert cart.items == []
     assert cart.updated_at.tzinfo is not None
 
 
 def test_cart_item_has_updated_timestamp(db_session: Session) -> None:
     _, buyer, shop, _, variant = create_catalog(db_session)
-    cart = Cart(buyer=buyer, shop=shop)
+    cart = Cart(buyer=buyer)
     item = CartItem(cart=cart, variant=variant, quantity=1)
     db_session.add(item)
     db_session.flush()
@@ -181,7 +181,7 @@ def test_cart_item_has_updated_timestamp(db_session: Session) -> None:
 
 def test_cart_item_quantity_must_be_positive(db_session: Session) -> None:
     _, buyer, shop, _, variant = create_catalog(db_session)
-    cart = Cart(buyer=buyer, shop=shop)
+    cart = Cart(buyer=buyer)
     db_session.add(CartItem(cart=cart, variant=variant, quantity=0))
 
     with pytest.raises(IntegrityError):
@@ -190,7 +190,7 @@ def test_cart_item_quantity_must_be_positive(db_session: Session) -> None:
 
 def test_cart_cannot_repeat_variant(db_session: Session) -> None:
     _, buyer, shop, _, variant = create_catalog(db_session)
-    cart = Cart(buyer=buyer, shop=shop)
+    cart = Cart(buyer=buyer)
     db_session.add_all(
         [
             CartItem(cart=cart, variant=variant, quantity=1),

@@ -13,12 +13,12 @@ Test UI dùng chung kiểm tra skip link đến vùng nội dung có thể focus
 |---|---|---|
 | Database | pytest + PostgreSQL test | Constraint, giá trị mặc định, timestamp, seed chạy lại không nhân đôi |
 | API và phân quyền | pytest + FastAPI TestClient | Auth, shop, catalog, giỏ hàng, đơn hàng, lỗi nghiệp vụ, quyền sở hữu và rollback |
-| Đồng thời giỏ hàng | pytest + PostgreSQL, hai session/thread | Lần thêm đầu tiên cùng variant hoặc khác shop bảo toàn một giỏ/một shop, không mất số lượng |
-| Đồng thời checkout | pytest + PostgreSQL, hai session/thread | Hai buyer checkout cùng variant chỉ đủ cho một đơn không làm âm kho; hai request trên cùng giỏ không tạo hai đơn |
+| Đồng thời giỏ hàng | pytest + PostgreSQL, hai session/thread | Lần thêm đầu tiên cùng variant hoặc khác shop bảo toàn một giỏ chứa nhiều shop, không mất số lượng |
+| Đồng thời checkout | pytest + PostgreSQL, hai session/thread | Hai buyer checkout cùng variant chỉ đủ cho một đơn không làm âm kho; hai request thanh toán cùng shop trên cùng giỏ không tạo hai đơn |
 | Đồng thời state machine | pytest + PostgreSQL, hai session/thread | Buyer hủy và shop xác nhận cùng đơn: đúng một transition thành công, tồn kho khớp trạng thái cuối |
 | Đồng thời cảnh báo tồn kho | pytest + PostgreSQL, hai session/thread | Tạo alert không trùng; resolve alert và trừ kho đồng thời được tuần tự hóa theo dòng inventory, trạng thái alert khớp tồn kho cuối |
 | Luồng API | pytest + FastAPI TestClient | Đăng ký chủ shop → đăng nhập → tạo shop → đăng sản phẩm → buyer xem catalog; category được tạo trong fixture vì API admin chưa có |
-| Frontend | Vitest + jsdom | Axios token/`401`, route theo vai trò, auth/catalog, đổi shop trong giỏ, sửa/xóa giỏ, checkout, lọc/hủy đơn, review, các trang SHOP_OWNER D3 và ADMIN D4 |
+| Frontend | Vitest + jsdom | Axios token/`401`, route theo vai trò, auth/catalog, giỏ khách và chọn một shop trong giỏ, sửa/xóa giỏ, checkout, lọc/hủy đơn, review, các trang SHOP_OWNER D3 và ADMIN D4 |
 | Migration và cấu hình | Alembic + Docker Compose | Áp dụng migration và kiểm tra model khớp schema; kiểm tra Compose |
 | Lint và format | Ruff + ESLint + Prettier | Lỗi Python/JavaScript, import, React Hooks và định dạng; test cấu hình xác nhận code sai bị từ chối |
 | Runtime và dependency | HTTP smoke + Vite build + npm audit | Health backend, frontend phục vụ trang, build và lỗ hổng mức moderate trở lên |
@@ -113,12 +113,12 @@ Test hook chạy hook thật với Docker giả lập: giữ kiểm tra lỗi de
 - Quyền runtime sequence: test PostgreSQL local tái hiện INSERT lỗi 42501 khi chỉ có quyền bảng; áp dụng `backend/docker/grant-runtime-sequences.sql` bằng role chủ sở hữu rồi kiểm tra INSERT tự tăng ID cho sequence hiện có và mới, chạy script lặp lại và không cấp CREATE schema. Hướng dẫn áp dụng Lakebase nằm trong [Deployment Guide](DEPLOYMENT_GUIDE.md#đăng-ký-báo-lỗi-quyền-sequence).
 - Frontend gọi lại catalog với query params khi đổi bộ lọc hoặc trang, về trang 1 khi đổi filter, hiển thị trạng thái rỗng/lỗi và giá từ API.
 - Chi tiết sản phẩm hiển thị giá/tồn kho đúng variant được chọn, xóa size khi đổi màu và báo lỗi sản phẩm không tồn tại.
-- Frontend thêm đúng `variant_id` vào giỏ; khi nhận `CART_DIFFERENT_SHOP` chỉ gọi xóa giỏ và thêm lại sau khi buyer xác nhận. Trang giỏ chặn số lượng vượt `stock_quantity`, gửi đúng body cập nhật, xóa item và cập nhật tổng tiền/trạng thái rỗng từ response API.
+- Frontend thêm đúng `variant_id` vào giỏ và giữ hàng thuộc shop khác. Trang giỏ chặn số lượng vượt `stock_quantity`, gửi đúng body cập nhật, xóa item và cập nhật tổng tiền/trạng thái rỗng từ response API; radio chỉ chọn một nhóm shop để thanh toán.
 - Frontend checkout gửi thông tin người nhận cùng phương thức thanh toán, giữ nguyên thông báo `409` thiếu hàng trên form và chuyển tới chi tiết đơn sau khi thành công. Danh sách đơn gửi filter trạng thái, chỉ hiện thao tác hủy cho `PENDING` và gửi lý do hủy.
 - Chi tiết đơn hiển thị item snapshot, tổng tiền, giao hàng và lịch sử trạng thái; nút đánh giá chỉ hiện cho item `DELIVERED` có `review_id=null`, gửi rating/comment đúng contract và đổi ngay sang trạng thái đã đánh giá sau response thành công.
-- Giỏ hàng C3/F2-10–11: xem giỏ rỗng, cộng dồn variant, chặn khác shop đúng error payload, giá/tồn kho hiện tại, sửa/xóa item và đặt lại shop khi giỏ rỗng.
+- Giỏ hàng C3/F2-10–11: xem giỏ rỗng, cộng dồn variant, giữ hàng từ nhiều shop, giá/tồn kho hiện tại và sửa/xóa item.
 - Giỏ hàng từ chối số lượng không hợp lệ, tài nguyên thiếu/ẩn, quyền truy cập của shop owner hoặc buyer khác và dữ liệu giá/shop/buyer do client gửi. Lỗi vượt tồn và lỗi commit đều giữ nguyên giỏ; test hai session kiểm tra các request thêm đồng thời.
-- Checkout C4/F2-12–17: giỏ rỗng trả `400`; checkout hợp lệ trừ đúng kho, xóa giỏ và ghi đúng một dòng lịch sử trạng thái; thiếu tồn kho rollback toàn bộ (không tạo đơn, không trừ kho, giỏ giữ nguyên); từ chối và rollback nếu variant/product bị ẩn hoặc shop bị khóa sau khi item đã vào giỏ; giá trong đơn giữ nguyên sau khi shop đổi giá; `total_amount` client gửi bị bỏ qua và tổng luôn tính từ giá database; test hai session xác nhận hai buyer checkout đồng thời trên cùng variant chỉ một đơn thành công khi kho chỉ đủ một đơn, đồng thời hai request trên cùng giỏ chỉ tạo đúng một đơn.
+- Checkout C4/F2-12–17: giỏ rỗng trả `400`; checkout hợp lệ trừ đúng kho, xóa hàng của shop đã chọn và ghi đúng một dòng lịch sử trạng thái; thiếu tồn kho rollback toàn bộ (không tạo đơn, không trừ kho, giỏ giữ nguyên); từ chối và rollback nếu variant/product thuộc nhóm đã chọn bị ẩn hoặc shop bị khóa sau khi item đã vào giỏ; giá trong đơn giữ nguyên sau khi shop đổi giá; `total_amount` client gửi bị bỏ qua và tổng luôn tính từ giá database; test hai session xác nhận hai buyer checkout đồng thời trên cùng variant chỉ một đơn thành công khi kho chỉ đủ một đơn, đồng thời hai request thanh toán cùng shop trên cùng giỏ chỉ tạo đúng một đơn.
 - State machine C5/F3-18–24: chuỗi giao hàng đầy đủ ghi đủ history và thanh toán COD; chặn nhảy cóc/hủy sai trạng thái; buyer/shop chỉ truy cập đúng đơn; hủy hoàn kho đúng một lần; lỗi commit rollback trạng thái, history và tồn kho; race buyer hủy với shop xác nhận chỉ áp dụng một transition.
 - Tồn kho/cảnh báo C6/F4-28–29: danh sách tồn kho chỉ trả variant của shop hiện tại kèm cờ `is_low`; sửa ngưỡng tính lại `is_low`, từ chối shop khác (`403`), variant không tồn tại (`404`) và ngưỡng âm (`422`); checkout đưa tồn kho xuống dưới ngưỡng sinh đúng một cảnh báo, checkout tiếp theo vẫn dưới ngưỡng không sinh cảnh báo thứ hai; hủy đơn hoàn kho lên trên ngưỡng tự động giải quyết cảnh báo đang mở; `check_low_stock`/`resolve_alerts_if_ok` không bao giờ raise ra ngoài kể cả khi `commit()` lỗi (test ép lỗi bằng monkeypatch); test hai session gọi đồng thời `check_low_stock` trên cùng variant xác nhận partial unique index chặn tạo trùng; test resolve alert đồng thời với trừ kho xác nhận row lock chặn quyết định từ số lượng cũ và giữ đúng một alert mở khi tồn kho cuối dưới ngưỡng.
 - Supplier C7: CRUD giới hạn theo shop hiện tại; sửa tên rỗng (`null`) trả `400`; sửa/xóa nhà cung cấp shop khác trả `403`; xóa là soft delete và vẫn hiện trong danh sách quản lý với `is_active=false`.
@@ -227,3 +227,15 @@ cùng các điều hướng được phép. Phạm vi trình duyệt và giới 
 Modal có test hiển thị lỗi API bên trong. Regression `adminPages.test.jsx`
 đã fail trước sửa vì lỗi khóa shop chỉ nằm trên trang nền, rồi pass sau khi
 lỗi xuất hiện trong dialog đang mở; trạng thái shop vẫn giữ nguyên khi lỗi.
+
+
+## Giỏ khách và checkout một shop
+
+Backend `test_guest_cart.py` kiểm tra preview public không ghi dữ liệu, che catalog đã ẩn, strict input/phân quyền, merge cộng hàng hiện có, rollback toàn bộ, retry cùng key/payload và hai import đồng thời, replay sau checkout; checkout chọn shop, giữ hàng/stock shop khác và rollback nhóm đã chọn. `test_cart_migration.py` chạy migration thực trên schema test riêng, kiểm tra bảo toàn item và downgrade an toàn. Frontend `guestCart.test.js` kiểm tra lưu local, dữ liệu hỏng, storage lỗi và khóa retry; `guestCartFlow.test.jsx` kiểm tra guest → đăng ký → xác minh → đăng nhập → gộp → checkout một shop, lỗi mạng và sửa giỏ bị từ chối.
+
+```powershell
+docker compose --env-file .env.example exec -T backend pytest -q app/tests/test_cart.py app/tests/test_checkout.py app/tests/test_guest_cart.py app/tests/test_cart_migration.py
+docker compose --env-file .env.example exec -T frontend npm test -- src/cart/guestCart.test.js src/pages/guestCartFlow.test.jsx src/pages/cartSafety.test.jsx src/pages/buyerFlow.test.jsx
+```
+
+Browser E2E tự động vẫn Planned; Vitest/API là kiểm tra hành vi ở từng lớp.

@@ -1,9 +1,9 @@
-import ModalDialog from "../components/ModalDialog.jsx";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
 import client from "../api/client.js";
-import { errorMessage } from "../api/errorMessage.js";
+import { addGuestItem } from "../cart/guestCart.js";
+import { cartErrorMessage as errorMessage } from "../cart/errorMessage.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import SiteLayout from "../components/SiteLayout.jsx";
 import ProductImage from "../components/ProductImage.jsx";
@@ -24,7 +24,6 @@ export default function ProductDetailPage() {
   const [error, setError] = useState("");
   const [cartMessage, setCartMessage] = useState("");
   const [adding, setAdding] = useState(false);
-  const [differentShop, setDifferentShop] = useState(null);
   const [color, setColor] = useState("");
   const [size, setSize] = useState("");
   const { favoriteIds, busyIds, wishlistError, wishlistLoading, toggleWishlist } = useWishlist(
@@ -84,38 +83,16 @@ export default function ProductDetailPage() {
   );
 
   async function addSelectedVariant() {
-    if (!session) {
-      navigate("/login");
-      return;
-    }
     setAdding(true);
     setError("");
     setCartMessage("");
     try {
-      await client.post("/cart/items", { variant_id: selectedVariant.id, quantity: 1 });
-      setCartMessage("Đã thêm sản phẩm vào giỏ hàng.");
-    } catch (requestError) {
-      if (requestError.response?.status === 409 && requestError.response?.data?.current_shop) {
-        setDifferentShop({
-          message: errorMessage(requestError),
-          currentShop: requestError.response.data.current_shop,
-        });
+      if (session) {
+        await client.post("/cart/items", { variant_id: selectedVariant.id, quantity: 1 });
       } else {
-        setError(errorMessage(requestError));
+        addGuestItem(selectedVariant);
       }
-    } finally {
-      setAdding(false);
-    }
-  }
-
-  async function replaceCart() {
-    setAdding(true);
-    setError("");
-    try {
-      await client.delete("/cart");
-      await client.post("/cart/items", { variant_id: selectedVariant.id, quantity: 1 });
-      setDifferentShop(null);
-      setCartMessage("Đã thay giỏ hàng và thêm sản phẩm.");
+      setCartMessage("Đã thêm sản phẩm vào giỏ hàng.");
     } catch (requestError) {
       setError(errorMessage(requestError));
     } finally {
@@ -131,7 +108,7 @@ export default function ProductDetailPage() {
         <span>{product?.name ?? "Chi tiết"}</span>
       </nav>
       {loading && <p role="status">Đang tải sản phẩm...</p>}
-      {error && !differentShop && (
+      {error && (
         <p className="form-error" role="alert">
           {error}
         </p>
@@ -277,27 +254,6 @@ export default function ProductDetailPage() {
             )}
           </section>
         </>
-      )}
-      {differentShop && (
-        <ModalDialog
-          onClose={() => setDifferentShop(null)}
-          closeDisabled={adding}
-          error={error}
-          className="dialog"
-          aria-label="Đổi shop trong giỏ"
-        >
-          <h2>Giỏ hàng đang có sản phẩm khác shop</h2>
-          <p>{differentShop.message}</p>
-          <p>Shop hiện tại: {differentShop.currentShop.name}</p>
-          <div className="dialog-actions">
-            <button type="button" onClick={() => setDifferentShop(null)}>
-              Giữ giỏ hiện tại
-            </button>
-            <button type="button" disabled={adding} onClick={replaceCart}>
-              Xóa giỏ và thêm
-            </button>
-          </div>
-        </ModalDialog>
       )}
     </SiteLayout>
   );

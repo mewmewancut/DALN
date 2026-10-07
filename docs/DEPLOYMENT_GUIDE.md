@@ -547,6 +547,19 @@ Cutover trên máy ngày 04/10/2026 dùng dữ liệu Lakebase có sẵn (9 user
 
 `exec` dùng môi trường của container đang chạy: thêm `--env-file .env.example` vào lệnh `exec` không chuyển database bên trong container. Không chạy migration/seed trên runtime `daln_app`; migration Lakebase phải dùng tài khoản DDL riêng. Lệnh `up` với `.env.example` sẽ chuyển ứng dụng về local; sau kiểm thử thủ công, chạy `docker compose --env-file .env up -d --no-deps backend frontend` để phục hồi Lakebase. Hook pre-commit tự phục hồi `.env` sau kiểm tra, kể cả khi test fail.
 
+#### Migration giỏ nhiều shop ngày 07/10/2026
+
+Revision `20261007_0010` đã triển khai trên local và Lakebase `fashion` bằng chủ sở hữu `fashion_e1`; giữ nguyên item cũ, bỏ `carts.shop_id` và thêm `cart_merges`. Alembic check xác nhận schema khớp model. Đặc tả ở [Database](DATABASE.md#cart_merges).
+
+Migration tiếp tục cần kết nối DDL riêng; không chạy bằng runtime `daln_app`. Khi tạo bảng receipt mới, chủ sở hữu cấp quyền tối thiểu cho runtime:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.cart_merges TO daln_app;
+GRANT USAGE, SELECT, UPDATE ON SEQUENCE public.cart_merges_id_seq TO daln_app;
+```
+
+Quyền bảng và sequence đã được kiểm tra sau migration. Cấu hình `.env.migration` chỉ dùng trên máy và được Git bỏ qua; không đổi URL hoặc quyền DDL của tài khoản ứng dụng. Downgrade từ chối khi còn giỏ nhiều shop, xem [Database](DATABASE.md#cart_merges).
+
 #### Đăng ký báo lỗi quyền sequence
 
 Nếu backend ghi `permission denied for sequence users_id_seq`, tài khoản runtime đọc được bảng nhưng không lấy được ID tự tăng. Trình duyệt có thể hiện “Không thể kết nối tới máy chủ” khi lỗi 500 không có CORS header. `/health`, catalog và login đều có thể thành công dù thao tác INSERT lỗi.

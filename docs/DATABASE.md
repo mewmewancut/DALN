@@ -36,7 +36,7 @@ erDiagram
     PURCHASE_ORDERS ||--o{ PURCHASE_ORDER_ITEMS : contains
     PRODUCT_VARIANTS ||--o{ PURCHASE_ORDER_ITEMS : replenishes
     USERS ||--o| CARTS : owns
-    SHOPS ||--o{ CARTS : receives
+    USERS ||--o{ CART_MERGES : imports
     CARTS ||--o{ CART_ITEMS : contains
     PRODUCT_VARIANTS ||--o{ CART_ITEMS : selected_as
     USERS ||--o{ ORDERS : places
@@ -137,8 +137,14 @@ erDiagram
 ### `carts` và `cart_items`
 
 - Mỗi buyer có tối đa một giỏ hàng.
-- `shop_id` của giỏ được phép `NULL` khi giỏ rỗng.
+- Giỏ không lưu `shop_id`; shop được suy ra từ variant → product, cho phép chứa hàng nhiều shop.
 - Mỗi variant chỉ xuất hiện một lần trong giỏ và số lượng phải lớn hơn `0`.
+
+### `cart_merges`
+
+- Ghi nhận import giỏ khách theo buyer, UUID `merge_id` và SHA-256 payload đã chuẩn hóa. UNIQUE (buyer_id, merge_id) bảo vệ retry; receipt và cart_items commit cùng transaction.
+- Timestamp UTC có timezone; FK buyer có CASCADE. Receipt vẫn giữ sau checkout để retry cũ không thêm lại hàng đã mua.
+- Migration `20261007_0010` bỏ carts.shop_id, giữ mọi item cũ và thêm receipt. Downgrade phục hồi shop cho giỏ rỗng/một shop; từ chối trước khi sửa schema nếu còn giỏ nhiều shop.
 
 ### `orders`, `order_items` và `order_status_history`
 

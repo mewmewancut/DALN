@@ -13,17 +13,10 @@ from app.models.user import User
 from app.schemas.cart import CartItemResponse, CartResponse
 
 
-class DifferentShopError(HTTPException):
-    def __init__(self, shop: Shop):
-        super().__init__(status_code=409, detail="CART_DIFFERENT_SHOP")
-        self.current_shop = {"id": shop.id, "name": shop.name}
-
-
 @contextmanager
-def _cart_transaction(db: Session, buyer_id: int, *, create: bool = False) -> Generator:
+def cart_transaction(db: Session, buyer_id: int, *, create: bool = False) -> Generator:
     try:
-        # The buyer exists even before their first cart: serialize first creation
-        # and all writes for this buyer so concurrent adds cannot mix shops.
+        # Serialize creation, edits, imports and checkout for the same buyer.
         db.execute(select(User.id).where(User.id == buyer_id).with_for_update()).one()
         cart = db.scalar(
             select(Cart)
@@ -42,51 +35,59 @@ def _cart_transaction(db: Session, buyer_id: int, *, create: bool = False) -> Ge
         raise
 
 
-def _response(db: Session, cart: Cart | None) -> CartResponse:
-    if cart is None:
-        return CartResponse(shop_id=None, shop_name=None, items=[], total_amount=0)
-    db.flush()
-    rows = db.execute(
-        select(CartItem, ProductVariant, Product, Inventory.quantity)
-        .join(ProductVariant, CartItem.variant_id == ProductVariant.id)
-        .join(Product, ProductVariant.product_id == Product.id)
-        .outerjoin(Inventory, Inventory.variant_id == ProductVariant.id)
-        .where(CartItem.cart_id == cart.id)
-        .order_by(CartItem.id)
-        .execution_options(populate_existing=True)
-    )
-    items = [
-        CartItemResponse(
-            id=item.id,
-            variant_id=variant.id,
-            product_id=product.id,
-            product_name=product.name,
-            image_url=product.image_url,
-            size=variant.size,
-            color=variant.color,
-            quantity=item.quantity,
-            unit_price=int(variant.price),
-            stock_quantity=quantity or 0,
-        )
-        for item, variant, product, quantity in rows
-    ]
-    shop_name = (
-        db.scalar(select(Shop.name).where(Shop.id == cart.shop_id)) if cart.shop_id else None
-    )
+def cart_response(items: list[CartItemResponse]) -> CartResponse:
+    shops = {(item.shop_id, item.shop_name) for item in items}
+    shop_id, shop_name = next(iter(shops)) if len(shops) == 1 else (None, None)
     return CartResponse(
-        shop_id=cart.shop_id,
+        shop_id=shop_id,
         shop_name=shop_name,
         items=items,
         total_amount=sum(item.quantity * item.unit_price for item in items),
     )
 
 
+def get_cart_response(db: Session, cart: Cart | None) -> CartResponse:
+    if cart is None:
+        return cart_response([])
+    db.flush()
+    rows = db.execute(
+        select(CartItem, ProductVariant, Product, Shop, Inventory.quantity)
+        .join(ProductVariant, CartItem.variant_id == ProductVariant.id)
+        .join(Product, ProductVariant.product_id == Product.id)
+        .join(Shop, Product.shop_id == Shop.id)
+        .outerjoin(Inventory, Inventory.variant_id == ProductVariant.id)
+        .where(CartItem.cart_id == cart.id)
+        .order_by(CartItem.id)
+        .execution_options(populate_existing=True)
+    )
+    return cart_response(
+        [
+            CartItemResponse(
+                id=item.id,
+                variant_id=variant.id,
+                product_id=product.id,
+                shop_id=shop.id,
+                shop_name=shop.name,
+                is_available=variant.is_active and product.is_active and shop.is_active,
+                product_name=product.name,
+                image_url=product.image_url,
+                size=variant.size,
+                color=variant.color,
+                quantity=item.quantity,
+                unit_price=int(variant.price),
+                stock_quantity=quantity or 0,
+            )
+            for item, variant, product, shop, quantity in rows
+        ]
+    )
+
+
 def get_cart(db: Session, buyer_id: int) -> CartResponse:
     cart = db.scalar(select(Cart).where(Cart.buyer_id == buyer_id))
-    return _response(db, cart)
+    return get_cart_response(db, cart)
 
 
-def _available_variant(db: Session, variant_id: int) -> ProductVariant:
+def available_variant(db: Session, variant_id: int) -> ProductVariant:
     variant = db.scalar(
         select(ProductVariant)
         .join(Product)
@@ -104,7 +105,7 @@ def _available_variant(db: Session, variant_id: int) -> ProductVariant:
     return variant
 
 
-def _check_stock(db: Session, variant_id: int, quantity: int) -> None:
+def check_stock(db: Session, variant_id: int, quantity: int) -> None:
     stock = db.scalar(select(Inventory.quantity).where(Inventory.variant_id == variant_id)) or 0
     if quantity > stock:
         raise HTTPException(status_code=409, detail="Không đủ hàng")
@@ -119,51 +120,49 @@ def _owned_item(db: Session, item_id: int, buyer_id: int) -> CartItem:
     return item
 
 
-def add_item(db: Session, buyer_id: int, variant_id: int, quantity: int) -> CartResponse:
-    with _cart_transaction(db, buyer_id, create=True) as cart:
-        variant = _available_variant(db, variant_id)
-        shop_id = variant.product.shop_id
-        if cart.shop_id is not None and cart.shop_id != shop_id:
-            raise DifferentShopError(db.get(Shop, cart.shop_id))
-        item = db.scalar(
-            select(CartItem).where(CartItem.cart_id == cart.id, CartItem.variant_id == variant_id)
+def add_to_cart(db: Session, cart: Cart, variant_id: int, quantity: int) -> None:
+    available_variant(db, variant_id)
+    item = db.scalar(
+        select(CartItem).where(
+            CartItem.cart_id == cart.id,
+            CartItem.variant_id == variant_id,
         )
-        new_quantity = (item.quantity if item else 0) + quantity
-        _check_stock(db, variant_id, new_quantity)
-        cart.shop_id = shop_id
-        if item is None:
-            db.add(CartItem(cart_id=cart.id, variant_id=variant_id, quantity=new_quantity))
-        else:
-            item.quantity = new_quantity
-        result = _response(db, cart)
+    )
+    new_quantity = (item.quantity if item else 0) + quantity
+    check_stock(db, variant_id, new_quantity)
+    if item is None:
+        db.add(CartItem(cart_id=cart.id, variant_id=variant_id, quantity=new_quantity))
+    else:
+        item.quantity = new_quantity
+
+
+def add_item(db: Session, buyer_id: int, variant_id: int, quantity: int) -> CartResponse:
+    with cart_transaction(db, buyer_id, create=True) as cart:
+        add_to_cart(db, cart, variant_id, quantity)
+        result = get_cart_response(db, cart)
     return result
 
 
 def update_item(db: Session, buyer_id: int, item_id: int, quantity: int) -> CartResponse:
-    with _cart_transaction(db, buyer_id) as cart:
+    with cart_transaction(db, buyer_id) as cart:
         item = _owned_item(db, item_id, buyer_id)
-        _available_variant(db, item.variant_id)
-        _check_stock(db, item.variant_id, quantity)
+        available_variant(db, item.variant_id)
+        check_stock(db, item.variant_id, quantity)
         item.quantity = quantity
-        result = _response(db, cart)
+        result = get_cart_response(db, cart)
     return result
 
 
 def remove_item(db: Session, buyer_id: int, item_id: int) -> CartResponse:
-    with _cart_transaction(db, buyer_id) as cart:
-        item = _owned_item(db, item_id, buyer_id)
-        db.delete(item)
-        db.flush()
-        if db.scalar(select(CartItem.id).where(CartItem.cart_id == cart.id).limit(1)) is None:
-            cart.shop_id = None
-        result = _response(db, cart)
+    with cart_transaction(db, buyer_id) as cart:
+        db.delete(_owned_item(db, item_id, buyer_id))
+        result = get_cart_response(db, cart)
     return result
 
 
 def clear_cart(db: Session, buyer_id: int) -> CartResponse:
-    with _cart_transaction(db, buyer_id) as cart:
+    with cart_transaction(db, buyer_id) as cart:
         if cart is not None:
             db.execute(delete(CartItem).where(CartItem.cart_id == cart.id))
-            cart.shop_id = None
-        result = _response(db, cart)
+        result = get_cart_response(db, cart)
     return result

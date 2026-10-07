@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
-import { clearSession, homeForRole, readSession, saveSession } from "./session.js";
+import { clearSession, readSession, saveSession } from "./session.js";
+import { loginDestination } from "./loginDestination.js";
 
 const AuthContext = createContext(null);
 
@@ -19,7 +20,9 @@ export function AuthProvider({ children }) {
     const nextSession = { token: access_token, role, shop_id };
     saveSession(nextSession);
     setSession(nextSession);
-    navigate(homeForRole(role), { replace: true });
+    navigate(loginDestination(role), {
+      replace: true,
+    });
   }
 
   function logout() {

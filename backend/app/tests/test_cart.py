@@ -13,7 +13,7 @@ from app.database import Base
 from app.deps import get_db
 from app.main import app
 from app.models import Cart, CartItem, Category, Inventory, Product, ProductVariant, Shop
-from app.services.cart_service import DifferentShopError, add_item, get_cart
+from app.services.cart_service import add_item, get_cart
 from app.tests.test_catalog import user_with_token
 
 
@@ -110,16 +110,19 @@ def test_cart_empty_add_merge_and_current_prices(client, db_session, catalog):
     )
 
 
-def test_cart_different_shop_conflict_preserves_cart(client, catalog):
+def test_cart_adds_different_shop_without_removing_existing_items(client, catalog):
     _, headers, _, _, shop, variants = catalog
     before = add(client, headers, variants[0]).json()
     response = add(client, headers, variants[2])
-    assert response.status_code == 409
-    assert response.json() == {
-        "detail": "CART_DIFFERENT_SHOP",
-        "current_shop": {"id": shop.id, "name": shop.name},
-    }
-    assert client.get("/cart", headers=headers).json() == before
+    assert response.status_code == 200
+    body = response.json()
+    assert body["shop_id"] is None and body["shop_name"] is None
+    assert len(body["items"]) == 2
+    assert body["items"][0] == before["items"][0]
+    assert body["items"][0]["shop_id"] == shop.id
+    assert body["items"][1]["shop_id"] == variants[2].product.shop_id
+    assert body["total_amount"] == 260000
+    assert client.get("/cart", headers=headers).json() == body
 
 
 def test_cart_stock_checks_rollback_and_update(client, db_session, catalog):
@@ -275,21 +278,20 @@ def test_concurrent_first_add_preserves_cart_invariants(different_shop):
             with Session(engine) as db:
                 db.execute(text("SET LOCAL lock_timeout = '5s'"))
                 barrier.wait(timeout=10)
-                try:
-                    add_item(db, buyer_id, variant_id, 1)
-                    return 200
-                except DifferentShopError:
-                    return 409
+                add_item(db, buyer_id, variant_id, 1)
+                return 200
 
         with ThreadPoolExecutor(max_workers=2) as pool:
             results = list(pool.map(add_concurrently, variant_ids))
-        assert sorted(results) == ([200, 409] if different_shop else [200, 200])
+        assert results == [200, 200]
         with Session(engine) as db:
             cart = get_cart(db, buyer_id)
-            assert len(cart.items) == 1
-            assert cart.items[0].quantity == (1 if different_shop else 2)
+            assert len(cart.items) == (2 if different_shop else 1)
+            assert all(item.quantity == (1 if different_shop else 2) for item in cart.items)
             assert db.scalar(select(func.count()).select_from(Cart)) == 1
-            assert db.scalar(select(func.count()).select_from(CartItem)) == 1
+            assert db.scalar(select(func.count()).select_from(CartItem)) == (
+                2 if different_shop else 1
+            )
             assert all(quantity == 5 for quantity in db.scalars(select(Inventory.quantity)))
     finally:
         if engine is not None:

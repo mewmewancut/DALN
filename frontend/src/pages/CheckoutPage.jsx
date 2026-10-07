@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 
 import client from "../api/client.js";
 import { errorMessage } from "../api/errorMessage.js";
 import { formatCurrency } from "../components/formatCurrency.js";
 import SiteLayout from "../components/SiteLayout.jsx";
+import { groupCart } from "../cart/groupCart.js";
+import { clearCheckoutSelection, readCheckoutSelection } from "../cart/guestCart.js";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const requestedShop = location.state?.shopId ?? readCheckoutSelection().shop_id;
   const [cart, setCart] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState("");
@@ -85,7 +89,18 @@ export default function CheckoutPage() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      const response = await client.post("/orders/checkout", form);
+      if (
+        !selectedCart ||
+        selectedCart.items.some(
+          (item) => item.is_available === false || item.quantity > item.stock_quantity,
+        )
+      )
+        return;
+      const response = await client.post("/orders/checkout", {
+        ...form,
+        shop_id: selectedCart.shop_id,
+      });
+      clearCheckoutSelection();
       navigate(`/orders/${response.data.id}`, { replace: true });
     } catch (requestError) {
       setSubmitError(errorMessage(requestError));
@@ -94,7 +109,14 @@ export default function CheckoutPage() {
     }
   }
 
+  const groups = groupCart(cart);
+  const selectedCart =
+    groups.find((group) => group.shop_id === requestedShop) ??
+    (!requestedShop && groups.length === 1 ? groups[0] : null);
   const hasItems = (cart?.items.length ?? 0) > 0;
+  const unavailable = selectedCart?.items.some(
+    (item) => item.is_available === false || item.quantity > item.stock_quantity,
+  );
 
   return (
     <SiteLayout wide>
@@ -111,7 +133,13 @@ export default function CheckoutPage() {
           <Link to="/cart">Quay lại giỏ hàng</Link>
         </div>
       )}
-      {!loading && !loadError && hasItems && (
+      {!loading && !loadError && hasItems && !selectedCart && (
+        <div className="empty-state">
+          <p>Chọn một shop trong giỏ hàng trước khi thanh toán.</p>
+          <Link to="/cart">Quay lại giỏ hàng</Link>
+        </div>
+      )}
+      {!loading && !loadError && hasItems && selectedCart && (
         <div className="checkout-layout">
           <form className="form-stack" onSubmit={submit}>
             {addresses.length > 0 && (
@@ -169,18 +197,24 @@ export default function CheckoutPage() {
                 {submitError}
               </p>
             )}
-            <button type="submit" disabled={submitting}>
+            {unavailable && (
+              <p role="alert">
+                Có sản phẩm không còn khả dụng hoặc không đủ hàng.{" "}
+                <Link to="/cart">Kiểm tra giỏ hàng</Link>
+              </p>
+            )}
+            <button type="submit" disabled={submitting || unavailable}>
               {submitting ? "Đang đặt hàng..." : "Đặt hàng"}
             </button>
           </form>
           <aside className="order-box">
-            <h2>{cart.shop_name}</h2>
-            {cart.items.map((item) => (
+            <h2>{selectedCart.shop_name}</h2>
+            {selectedCart.items.map((item) => (
               <p key={item.id}>
                 {item.product_name} ({item.color}/{item.size}) × {item.quantity}
               </p>
             ))}
-            <strong>{formatCurrency(cart.total_amount)}</strong>
+            <strong>{formatCurrency(selectedCart.total_amount)}</strong>
           </aside>
         </div>
       )}

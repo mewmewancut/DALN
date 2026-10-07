@@ -94,3 +94,12 @@ Bằng chứng ảnh và script ở `output/playwright/role-review-v2/` (ignored
 Xác minh: `docker compose exec -T frontend npm test` **156 pass / 24 file**;
 `npm run build`, `npm run lint`, `npm run format:check` qua cùng container và
 `git diff --check` đều **Pass**. Phạm vi regression ở [Testing](TESTING.md#regression-giao-diện-theo-vai-trò-07102026).
+
+
+## Giỏ hàng ngày 07/10/2026
+
+Khách có link giỏ hàng và thêm variant trước khi đăng nhập. Giỏ chia thành từng nhóm shop; radio cùng nhóm chọn đúng một shop, tóm tắt và checkout chỉ tính nhóm đã chọn. Số lượng chưa lưu hoặc hàng không khả dụng của nhóm đã chọn chặn thanh toán; nhóm khác không chặn. Giỏ tạm giữ qua đăng ký/xác minh và chuyển vào tài khoản sau login. Lỗi chuyển hiển thị giỏ tạm để thử lại hoặc chỉnh hàng bị từ chối; chưa xác định kết quả do mất mạng thì khóa chỉnh sửa đến khi đồng bộ. Quy tắc ở [Business rules](BUSINESS_RULES.md#giỏ-hàng-c3).
+
+Đã kiểm tra bằng Chromium với catalog/API Lakebase: khách thêm hai variant thuộc hai shop, tải lại vẫn giữ đủ hàng và shop đã chọn; đổi lựa chọn luôn chỉ có một radio được chọn, tổng thanh toán chỉ tính shop đó. Thanh toán chuyển sang đăng nhập; mở đăng ký vẫn giữ giỏ tạm. Giỏ hiển thị ở 1440 × 1000 và 390 × 844, không tràn ngang trên mobile. Ảnh kiểm tra ở `output/playwright/guest-cart/`, không đưa vào commit. Lượt trình duyệt này chưa gửi email thật hoặc đặt đơn thật; luồng đăng ký/xác minh/login/merge/checkout được kiểm tra trong Vitest và API tests.
+
+Xác minh toàn bộ: backend **260 pass**, frontend **177 pass / 26 file**; Ruff, ESLint, Prettier, frontend build, Compose config và `git diff --check` **Pass**. Migration đã áp dụng trên PostgreSQL local và Lakebase; Alembic schema parity **Pass**. Lệnh và phạm vi regression ở [Testing](TESTING.md#giỏ-khách-và-checkout-một-shop).

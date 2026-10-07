@@ -293,7 +293,8 @@ Token xác minh email có hạn 8 giờ; token đặt lại mật khẩu có h�
 | Cột | Kiểu | Ràng buộc |
 |---|---|---|
 | buyer_id | BIGINT | FK → users.id, **UNIQUE** — mỗi buyer đúng 1 giỏ |
-| shop_id | BIGINT | FK → shops.id, **NULL khi giỏ rỗng** — đây chính là cách enforce "1 giỏ 1 shop" |
+
+Giỏ không có `shop_id`; shop của item suy ra qua variant → product.
 
 `cart_items`:
 
@@ -304,13 +305,24 @@ Token xác minh email có hạn 8 giờ; token đặt lại mật khẩu có h�
 | quantity | INT | NOT NULL, CHECK > 0 |
 | | | UNIQUE (cart_id, variant_id) — thêm trùng variant thì cộng dồn quantity, không tạo dòng mới |
 
+### B9a. `cart_merges`
+
+| Cột | Kiểu | Ràng buộc |
+|---|---|---|
+| buyer_id | BIGINT | FK users, NOT NULL, ON DELETE CASCADE |
+| merge_id | VARCHAR(36) | UUID; UNIQUE (buyer_id, merge_id) |
+| payload_hash | VARCHAR(64) | SHA-256 danh sách variant/quantity chuẩn hóa |
+| created_at | TIMESTAMPTZ | UTC, mặc định now() |
+
+Receipt cùng transaction với gộp giỏ; giữ sau checkout để retry không thêm lại hàng đã mua.
+
 ### B10. `orders`
 
 | Cột | Kiểu | Ràng buộc |
 |---|---|---|
 | code | VARCHAR(20) | UNIQUE — mã đơn hiển thị, sinh dạng `ORD-20260916-0001` |
 | buyer_id | BIGINT | FK → users.id, NOT NULL |
-| shop_id | BIGINT | FK → shops.id, NOT NULL — 1 đơn thuộc đúng 1 shop (hệ quả rule 1 giỏ 1 shop) |
+| shop_id | BIGINT | FK → shops.id, NOT NULL — 1 đơn thuộc đúng 1 shop đã chọn ở checkout |
 | status | VARCHAR(20) | CHECK IN ('PENDING','CONFIRMED','PREPARING','SHIPPING','DELIVERED','CANCELLED'), DEFAULT 'PENDING' |
 | shipping_address | TEXT | NOT NULL — snapshot địa chỉ lúc đặt |
 | receiver_name | VARCHAR(255) | NOT NULL |
@@ -439,7 +451,7 @@ Mọi thao tác ghi sổ địa chỉ khóa dòng user trước khi đếm hoặ
 | PUT `/wishlist/items/{product_id}` | BUYER | thêm idempotent; 404 nếu product không tồn tại, product bị ẩn hoặc shop bị khóa |
 | DELETE `/wishlist/items/{product_id}` | BUYER | xóa idempotent, trả 204 kể cả item không tồn tại |
 
-Wishlist không thay đổi quy tắc giỏ hàng. Từ trang wishlist, buyer mở trang chi tiết để chọn variant; thao tác thêm giỏ vẫn đi qua C3 và rule một giỏ một shop.
+Wishlist không thay đổi quy tắc giỏ hàng. Từ trang wishlist, buyer mở trang chi tiết để chọn variant; thao tác thêm giỏ vẫn đi qua C3 và rule mỗi lần thanh toán một shop.
 
 ### C1d. Router `preferences.py` — P3 sở thích mua sắm
 
@@ -483,57 +495,51 @@ Backend khóa dòng user khi cập nhật để tuần tự hóa hai request lư
 | GET `/products` | public | query params: `keyword` (ILIKE trên name), `category_id`, `shop_id`, `min_price`, `max_price`, `sort` (newest\|price_asc\|price_desc), `page`, `page_size` (default 20). **Chỉ trả product `is_active=true` của shop `is_active=true`** |
 | GET `/products/{id}` | public | chi tiết + variants kèm `quantity` tồn kho + rating trung bình |
 
-### C3. Router `cart.py` — ⚠️ rule 1 giỏ 1 shop
+### C3. Router `cart.py` — giỏ nhiều shop, checkout một shop
+
+📌 QUYẾT ĐỊNH ĐƯỢC DUYỆT 07/10/2026: khách chưa đăng nhập được thêm/sửa/xóa giỏ tạm; giỏ có thể chứa nhiều shop. Mỗi lần checkout chỉ chọn toàn bộ hàng của một shop và tạo một đơn; hàng của shop khác vẫn được giữ. Chưa chọn riêng từng sản phẩm trong cùng shop.
 
 | Method + Path | Ai gọi | Ghi chú |
 |---|---|---|
-| GET `/cart` | BUYER | giỏ hiện tại + items (kèm tên, ảnh, giá, tồn kho hiện tại của từng variant) |
-| POST `/cart/items` | BUYER | body: `{variant_id, quantity}` |
-| PUT `/cart/items/{id}` | BUYER | đổi quantity |
-| DELETE `/cart/items/{id}` | BUYER | xóa item; nếu giỏ rỗng → set `cart.shop_id = NULL` |
-| DELETE `/cart` | BUYER | xóa sạch giỏ + set shop_id NULL |
+| GET `/cart` | BUYER | items kèm shop, giá/tồn kho hiện tại và trạng thái khả dụng |
+| POST `/cart/items` | BUYER | `{variant_id, quantity}`; thêm khác shop vẫn thành công |
+| PUT `/cart/items/{id}` | BUYER sở hữu | thay số lượng |
+| DELETE `/cart/items/{id}` | BUYER sở hữu | chỉ xóa item được chọn |
+| DELETE `/cart` | BUYER | xóa toàn bộ giỏ, idempotent |
+| POST `/cart/preview` | public | `{items: [{variant_id, quantity}]}`; chỉ đọc catalog, không tạo giỏ/đơn hoặc giữ kho |
+| POST `/cart/merge` | BUYER | `{merge_id: UUID, items: [...]}`; gộp giỏ khách nguyên tử và idempotent |
 
-Pseudocode `add_to_cart` (trong `cart_service.py`):
+- Giỏ khách dùng `localStorage`, chỉ lưu mã biến thể/số lượng cùng metadata phiên bản và mã chuyển giỏ; giá và tồn kho hiển thị được giải quyết lại qua API. Giỏ tạm chỉ tồn tại trên trình duyệt đã lưu, không đồng bộ qua thiết bị.
+- Body preview/merge tối đa 200 biến thể duy nhất; số lượng là số nguyên dương trong giới hạn INT. Frontend báo lỗi khi trình duyệt chặn lưu dữ liệu.
+- Thêm trùng variant cộng số lượng; kiểm tra tồn kho trên số lượng tổng sau cộng. Không trừ hoặc giữ chỗ kho khi thêm/gộp.
+- Mọi thao tác ghi khóa buyer rồi cart trong một transaction. Shop của item được suy từ variant/product trong database; không nhận giá/shop/buyer từ payload thêm/gộp.
+- Merge lưu receipt `(buyer_id, merge_id, payload_hash)` trong cùng transaction. Retry cùng mã và nội dung không cộng lại, kể cả đã checkout; cùng mã khác nội dung trả 409. Một item lỗi thì rollback toàn bộ, giữ nguyên giỏ tài khoản và giỏ khách.
+- Frontend chỉ xóa giỏ tạm sau merge thành công. Lỗi tồn kho/ngừng bán cho phép sửa giỏ tạm rồi thử lại. Nếu chưa biết request đã commit hay chưa do lỗi mạng, giữ mã/nội dung, thử đồng bộ lại trước khi sửa để tránh cộng trùng.
+- Bấm thanh toán khi chưa đăng nhập lưu lựa chọn shop và chuyển tới login/register. Đăng ký vẫn phải xác minh email trước login theo C1. Login BUYER có giỏ tạm đưa về cart để merge rồi tiếp tục checkout shop đã chọn; role khác không import giỏ khách.
+- Item ngừng bán vẫn có thể xóa. Preview public giữ dòng không khả dụng nhưng không lộ tên/giá/ảnh của catalog bị ẩn.
 
-```text
-function add_to_cart(buyer, variant_id, quantity):
-    variant = load variant JOIN product; 404 nếu không có hoặc is_active=false
-    shop_of_item = variant.product.shop_id
-    cart = get_or_create_cart(buyer)
 
-    if cart.shop_id is not NULL and cart.shop_id != shop_of_item:
-        # ⚠️ ĐÂY là rule 1 giỏ 1 shop
-        raise 409 {"detail": "CART_DIFFERENT_SHOP",
-                   "current_shop": {id, name}}   # FE dựa vào code này để hiện popup
-    if cart.shop_id is NULL:
-        cart.shop_id = shop_of_item
-
-    existing = tìm cart_item cùng variant
-    new_qty = (existing.quantity nếu có else 0) + quantity
-    if new_qty > tồn kho hiện tại: raise 409 "Không đủ hàng"   # check mềm cho UX,
-                                                # check CỨNG thật sự nằm ở checkout
-    upsert cart_item với new_qty
-```
-
-FE khi nhận lỗi `CART_DIFFERENT_SHOP` → hiện popup "Giỏ đang có hàng của shop X. Xóa giỏ và thêm sản phẩm này?" → nếu OK thì gọi `DELETE /cart` rồi gọi lại `POST /cart/items`.
 
 ### C4. Checkout — ⚠️⚠️ đoạn code quan trọng nhất dự án
 
 | Method + Path | Ai gọi | Body |
 |---|---|---|
-| POST `/orders/checkout` | BUYER | `{receiver_name, receiver_phone, shipping_address, payment_method}` |
+| POST `/orders/checkout` | BUYER | `{receiver_name, receiver_phone, shipping_address, payment_method, shop_id?}` |
 
 Pseudocode `checkout_service.checkout()` — **chép đúng cấu trúc này**:
 
 ```text
 function checkout(buyer, info):
-    cart = load giỏ + items; 400 nếu giỏ rỗng
     BEGIN TRANSACTION                        # ← tất cả bên trong 1 transaction
+        khóa dòng buyer rồi cart để tuần tự hóa thêm/sửa/gộp/checkout
+        cart = load giỏ buyer + items; 400 nếu giỏ rỗng
+        shop = shop_id đã chọn; thiếu ở giỏ nhiều shop hoặc không có trong giỏ → 400
+        items = chỉ các item thuộc shop đã chọn (giỏ một shop có thể tự chọn)
         total = 0
-        order = insert orders(buyer_id, shop_id=cart.shop_id, status='PENDING',
+        order = insert orders(buyer_id, shop_id=shop, status='PENDING',
                               payment_status=..., snapshot info người nhận,
                               total_amount=0 tạm)
-        for item in cart.items:
+        for item in items:
             variant = SELECT variant JOIN product (lấy giá + tên HIỆN TẠI từ DB,
                        KHÔNG lấy giá FE gửi lên)
             # ⚠️ TRỪ KHO ATOMIC — chống 2 người mua cùng lúc:
@@ -554,7 +560,7 @@ function checkout(buyer, info):
         insert order_status_history(order, from=NULL, to='PENDING', by=buyer)
         if payment_method == 'MOCK_CARD':
             UPDATE orders SET payment_status='PAID'    # thanh toán mô phỏng
-        DELETE cart_items; UPDATE carts SET shop_id=NULL
+        DELETE chỉ các cart_items thuộc shop đã chọn; giữ hàng của shop khác
     COMMIT
     # SAU commit mới check low-stock (C6) — không để nó làm fail đơn
     for variant in các variant vừa trừ: check_low_stock(variant)
@@ -725,7 +731,7 @@ Mọi query ở C9 đều có `WHERE shop_id = current_shop.id`.
 | `/login`, `/register` | Auth | form + báo lỗi từ API |
 | `/` | Danh sách sản phẩm | grid card (ảnh, tên, giá từ, shop, rating); thanh search; sidebar filter (category, khoảng giá); sort; phân trang. Mọi thay đổi filter → gọi lại GET /products với query params |
 | `/products/:id` | Chi tiết | chọn màu → chọn size → hiện giá + tồn kho của đúng variant đó; nút "Thêm vào giỏ" **disable khi chưa chọn đủ size+màu hoặc hết hàng**; block review + rating trung bình |
-| `/cart` | Giỏ hàng | tên shop trên đầu; sửa số lượng (không cho vượt tồn kho trả về từ API); xóa item; tổng tiền; nút Checkout. ⚠️ Xử lý popup `CART_DIFFERENT_SHOP` như C3 |
+| `/cart` | Giỏ hàng | nhóm theo shop; radio chọn đúng một shop thanh toán toàn nhóm; sửa/xóa item, tổng nhóm đã chọn. Khách dùng giỏ tạm, login khi checkout và gộp giỏ theo C3 |
 | `/checkout` | Đặt hàng | form người nhận + địa chỉ; chọn COD / MOCK_CARD; bấm đặt → gọi API → nếu 409 hết hàng thì hiện đúng thông báo sản phẩm nào thiếu → thành công thì sang trang đơn hàng |
 | `/orders` | Đơn của tôi | tab theo status; mỗi đơn: code, ngày, tổng, trạng thái (badge màu), nút "Hủy đơn" **chỉ hiện khi PENDING** |
 | `/orders/:id` | Chi tiết đơn | items (snapshot), timeline trạng thái từ order_status_history, nút "Đánh giá" cho từng item **chỉ khi DELIVERED và chưa review** |
@@ -887,14 +893,16 @@ Frontend P4 phải test thứ tự và link của gợi ý, định dạng tiề
 
 | # | Test | Kỳ vọng |
 |---|---|---|
-| 10 | Thêm variant shop B khi giỏ đang có hàng shop A | 409 CART_DIFFERENT_SHOP |
+| 10 | Thêm variant shop B khi giỏ đang có hàng shop A | 200, giữ cả hai shop; checkout chỉ một shop |
 | 11 | Thêm cùng variant 2 lần | 1 dòng cart_item, quantity cộng dồn |
 | 12 | Checkout giỏ rỗng | 400 |
-| 13 | Checkout khi tồn kho đủ | 200; kho bị trừ đúng; giỏ rỗng; order PENDING; history có 1 dòng |
+| 13 | Checkout khi tồn kho đủ | 200; trừ kho và xóa item đúng shop đã chọn, giữ hàng shop khác; order PENDING; history 1 dòng |
 | 14 | Checkout khi 1 item vượt tồn | 409; **kho mọi item không đổi**; không có order nào được tạo (kiểm tra rollback) |
 | 15 | ⚠️ 2 request checkout **đồng thời** cùng variant còn đúng 1 cái (dùng threading/2 session) | đúng 1 đơn thành công, kho = 0, không âm |
 | 16 | Shop đổi giá sau khi buyer đã đặt | order_items.unit_price giữ giá cũ |
 | 17 | total_amount do client gửi bậy | bị bỏ qua, backend tự tính |
+
+Các test bổ sung C3: giỏ khách qua reload/login/register/xác minh, preview public không ghi/mask catalog ẩn, merge nguyên tử/stock tổng/phân quyền, retry và import đồng thời không cộng trùng, replay sau checkout; migration giữ item và chặn downgrade giỏ nhiều shop. Frontend kiểm tra storage lỗi, chọn đúng một shop, giữ hàng còn lại và khôi phục khi merge lỗi.
 
 ### F3. State machine & hoàn kho
 
@@ -986,7 +994,7 @@ Frontend P4 phải test thứ tự và link của gợi ý, định dạng tiề
 |---|---|---|---|
 | I1 | Tồn kho không âm | UPDATE điều kiện (C4) + CHECK ở DB (B6) | F2-14, F2-15 |
 | I2 | Đơn chỉ đi theo ALLOWED transitions | `transition_order()` duy nhất (C5) | F3-19, F3-20, F3-24 |
-| I3 | 1 giỏ = 1 shop | `cart.shop_id` (B9) + add_to_cart (C3) | F2-10 |
+| I3 | 1 checkout = 1 shop, 1 đơn | Chọn nhóm shop từ giỏ buyer (C3–C4) | F2-10 + test_guest_cart |
 | I4 | Giá trong đơn là snapshot | order_items copy giá (B11, C4) | F2-16 |
 | I5 | Shop chỉ đụng dữ liệu shop mình | shop_id từ token (C0) | F1-6, F1-7, F1-8 |
 | I6 | Hủy đơn hoàn kho đúng 1 lần | transition check + FOR UPDATE (C5) | F3-21, F3-23 |

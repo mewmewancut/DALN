@@ -57,20 +57,43 @@ def checkout(db: Session, buyer: User, request: CheckoutRequest) -> OrderRespons
             .with_for_update()
             .execution_options(populate_existing=True)
         )
-        if cart is None or cart.shop_id is None:
+        if cart is None:
             raise HTTPException(status_code=400, detail="Giỏ hàng đang trống")
         cart_items = list(
-            db.scalars(select(CartItem).where(CartItem.cart_id == cart.id).order_by(CartItem.id))
+            db.scalars(
+                select(CartItem)
+                .where(CartItem.cart_id == cart.id)
+                .order_by(CartItem.variant_id)
+                .execution_options(populate_existing=True)
+            )
         )
         if not cart_items:
             raise HTTPException(status_code=400, detail="Giỏ hàng đang trống")
+
+        item_shops = dict(
+            db.execute(
+                select(CartItem.id, Product.shop_id)
+                .join(ProductVariant, CartItem.variant_id == ProductVariant.id)
+                .join(Product, ProductVariant.product_id == Product.id)
+                .where(CartItem.cart_id == cart.id)
+            ).all()
+        )
+        shop_ids = set(item_shops.values())
+        selected_shop = request.shop_id
+        if selected_shop is None:
+            if len(shop_ids) != 1:
+                raise HTTPException(status_code=400, detail="Chọn một shop để thanh toán")
+            selected_shop = next(iter(shop_ids))
+        cart_items = [item for item in cart_items if item_shops.get(item.id) == selected_shop]
+        if not cart_items:
+            raise HTTPException(status_code=400, detail="Shop đã chọn không có sản phẩm trong giỏ")
 
         # Unique placeholder so two concurrent checkouts never contend on the
         # same `code` value before each order gets its own id-based code below.
         order = Order(
             code=uuid4().hex[:20],
             buyer_id=buyer.id,
-            shop_id=cart.shop_id,
+            shop_id=selected_shop,
             status="PENDING",
             shipping_address=request.shipping_address,
             receiver_name=request.receiver_name,
@@ -95,7 +118,7 @@ def checkout(db: Session, buyer: User, request: CheckoutRequest) -> OrderRespons
                     ProductVariant.id == cart_item.variant_id,
                     ProductVariant.is_active.is_(True),
                     Product.is_active.is_(True),
-                    Product.shop_id == cart.shop_id,
+                    Product.shop_id == selected_shop,
                     Shop.is_active.is_(True),
                 )
                 .with_for_update(read=True)
@@ -112,7 +135,7 @@ def checkout(db: Session, buyer: User, request: CheckoutRequest) -> OrderRespons
                 update(Inventory)
                 .where(
                     Inventory.variant_id == cart_item.variant_id,
-                    Inventory.shop_id == cart.shop_id,
+                    Inventory.shop_id == selected_shop,
                     Inventory.quantity >= cart_item.quantity,
                 )
                 .values(quantity=Inventory.quantity - cart_item.quantity)
@@ -152,8 +175,12 @@ def checkout(db: Session, buyer: User, request: CheckoutRequest) -> OrderRespons
         if request.payment_method == "MOCK_CARD":
             order.payment_status = "PAID"
 
-        db.execute(delete(CartItem).where(CartItem.cart_id == cart.id))
-        cart.shop_id = None
+        db.execute(
+            delete(CartItem).where(
+                CartItem.cart_id == cart.id,
+                CartItem.id.in_([item.id for item in cart_items]),
+            )
+        )
 
         db.commit()
     except Exception:

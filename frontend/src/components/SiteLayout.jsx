@@ -79,6 +79,9 @@ export default function SiteLayout({ children, wide = false }) {
             </>
           ) : (
             <>
+              <NavLink to="/cart" className={navClassName}>
+                <UiIcon name="bag" /> Giỏ hàng
+              </NavLink>
               <NavLink to="/login" className={navClassName}>
                 Đăng nhập
               </NavLink>

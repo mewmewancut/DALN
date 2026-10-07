@@ -1,13 +1,18 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_role
 from app.models.user import User
-from app.schemas.cart import CartItemAdd, CartItemUpdate, CartResponse
-from app.services import cart_service
+from app.schemas.cart import (
+    CartItemAdd,
+    CartItemUpdate,
+    CartMergeRequest,
+    CartPreviewRequest,
+    CartResponse,
+)
+from app.services import cart_service, guest_cart_service
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 Buyer = Annotated[User, Depends(require_role("BUYER"))]
@@ -21,12 +26,17 @@ def get_cart(buyer: Buyer, db: Database):
 
 @router.post("/items", response_model=CartResponse)
 def add_item(request: CartItemAdd, buyer: Buyer, db: Database):
-    try:
-        return cart_service.add_item(db, buyer.id, request.variant_id, request.quantity)
-    except cart_service.DifferentShopError as error:
-        return JSONResponse(
-            status_code=409, content={"detail": error.detail, "current_shop": error.current_shop}
-        )
+    return cart_service.add_item(db, buyer.id, request.variant_id, request.quantity)
+
+
+@router.post("/preview", response_model=CartResponse)
+def preview_cart(request: CartPreviewRequest, db: Database):
+    return guest_cart_service.preview_cart(db, request)
+
+
+@router.post("/merge", response_model=CartResponse)
+def merge_cart(request: CartMergeRequest, buyer: Buyer, db: Database):
+    return guest_cart_service.merge_cart(db, buyer.id, request)
 
 
 @router.put("/items/{item_id}", response_model=CartResponse)
