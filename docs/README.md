@@ -15,6 +15,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 |---|---|---|
 | [`PROPOSAL.md`](PROPOSAL.md) | Có sẵn | Mục tiêu và phạm vi đề tài |
 | [`PLANNING.md`](PLANNING.md) | Có sẵn | Kế hoạch và đặc tả triển khai |
+| [`SYSTEM_REPORT.md`](SYSTEM_REPORT.md) | Snapshot 06/10/2026 | Báo cáo tổng hợp toàn hệ thống, sơ đồ, 24 bảng, 76 API, nghiệp vụ, pipeline, chatbot và phần còn Planned; tham chiếu tài liệu chuyên trách |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | In progress | Thành phần backend/frontend (BUYER, SHOP_OWNER, ADMIN) đã chạy và ranh giới với phần còn planned |
 | [`DATABASE.md`](DATABASE.md) | Implemented | Schema, quan hệ, constraint, migration, hồ sơ/sổ địa chỉ và seed data |
 | [`BUSINESS_RULES.md`](BUSINESS_RULES.md) | In progress | Bất biến backend C3–C10 và P1–P4, gồm sở thích và gợi ý sản phẩm |
