@@ -18,6 +18,7 @@ from app.schemas.catalog import (
     VariantResponse,
     VariantUpdate,
 )
+from app.services.product_image_service import replace_detail_images, validate_owned_images
 
 
 def list_categories(db: Session) -> list[Category]:
@@ -75,13 +76,15 @@ def _add_variant(
 
 def create_product(db: Session, shop: Shop, request: ProductCreate) -> ProductDetail:
     _require_category(db, request.category_id)
+    validate_owned_images(shop.id, [request.image_url, *request.detail_image_urls])
     product = Product(
         shop_id=shop.id,
-        **request.model_dump(exclude={"variants"}),
+        **request.model_dump(exclude={"variants", "detail_image_urls"}),
     )
     try:
         db.add(product)
         db.flush()
+        replace_detail_images(db, product.id, request.detail_image_urls)
         for variant_request in request.variants:
             _add_variant(db, product, shop.id, variant_request)
         db.commit()
@@ -99,14 +102,26 @@ def update_product(
 ) -> ProductDetail:
     product = get_owned_product_or_403(db, product_id, shop.id)
     changes = request.model_dump(exclude_unset=True)
-    for required in ("category_id", "name", "base_price", "is_active"):
+    for required in ("category_id", "name", "base_price", "is_active", "image_url"):
         if required in changes and changes[required] is None:
             raise HTTPException(status_code=400, detail=f"{required} không được để trống")
     if "category_id" in changes:
         _require_category(db, changes["category_id"])
-    for field, value in changes.items():
-        setattr(product, field, value)
-    db.commit()
+    urls = changes.get("detail_image_urls", []).copy()
+    if "image_url" in changes:
+        urls.append(changes["image_url"])
+    validate_owned_images(shop.id, urls)
+    try:
+        if "detail_image_urls" in changes:
+            db.refresh(product, with_for_update=True)
+            replace_detail_images(db, product_id, changes.pop("detail_image_urls"))
+            db.expire(product, ["detail_images"])
+        for field, value in changes.items():
+            setattr(product, field, value)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return get_product_detail(db, product.id, public=False)
 
 
@@ -190,6 +205,7 @@ def _product_detail_response(
         name=product.name,
         description=product.description,
         image_url=product.image_url,
+        detail_image_urls=product.detail_image_urls,
         base_price=product.base_price,
         price_from=min(prices) if prices else None,
         rating_average=rating_average,
@@ -201,6 +217,7 @@ def _product_detail_response(
 def _product_load_options():
     return (
         joinedload(Product.shop),
+        selectinload(Product.detail_images),
         selectinload(Product.variants).selectinload(ProductVariant.inventory),
     )
 

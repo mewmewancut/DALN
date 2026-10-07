@@ -15,11 +15,13 @@ class ContainerSecretTests(unittest.TestCase):
         secret_names = [
             ".env", ".env.genie.json", ".env.genie.json.provision",
             ".env.genie.json.tmp", ".env.genie.json.lock",
+            "runtime/product-images/1/test.webp",
         ]
         with tempfile.TemporaryDirectory() as directory:
             context = Path(directory)
             (context / ".dockerignore").write_bytes((ROOT / "backend/.dockerignore").read_bytes())
             for name in secret_names:
+                (context / name).parent.mkdir(parents=True, exist_ok=True)
                 (context / name).write_text("FAKE-CREDENTIAL-FOR-BUILD-TEST")
             (context / "genie.example.json").write_text("FAKE-EXAMPLE")
             (context / "app.py").write_text("print('test')")

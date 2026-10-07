@@ -62,6 +62,7 @@ def test_owner_can_publish_product_for_public_catalog(
         json={
             "category_id": category.id,
             "name": "Áo sơ mi xanh",
+            "image_url": "https://example.com/shirt.jpg",
             "base_price": 210000,
             "variants": [
                 {"size": "M", "color": "Xanh", "price": 215000, "initial_quantity": 4},

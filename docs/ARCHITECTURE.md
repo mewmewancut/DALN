@@ -5,6 +5,8 @@
 
 ## Thành phần đang chạy
 
+Ảnh sản phẩm mở rộng dùng router/service riêng để nhận file và phục vụ media công khai. Ảnh chính tiếp tục dùng `products.image_url`, ảnh phụ nằm ở bảng riêng để giữ schema CDC của product. Binary lưu trên filesystem backend được mount ra host trong Compose. Frontend chọn file qua Axios client dùng chung và hiện gallery ở chi tiết. Contract và giới hạn ở [API ảnh sản phẩm](API.md#ảnh-sản-phẩm); cấu hình/backup ở [Deployment Guide](DEPLOYMENT_GUIDE.md#lưu-trữ-ảnh-sản-phẩm).
+
 ```mermaid
 flowchart LR
     Browser[React + Vite] --> Client[Axios client]

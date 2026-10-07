@@ -239,3 +239,20 @@ docker compose --env-file .env.example exec -T frontend npm test -- src/cart/gue
 ```
 
 Browser E2E tự động vẫn Planned; Vitest/API là kiểm tra hành vi ở từng lớp.
+
+## Ảnh sản phẩm — 07/10/2026
+
+`test_product_images.py` kiểm tra upload JPEG/PNG/WebP và đọc media thực, nội dung hỏng/SVG/file rỗng, giới hạn dung lượng/pixel, guest/buyer/shop chưa tạo, tên file và storage failure; tạo thiếu ảnh chính, 0–10 ảnh phụ, thứ tự/thay/xóa, ảnh shop khác/file thiếu, bảo toàn khi request lỗi, soft delete, rollback cùng product/variant/inventory và constraint database. `test_product_image_migration.py` chạy migration trong schema test riêng, giữ nguyên dữ liệu/cột product cũ, tạo/xóa bảng ảnh phụ.
+
+`test_product_image_concurrency.py` dùng hai session/transaction thực thay hai bộ 10 ảnh đồng thời, kiểm tra ảnh chính và toàn bộ ảnh phụ cuối cùng thuộc cùng một lần lưu. Regression lỗi cleanup storage đã fail trước sửa và pass sau sửa, giữ HTTP `503` khi cả ghi file và cleanup đều lỗi.
+
+Test cũng tái hiện session đã cache ảnh chính cũ: một request khác thay ảnh, rồi request trước gửi lại ảnh chính cũ cùng bộ ảnh phụ. Service refresh dữ liệu dưới row lock trước khi lưu để không bỏ sót ảnh chính vì ORM coi giá trị gửi là không đổi; regression đã fail trước sửa và pass sau sửa.
+
+`productImages.test.jsx` kiểm tra FormData chứa file thật, ảnh chính bắt buộc, trạng thái upload/chặn submit và đóng/retry, giới hạn 10 và batch vượt giới hạn, thay ảnh chính/bỏ ảnh phụ, giữ phần đã upload khi lỗi, bộ ảnh 11 thumbnail và reset khi đổi route. Test catalog shop tiếp tục kiểm tra create với biến thể và retry lỗi API sau upload.
+
+Test Compose kiểm tra thư mục storage mặc định/tùy chỉnh và bind mount giữ file qua restart; test Docker build context xác nhận ảnh upload không đi vào image. Toàn bộ backend 276 test, frontend 182 test, 6 test tooling cùng lint/format/build/audit đã pass trong lượt này. Migration/check đã pass trên local và Lakebase; phạm vi browser/ảnh kiểm tra ở [UI/UX](UI_UX.md#ảnh-chính-và-ảnh-chi-tiết-sản-phẩm).
+
+```powershell
+docker compose --env-file .env.example exec -T backend pytest -q app/tests/test_product_images.py app/tests/test_product_image_migration.py app/tests/test_product_image_concurrency.py app/tests/test_catalog.py app/tests/test_catalog_flow.py
+docker compose --env-file .env.example exec -T frontend npm test -- src/pages/productImages.test.jsx src/pages/shop/shopCatalog.test.jsx src/components/productImage.test.jsx src/pages/productDetailNavigation.test.jsx
+```

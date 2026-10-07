@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { act } from "react";
 
 import client from "../../api/client.js";
 import { dashboardFixture } from "../../testing/dashboardFixture.js";
@@ -253,14 +254,23 @@ it("không mở form sản phẩm khi danh mục tải thất bại", async () =
 it("tạo sản phẩm gửi thông tin và toàn bộ biến thể trong một request", async () => {
   signInAs("SHOP_OWNER", 7);
   const get = routeGet(productRoutes());
-  const post = vi
-    .spyOn(client, "post")
-    .mockRejectedValueOnce({ response: { data: { detail: "Biến thể bị trùng" } } })
-    .mockResolvedValueOnce({ data: { id: 9 } });
+  let attempts = 0;
+  const post = vi.spyOn(client, "post").mockImplementation(async (url) => {
+    if (url === "/shop/product-images")
+      return { data: { image_url: "/media/product-images/7/main.webp" } };
+    if (attempts++ === 0) throw { response: { data: { detail: "Biến thể bị trùng" } } };
+    return { data: { id: 9 } };
+  });
   await renderAt("/shop/products");
   await click(button("Thêm sản phẩm"));
 
   const scope = dialog();
+  const mainImage = field("Ảnh chính", { scope });
+  Object.defineProperty(mainImage, "files", {
+    configurable: true,
+    value: [new File(["test-image"], "main.png", { type: "image/png" })],
+  });
+  await act(async () => mainImage.dispatchEvent(new Event("change", { bubbles: true })));
   await fill("Danh mục", "3", { scope });
   await fill("Tên sản phẩm", "Áo mới", { scope });
   await fill("Giá cơ sở (₫)", "100000", { scope });
@@ -283,7 +293,8 @@ it("tạo sản phẩm gửi thông tin và toàn bộ biến thể trong một 
     category_id: 3,
     name: "Áo mới",
     description: null,
-    image_url: null,
+    image_url: "/media/product-images/7/main.webp",
+    detail_image_urls: [],
     base_price: 100000,
     variants: [
       { size: "M", color: "Đỏ", price: 120000, initial_quantity: 5 },
@@ -325,7 +336,7 @@ it("sửa sản phẩm, giá và trạng thái từng biến thể, thêm biến
     category_id: 3,
     name: "Áo mẫu 2",
     description: "Mô tả",
-    image_url: null,
+    detail_image_urls: [],
     base_price: 90000,
   });
   expect(scope.textContent).toContain("Đã lưu thông tin sản phẩm.");

@@ -6,7 +6,7 @@ import { addGuestItem } from "../cart/guestCart.js";
 import { cartErrorMessage as errorMessage } from "../cart/errorMessage.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import SiteLayout from "../components/SiteLayout.jsx";
-import ProductImage from "../components/ProductImage.jsx";
+import ProductGallery from "../components/ProductGallery.jsx";
 import WishlistButton from "../components/WishlistButton.jsx";
 import { formatCurrency } from "../components/formatCurrency.js";
 import { formatDateTime } from "../components/orderPresentation.js";
@@ -116,14 +116,7 @@ export default function ProductDetailPage() {
       {product && (
         <>
           <div className="product-detail">
-            <div className="detail-media">
-              <ProductImage
-                src={product.image_url}
-                alt={product.name}
-                className="detail-image"
-                loading="eager"
-              />
-            </div>
+            <ProductGallery key={product.id} product={product} />
             <div className="detail-content">
               <div className="detail-meta">
                 <p className="eyebrow">{product.shop_name}</p>

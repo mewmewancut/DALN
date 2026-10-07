@@ -31,3 +31,4 @@ Thumbs.db
 htmlcov/
 coverage/
 output/playwright/
+backend/runtime/product-images/

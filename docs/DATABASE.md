@@ -27,6 +27,7 @@ erDiagram
     CATEGORIES ||--o{ USER_PREFERRED_CATEGORIES : preferred_as
     USER_PREFERENCES ||--o{ USER_PREFERRED_COLORS : selects
     PRODUCTS ||--o{ PRODUCT_VARIANTS : has
+    PRODUCTS ||--o{ PRODUCT_DETAIL_IMAGES : illustrates
     PRODUCTS ||--o{ WISHLIST_ITEMS : saved_in
     PRODUCT_VARIANTS ||--o| INVENTORY : stocked_as
     SHOPS ||--o{ INVENTORY : stores
@@ -107,6 +108,16 @@ erDiagram
 - Product thuộc một shop và một category.
 - `base_price` dùng `NUMERIC(12,0)` và không được âm.
 - `is_active` mặc định là `true`; thao tác xóa sau này phải là soft delete.
+
+Ảnh chính vẫn nằm ở `products.image_url` để giữ contract catalog và schema CDC hiện có. Bắt buộc ảnh chính cho tạo mới được kiểm tra ở API; migration không tạo ảnh giả cho product cũ thiếu ảnh.
+
+### `product_detail_images`
+
+- Migration `20261007_0011` thêm bảng riêng gồm `id`, `product_id`, `position`, `image_url`, `created_at` UTC. Không thêm cột vào `products`, nên nguồn CDC/Bronze/Silver hiện có giữ nguyên schema.
+- FK trỏ product; UNIQUE `(product_id, position)` và CHECK `position BETWEEN 1 AND 10` bảo đảm tối đa 10 ảnh phụ mỗi product ở database.
+- Vị trí quyết định thứ tự trả trong `detail_image_urls`. Service thay bộ ảnh trong cùng transaction với thông tin product và khóa dòng product để các lần sửa đồng thời không trộn ảnh.
+- Product soft delete giữ ảnh và dữ liệu lịch sử. Upload file lưu riêng trên filesystem; xem [API ảnh](API.md#ảnh-sản-phẩm) và [storage](DEPLOYMENT_GUIDE.md#lưu-trữ-ảnh-sản-phẩm).
+- Bảng ảnh không được thêm vào pipeline/Gold vì ảnh chi tiết không dùng cho metric hiện tại. Downgrade bỏ bảng và tham chiếu ảnh chi tiết, giữ product/ảnh chính và file vật lý.
 
 ### `product_variants`
 

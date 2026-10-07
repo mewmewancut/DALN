@@ -1,0 +1,47 @@
+.product-thumbnails {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.75rem 0.15rem;
+}
+.product-thumbnails button {
+  flex: 0 0 72px;
+  height: 90px;
+  padding: 3px;
+}
+.product-thumbnails button[aria-pressed="true"] {
+  border: 2px solid var(--accent, #1b6656);
+}
+.product-thumbnails img,
+.product-thumbnails .product-image-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+.product-thumbnails .product-image-placeholder span {
+  display: none;
+}
+.image-editor {
+  min-width: 0;
+  display: grid;
+  gap: 1rem;
+}
+.product-dialog > .form-stack > .image-editor {
+  grid-column: 1 / -1;
+}
+.image-editor-preview {
+  width: 100px;
+  height: 125px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.image-editor-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.image-editor-details > div {
+  display: grid;
+  gap: 0.5rem;
+}

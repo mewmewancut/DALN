@@ -80,7 +80,7 @@ Thứ tự dựa trên sở thích hiện tại của buyer và ba tiêu chí đ
 | POST | `/shops` | SHOP_OWNER chưa có shop | `name`, `description?` | `201` với `id`, `owner_id`, `name`, `description`, `is_active` |
 | PUT | `/shops/me` | SHOP_OWNER có shop | `name`, `description?` | `200` với shop đã sửa |
 | GET | `/categories` | Public | — | `200` với danh sách `{id, name}` |
-| POST | `/products` | SHOP_OWNER có shop | `category_id`, `name`, `description?`, `image_url?`, `base_price`, `variants` | `201` với chi tiết sản phẩm |
+| POST | `/products` | SHOP_OWNER có shop | `category_id`, `name`, `description?`, `image_url`, `detail_image_urls?`, `base_price`, `variants` | `201` với chi tiết sản phẩm |
 | PUT | `/products/{id}` | Chủ shop của sản phẩm | Các trường product cần sửa | `200` với chi tiết sản phẩm |
 | DELETE | `/products/{id}` | Chủ shop của sản phẩm | — | `204`; đặt `is_active=false` |
 | POST | `/products/{id}/variants` | Chủ shop của sản phẩm | `size`, `color`, `price`, `initial_quantity` | `201` với variant mới |
@@ -91,11 +91,24 @@ Thứ tự dựa trên sở thích hiện tại của buyer và ba tiêu chí đ
 
 `variants` khi tạo sản phẩm là mảng không rỗng gồm `{size, color, price, initial_quantity}`. `base_price` và `price` là số nguyên VND không âm; `initial_quantity` không âm. Backend tự lấy shop từ người dùng đã đăng nhập, sinh SKU `P{product_id}-{size}-{color}` và tạo product, variants, inventory trong một transaction. Dấu `%` và `-` trong thành phần size/color được percent-encode để các cặp khác nhau không sinh cùng SKU. Body gửi `shop_id` hoặc `owner_id` đến endpoint ghi bị từ chối. Tạo shop lần hai trả `400`; variant trùng trả `409`; sửa sản phẩm hoặc variant của shop khác trả `403`. ID không tồn tại trả `404`.
 
-`PUT /products/{id}` nhận các trường tùy chọn `category_id`, `name`, `description`, `image_url`, `base_price`, `is_active`; chỉ các trường được gửi mới thay đổi. Đặt `is_active=false` sẽ ẩn sản phẩm, còn `true` sẽ hiện lại. `PUT /variants/{id}` chỉ đổi giá hoặc trạng thái, không đổi size/color hay tồn kho. Các endpoint ghi trả cả variant không hoạt động để chủ shop có thể quản lý; endpoint công khai chỉ trả variant hoạt động.
+`PUT /products/{id}` nhận các trường tùy chọn `category_id`, `name`, `description`, `image_url`, `detail_image_urls`, `base_price`, `is_active`; chỉ các trường được gửi mới thay đổi. Đặt `is_active=false` sẽ ẩn sản phẩm, còn `true` sẽ hiện lại. `PUT /variants/{id}` chỉ đổi giá hoặc trạng thái, không đổi size/color hay tồn kho. Các endpoint ghi trả cả variant không hoạt động để chủ shop có thể quản lý; endpoint công khai chỉ trả variant hoạt động.
 
 `GET /products` nhận `keyword` (tìm tên không phân biệt chữ hoa/thường), `category_id`, `shop_id`, `min_price`, `max_price`, `sort` (`newest`, `price_asc`, `price_desc`), `page` (mặc định 1) và `page_size` (mặc định 20, tối đa 100). Giá dùng cho lọc, sắp xếp và `price_from` là giá thấp nhất trong các variant đang hoạt động; nếu không còn variant hoạt động thì `price_from=null`. Chỉ sản phẩm hoạt động của shop hoạt động xuất hiện trong danh sách và chi tiết công khai. `items` chứa `id`, `shop_id`, `shop_name`, `category_id`, `name`, `image_url`, `base_price`, `price_from`, `rating_average`; chi tiết thêm `description`, `is_active` và `variants` (mỗi variant có `quantity` tồn kho). `rating_average=null` khi chưa có review.
 
 `GET /shop/products` lấy shop từ user đã xác thực, không nhận `shop_id` từ client. Endpoint trả `ProductDetail` cho từng sản phẩm, gồm cả product và variant `is_active=false`, để màn hình quản lý shop vẫn tải lại được bản ghi sau khi ẩn. Có thể lọc theo tên, trạng thái product và phân trang tối đa 100 dòng.
+
+### Ảnh sản phẩm
+
+Mở rộng theo yêu cầu ngày 07/10/2026: form shop tải file từ máy. `image_url` là ảnh chính hiển thị trên card; tạo mới bắt buộc có URL không rỗng. `detail_image_urls` là mảng có thứ tự, 0–10 URL, mặc định `[]`, trả trong chi tiết và danh sách quản lý shop. Danh sách công khai chỉ trả ảnh chính. PUT thay toàn bộ mảng khi có trường này; bỏ trường giữ nguyên, `[]` xóa hết ảnh chi tiết. Không cho xóa ảnh chính bằng `null`/chuỗi trống; sản phẩm cũ thiếu ảnh vẫn đọc và sửa trường khác được. Tên/giá/ảnh chi tiết được lưu cùng transaction; sửa bộ ảnh đồng thời khóa dòng product.
+
+| Method | Path | Quyền | Request/response |
+|---|---|---|---|
+| POST | `/shop/product-images` | SHOP_OWNER có shop | Multipart field `file`; `201` với `{image_url: "/media/product-images/{shop_id}/{uuid}.webp"}` |
+| GET | `/media/product-images/{shop_id}/{filename}` | Public | File WebP, `404` nếu thiếu/sai tên |
+
+JPEG, PNG và WebP được hỗ trợ, tối đa 5 MiB và 20 triệu điểm ảnh. Backend giải mã nội dung thật, áp dụng hướng EXIF, mã hóa lại WebP và bỏ metadata/tên gốc. Sai định dạng/file hỏng trả `415`; quá giới hạn trả `413`; không ghi được storage trả `503`. Thiếu token `401`, sai role/chưa có shop `403`. URL ảnh upload gắn vào product phải thuộc shop trong database và file tồn tại; ảnh shop khác `403`, file thiếu `400`. URL HTTP(S) cũ vẫn hợp lệ cho API để giữ tương thích; URL không hợp lệ/mảng trên 10 phần tử trả `422`.
+
+Ảnh là tài nguyên công khai, kể cả khi product bị ẩn; không dùng endpoint media để lưu dữ liệu riêng tư. Upload là bước riêng trước khi lưu product, nên đóng form hoặc thay/bỏ ảnh chỉ bỏ tham chiếu, chưa xóa file vật lý. Tự dọn file không còn dùng vẫn **Planned**. Cấu hình lưu trữ và backup nằm ở [Deployment Guide](DEPLOYMENT_GUIDE.md#lưu-trữ-ảnh-sản-phẩm).
 
 ## Giỏ hàng
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import client from "../../api/client.js";
 import { errorMessage } from "../../api/errorMessage.js";
 import VariantManager from "./VariantManager.jsx";
+import ProductImageEditor from "./ProductImageEditor.jsx";
 
 const EMPTY_VARIANT = { size: "", color: "", price: "", initial_quantity: "0" };
 
@@ -13,6 +14,7 @@ function infoFromProduct(product) {
     name: product?.name ?? "",
     description: product?.description ?? "",
     image_url: product?.image_url ?? "",
+    detail_image_urls: product?.detail_image_urls ?? [],
     base_price: product ? String(product.base_price) : "",
   };
 }
@@ -22,7 +24,8 @@ function infoPayload(info) {
     category_id: Number(info.category_id),
     name: info.name.trim(),
     description: info.description.trim() || null,
-    image_url: info.image_url.trim() || null,
+    ...(info.image_url ? { image_url: info.image_url } : {}),
+    detail_image_urls: info.detail_image_urls,
     base_price: Number(info.base_price),
   };
 }
@@ -31,6 +34,7 @@ export default function ProductFormDialog({ categories, product, onClose }) {
   const [info, setInfo] = useState(() => infoFromProduct(product));
   const [variants, setVariants] = useState([{ ...EMPTY_VARIANT }]);
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const isEdit = product != null;
@@ -50,6 +54,11 @@ export default function ProductFormDialog({ categories, product, onClose }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (submitting || uploading) return;
+    if (!isEdit && !info.image_url) {
+      setError("Vui lòng tải lên ảnh chính trước khi tạo sản phẩm.");
+      return;
+    }
     setSubmitting(true);
     setError("");
     try {
@@ -78,7 +87,7 @@ export default function ProductFormDialog({ categories, product, onClose }) {
   return (
     <ModalDialog
       onClose={onClose}
-      closeDisabled={submitting}
+      closeDisabled={submitting || uploading}
       className="dialog dialog-wide product-dialog"
       aria-label={isEdit ? "Sửa sản phẩm" : "Thêm sản phẩm"}
     >
@@ -114,13 +123,16 @@ export default function ProductFormDialog({ categories, product, onClose }) {
             onChange={(event) => updateInfo("description", event.target.value)}
           />
         </label>
-        <label>
-          Link ảnh
-          <input
-            value={info.image_url}
-            onChange={(event) => updateInfo("image_url", event.target.value)}
-          />
-        </label>
+        <ProductImageEditor
+          mainImage={info.image_url}
+          detailImages={info.detail_image_urls}
+          onChange={(main, details) => {
+            setInfo((current) => ({ ...current, image_url: main, detail_image_urls: details }));
+            setSaved(false);
+          }}
+          onBusyChange={setUploading}
+          disabled={submitting}
+        />
         <label>
           Giá cơ sở (₫)
           <input
@@ -200,10 +212,10 @@ export default function ProductFormDialog({ categories, product, onClose }) {
         )}
         {saved && <p role="status">Đã lưu thông tin sản phẩm.</p>}
         <div className="dialog-actions">
-          <button type="button" onClick={onClose}>
+          <button type="button" disabled={submitting || uploading} onClick={onClose}>
             Đóng
           </button>
-          <button type="submit" disabled={submitting}>
+          <button type="submit" disabled={submitting || uploading}>
             {isEdit ? "Lưu thông tin" : "Tạo sản phẩm"}
           </button>
         </div>

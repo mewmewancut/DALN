@@ -47,6 +47,10 @@ Contract và mã lỗi nằm tại [`API.md`](API.md#auth); cấu hình Gmail n�
 
 Đặc tả chuẩn và Definition of Done nằm ở [Planning C1e](PLANNING.md#c1e-router-recommendationspy--p4-gợi-ý-theo-sở-thích). Contract response và ý nghĩa `price_from` nằm ở [API](API.md#gợi-ý-sản-phẩm).
 
+## Ảnh sản phẩm — mở rộng ngày 07/10/2026
+
+Theo yêu cầu người dùng: sản phẩm tạo mới phải có một ảnh chính dùng ở danh sách, kèm 0–10 ảnh chi tiết ở trang sản phẩm. Chủ shop tải ảnh từ máy và có thể thay ảnh chính, thêm/bỏ ảnh phụ. Sản phẩm cũ thiếu ảnh không bị sửa tự động. API kiểm tra ảnh upload thuộc shop đã xác thực; giới hạn và cách lưu chuẩn nằm ở [API ảnh sản phẩm](API.md#ảnh-sản-phẩm).
+
 ## Giỏ hàng C3
 
 - Mỗi buyer có tối đa một giỏ server, có thể chứa nhiều shop. Shop của từng item được suy từ variant/product; không còn cột `carts.shop_id`.

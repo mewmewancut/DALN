@@ -630,6 +630,16 @@ Vì vậy không đưa cấu hình này trực tiếp lên Internet. Production 
 - [ ] Frontend lint, test, build và audit pass.
 - [ ] Đã đọc phần giới hạn và không nhầm local/demo với production.
 
+## Lưu trữ ảnh sản phẩm
+
+- Cài dependency backend mới hoặc build lại image trước khi chạy; `python-multipart` nhận upload và Pillow giải mã/mã hóa ảnh.
+- Chạy `alembic upgrade head` để tạo bảng ảnh chi tiết. Migration giữ nguyên bảng product và ảnh chính cũ; schema nguồn CDC hiện có không đổi.
+- Lakebase dùng tài khoản migration riêng như mục 15; cấp runtime `daln_app` DML trên `public.product_detail_images` và USAGE/SELECT/UPDATE trên `public.product_detail_images_id_seq`. Không cấp quyền DDL cho runtime. Migration `20261007_0011` và quyền bảng/sequence đã được áp dụng, kiểm tra trên local và Lakebase ngày 07/10/2026; Alembic check khớp model.
+- `PRODUCT_IMAGE_DIRECTORY` mặc định `runtime/product-images`, tính từ thư mục chạy backend. Compose hiện mount `./backend:/app`, nên file nằm tại `backend/runtime/product-images/` trên host và tồn tại qua restart/rebuild container. Khi chạy Python trực tiếp, mở terminal trong `backend` để dùng cùng thư mục.
+- File được phục vụ qua API media public; frontend dùng origin của Axios client để tải. Lakebase chỉ lưu URL/tham chiếu ảnh, không chứa binary.
+- Backup/restore thư mục ảnh cùng database. Không commit ảnh upload và không đưa chúng vào Docker build context. Khi triển khai nhiều instance cần shared storage hoặc object storage; hỗ trợ cloud storage và tự dọn file không còn tham chiếu vẫn **Planned**. Bỏ ảnh/đóng form chưa xóa file vật lý.
+- Hợp đồng upload, giới hạn và quyền nằm ở [API ảnh sản phẩm](API.md#ảnh-sản-phẩm).
+
 ## 18. Tài liệu liên quan
 
 - [`DEVELOPMENT.md`](DEVELOPMENT.md): lệnh và workflow dành cho người phát triển.

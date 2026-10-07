@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from app.models.cart import CartItem
     from app.models.inventory import Inventory, LowStockAlert
     from app.models.order import OrderItem
+    from app.models.product_image import ProductDetailImage
     from app.models.purchase import PurchaseOrderItem
     from app.models.review import Review
     from app.models.shop import Shop
@@ -65,6 +66,13 @@ class Product(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     variants: Mapped[list["ProductVariant"]] = relationship(back_populates="product")
     reviews: Mapped[list["Review"]] = relationship(back_populates="product")
     wishlist_items: Mapped[list["WishlistItem"]] = relationship(back_populates="product")
+    detail_images: Mapped[list["ProductDetailImage"]] = relationship(
+        back_populates="product", order_by="ProductDetailImage.position"
+    )
+
+    @property
+    def detail_image_urls(self) -> list[str]:
+        return [image.image_url for image in self.detail_images]
 
 
 class ProductVariant(IdMixin, CreatedAtMixin, UpdatedAtMixin, Base):

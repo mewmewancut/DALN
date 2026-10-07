@@ -8,6 +8,7 @@ from app.models.chat import ChatConversation, ChatSavedMessage
 from app.models.inventory import Inventory, LowStockAlert
 from app.models.order import Order, OrderItem, OrderStatusHistory
 from app.models.preference import UserPreference, UserPreferredCategory, UserPreferredColor
+from app.models.product_image import ProductDetailImage
 from app.models.purchase import PurchaseOrder, PurchaseOrderItem
 from app.models.review import Review
 from app.models.shop import Shop
@@ -30,6 +31,7 @@ __all__ = [
     "OrderItem",
     "OrderStatusHistory",
     "Product",
+    "ProductDetailImage",
     "ProductVariant",
     "UserPreference",
     "UserPreferredCategory",

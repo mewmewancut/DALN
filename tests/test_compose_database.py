@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class ComposeDatabaseTests(unittest.TestCase):
     def configuration(self, env_file):
         environment = os.environ.copy()
-        for name in ("DATABASE_URL", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD"):
+        for name in ("DATABASE_URL", "POSTGRES_DB", "POSTGRES_USER", "POSTGRES_PASSWORD", "PRODUCT_IMAGE_DIRECTORY"):
             environment.pop(name, None)
         result = subprocess.run(
             ["docker", "compose", "--env-file", str(env_file), "config", "--format", "json"],
@@ -68,6 +68,20 @@ class ComposeDatabaseTests(unittest.TestCase):
             services["backend"]["environment"]["DATABASE_URL"],
             "postgresql+psycopg://demo:fake@db:5432/demo",
         )
+
+
+    def test_product_image_storage_is_persistent_and_configurable(self):
+        services = self.configuration(ROOT / ".env.example")
+        backend = services["backend"]
+        self.assertEqual(backend["environment"]["PRODUCT_IMAGE_DIRECTORY"], "runtime/product-images")
+        self.assertTrue(any(volume["type"] == "bind" and volume["target"] == "/app"
+                            and Path(volume["source"]) == ROOT / "backend"
+                            for volume in backend["volumes"]))
+        with tempfile.TemporaryDirectory() as directory:
+            env_file = Path(directory) / ".env"
+            env_file.write_text("PRODUCT_IMAGE_DIRECTORY=runtime/custom-images\n")
+            services = self.configuration(env_file)
+        self.assertEqual(services["backend"]["environment"]["PRODUCT_IMAGE_DIRECTORY"], "runtime/custom-images")
 
 
 if __name__ == "__main__":

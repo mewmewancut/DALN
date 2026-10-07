@@ -1,4 +1,21 @@
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Annotated
+from urllib.parse import urlsplit
+
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
+
+
+def validate_image_url(value: str) -> str:
+    value = value.strip()
+    parsed = urlsplit(value)
+    if not value or not (
+        (parsed.scheme in {"http", "https"} and parsed.hostname)
+        or value.startswith("/media/product-images/")
+    ):
+        raise ValueError("Ảnh phải là URL HTTP(S) hoặc ảnh đã tải lên")
+    return value
+
+
+ImageUrl = Annotated[str, AfterValidator(validate_image_url)]
 
 
 class CategoryResponse(BaseModel):
@@ -30,7 +47,8 @@ class ProductCreate(BaseModel):
     category_id: int = Field(gt=0)
     name: str = Field(min_length=1, max_length=255)
     description: str | None = None
-    image_url: str | None = None
+    image_url: ImageUrl
+    detail_image_urls: list[ImageUrl] = Field(default_factory=list, max_length=10)
     base_price: int = Field(ge=0, le=999_999_999_999)
     variants: list[VariantCreate] = Field(min_length=1)
 
@@ -41,7 +59,8 @@ class ProductUpdate(BaseModel):
     category_id: int | None = Field(default=None, gt=0)
     name: str | None = Field(default=None, min_length=1, max_length=255)
     description: str | None = None
-    image_url: str | None = None
+    image_url: ImageUrl | None = None
+    detail_image_urls: list[ImageUrl] = Field(default_factory=list, max_length=10)
     base_price: int | None = Field(default=None, ge=0, le=999_999_999_999)
     is_active: bool | None = None
 
@@ -69,6 +88,7 @@ class ProductSummary(BaseModel):
 
 
 class ProductDetail(ProductSummary):
+    detail_image_urls: list[str] = Field(default_factory=list)
     description: str | None
     is_active: bool
     variants: list[VariantResponse]

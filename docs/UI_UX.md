@@ -19,6 +19,12 @@
 - Dialog dùng `<dialog>` native trong top layer, có chiều cao tối đa theo viewport và cuộn bên trong. `ModalDialog` dùng chung cho form/xác nhận, chặn tương tác nền, hỗ trợ Escape (trừ lúc đang gửi) và trả focus về nút mở. Form sản phẩm có hai cột trên desktop, một cột trên mobile.
 - Nút chatbot nổi trên mobile dùng icon tròn 52 px để giảm che nút lưu/thao tác bảng; nhãn hỗ trợ đọc màn hình được giữ. Luồng hội thoại và quyền hiển thị nằm ở [Genie Chatbot](GENIE_CHATBOT.md).
 
+## Ảnh chính và ảnh chi tiết sản phẩm
+
+Form tạo/sửa có chọn file ảnh chính và chọn nhiều ảnh chi tiết, xem trước, đếm số ảnh phụ và bỏ từng ảnh. Form tạo mới báo lỗi nếu chưa có ảnh chính; nút lưu/đóng bị khóa khi ảnh đang tải. Khi một batch lỗi, giữ các ảnh đã tải thành công để người dùng thử lại phần còn thiếu. Trang chi tiết mở với ảnh chính và có hàng thumbnail chuyển ảnh, cuộn ngang trên mobile, nút có nhãn và `aria-pressed`. Chuyển sang product khác đặt lại ảnh chính. URL media tương đối được resolve qua địa chỉ backend ở Axios client dùng chung để chạy đúng khi frontend/backend khác origin. Giới hạn và storage nằm ở [API ảnh](API.md#ảnh-sản-phẩm).
+
+Kiểm tra Playwright ngày 07/10/2026: upload thật một ảnh chính/hai ảnh phụ qua tài khoản demo, cả ba ảnh preview tải thành công; form desktop và mobile 390×844 không tràn ngang. Gallery kiểm tra ở 1440×1000 và 390×844 bằng response product giả cô lập cùng các file media thật, thumbnail đổi đúng ảnh và không tràn ngang. Không tạo/sửa product vận hành để kiểm tra UI; ba file thử đã được dọn sau khi xác nhận không có tham chiếu. Screenshot nằm ở `output/playwright/product-images/` (Git bỏ qua). Luồng lưu product được kiểm tra qua API/Vitest; browser E2E toàn luồng vẫn Planned.
+
 ## Nguồn tham khảo
 
 - [Vercel Web Interface Guidelines](https://github.com/vercel-labs/web-interface-guidelines): nhãn control, focus, nội dung dài, typography cho số, giảm chuyển động và responsive.

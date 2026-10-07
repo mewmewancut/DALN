@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import UiIcon from "./UiIcon.jsx";
+import { productImageSource } from "../api/productImages.js";
 
 export default function ProductImage({
   src,
@@ -33,7 +34,7 @@ export default function ProductImage({
 
   return (
     <img
-      src={src}
+      src={productImageSource(src)}
       alt={alt}
       className={className}
       width="600"
