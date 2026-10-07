@@ -13,6 +13,7 @@ from app.database import SessionLocal
 from app.models import (
     Category,
     Inventory,
+    LowStockAlert,
     Order,
     OrderItem,
     OrderStatusHistory,
@@ -203,14 +204,35 @@ def get_or_create_inventory(
     quantity: int,
     created: dict[str, int],
 ) -> Inventory:
-    inventory = session.scalar(select(Inventory).where(Inventory.variant_id == variant.id))
-    if inventory is not None:
-        return inventory
+    inventory = session.scalar(
+        select(Inventory)
+        .where(Inventory.variant_id == variant.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if inventory is None:
+        inventory = Inventory(variant=variant, shop=shop, quantity=quantity)
+        session.add(inventory)
+        session.flush()
+        created["inventory"] += 1
 
-    inventory = Inventory(variant=variant, shop=shop, quantity=quantity)
-    session.add(inventory)
-    session.flush()
-    created["inventory"] += 1
+    if inventory.quantity < inventory.low_stock_threshold:
+        open_alert = session.scalar(
+            select(LowStockAlert.id).where(
+                LowStockAlert.variant_id == variant.id,
+                LowStockAlert.is_resolved.is_(False),
+            )
+        )
+        if open_alert is None:
+            session.add(
+                LowStockAlert(
+                    variant_id=variant.id,
+                    shop_id=inventory.shop_id,
+                    quantity_at_alert=inventory.quantity,
+                )
+            )
+            session.flush()
+            created["low_stock_alerts"] += 1
     return inventory
 
 
@@ -461,6 +483,7 @@ def seed_database(
         "products": 0,
         "variants": 0,
         "inventory": 0,
+        "low_stock_alerts": 0,
         "suppliers": 0,
         "orders": 0,
     }
