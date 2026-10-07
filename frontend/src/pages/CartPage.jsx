@@ -88,7 +88,6 @@ export default function CartPage() {
 
   return (
     <SiteLayout wide>
-      <p className="eyebrow">Mua sắm</p>
       <h1>Giỏ hàng</h1>
       {loading && <p role="status">Đang tải giỏ hàng...</p>}
       {loadError && (

@@ -63,6 +63,9 @@ it.each([
 ])("giữ điều hướng tài khoản đúng role %s và nhãn link khi có icon", async (role, links) => {
   await render(role);
   const nav = container.querySelector('nav[aria-label="Điều hướng tài khoản"]');
+  expect(container.querySelector(".site-frame").classList.contains("is-management")).toBe(
+    role !== "BUYER",
+  );
   expect([...nav.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual(links);
   expect(nav.querySelectorAll('svg[aria-hidden="true"]').length).toBe(links.length);
   expect([...nav.querySelectorAll("a")].every((link) => link.textContent.trim().length > 0)).toBe(

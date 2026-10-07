@@ -61,7 +61,6 @@ export default function RegisterPage() {
 
   return (
     <SiteLayout>
-      <p className="eyebrow">Tài khoản</p>
       <h1>Đăng ký</h1>
 
       <form className="form-stack" onSubmit={submit}>

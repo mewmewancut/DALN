@@ -1,3 +1,4 @@
+import ModalDialog from "../components/ModalDialog.jsx";
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router";
 
@@ -79,7 +80,7 @@ export default function OrderDetailPage() {
         <Link to="/orders">← Danh sách đơn hàng</Link>
       </p>
       {loading && <p role="status">Đang tải đơn hàng...</p>}
-      {error && (
+      {error && !reviewItem && (
         <p className="form-error" role="alert">
           {error}
         </p>
@@ -99,6 +100,7 @@ export default function OrderDetailPage() {
             order={order}
             onReview={(item) => {
               setReviewItem(item);
+              setError("");
               setRating("5");
               setComment("");
             }}
@@ -106,44 +108,43 @@ export default function OrderDetailPage() {
         </>
       )}
       {reviewItem && (
-        <div className="dialog-backdrop">
-          <section
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Đánh giá sản phẩm"
-          >
-            <h2>Đánh giá {reviewItem.product_name}</h2>
-            <form className="form-stack" onSubmit={submitReview}>
-              <label>
-                Số sao
-                <select value={rating} onChange={(event) => setRating(event.target.value)}>
-                  {[5, 4, 3, 2, 1].map((value) => (
-                    <option value={value} key={value}>
-                      {value} sao
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Nhận xét
-                <textarea
-                  maxLength="2000"
-                  value={comment}
-                  onChange={(event) => setComment(event.target.value)}
-                />
-              </label>
-              <div className="dialog-actions">
-                <button type="button" onClick={() => setReviewItem(null)}>
-                  Đóng
-                </button>
-                <button type="submit" disabled={reviewing}>
-                  {reviewing ? "Đang gửi..." : "Gửi đánh giá"}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
+        <ModalDialog
+          onClose={() => setReviewItem(null)}
+          closeDisabled={reviewing}
+          error={error}
+          className="dialog"
+          aria-label="Đánh giá sản phẩm"
+        >
+          <h2>Đánh giá {reviewItem.product_name}</h2>
+          <form className="form-stack" onSubmit={submitReview}>
+            <label>
+              Số sao
+              <select value={rating} onChange={(event) => setRating(event.target.value)}>
+                {[5, 4, 3, 2, 1].map((value) => (
+                  <option value={value} key={value}>
+                    {value} sao
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Nhận xét
+              <textarea
+                maxLength="2000"
+                value={comment}
+                onChange={(event) => setComment(event.target.value)}
+              />
+            </label>
+            <div className="dialog-actions">
+              <button type="button" onClick={() => setReviewItem(null)}>
+                Đóng
+              </button>
+              <button type="submit" disabled={reviewing}>
+                {reviewing ? "Đang gửi..." : "Gửi đánh giá"}
+              </button>
+            </div>
+          </form>
+        </ModalDialog>
       )}
     </SiteLayout>
   );

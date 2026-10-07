@@ -1,3 +1,4 @@
+import ModalDialog from "../../components/ModalDialog.jsx";
 import { useEffect, useState } from "react";
 
 import client from "../../api/client.js";
@@ -97,12 +98,7 @@ export default function AdminShopsPage() {
 
   return (
     <>
-      <p className="eyebrow">Admin</p>
       <h1>Shop</h1>
-
-      <p className="muted">
-        Shop bị khóa sẽ không còn sản phẩm nào hiển thị trong catalog công khai.
-      </p>
 
       <div className="toolbar">
         <label>
@@ -141,7 +137,7 @@ export default function AdminShopsPage() {
         </p>
       )}
 
-      {actionError && (
+      {actionError && !shopToLock && (
         <p className="form-error" role="alert">
           {actionError}
         </p>
@@ -188,6 +184,7 @@ export default function AdminShopsPage() {
                       onClick={() => {
                         if (shop.is_active) {
                           setShopToLock(shop);
+                          setActionError("");
                         } else {
                           toggleActive(shop);
                         }
@@ -212,49 +209,46 @@ export default function AdminShopsPage() {
       />
 
       {shopToLock && (
-        <div className="dialog-backdrop">
-          <section
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="lock-shop-title"
-            aria-describedby="lock-shop-description"
-          >
-            <p className="eyebrow">Xác nhận thao tác</p>
+        <ModalDialog
+          onClose={() => setShopToLock(null)}
+          closeDisabled={pendingId === shopToLock.id}
+          error={actionError}
+          className="dialog"
+          aria-labelledby="lock-shop-title"
+          aria-describedby="lock-shop-description"
+        >
+          <h2 id="lock-shop-title">Khóa shop?</h2>
 
-            <h2 id="lock-shop-title">Khóa shop?</h2>
+          <p id="lock-shop-description">
+            Bạn có chắc muốn khóa <strong>{shopToLock.name}</strong>? Sản phẩm của shop sẽ không còn
+            hiển thị trong catalog công khai cho đến khi shop được mở khóa.
+          </p>
 
-            <p id="lock-shop-description">
-              Bạn có chắc muốn khóa <strong>{shopToLock.name}</strong>? Sản phẩm của shop sẽ không
-              còn hiển thị trong catalog công khai cho đến khi shop được mở khóa.
-            </p>
+          <div className="dialog-actions">
+            <button
+              type="button"
+              disabled={pendingId === shopToLock.id}
+              onClick={() => setShopToLock(null)}
+            >
+              Hủy
+            </button>
 
-            <div className="dialog-actions">
-              <button
-                type="button"
-                disabled={pendingId === shopToLock.id}
-                onClick={() => setShopToLock(null)}
-              >
-                Hủy
-              </button>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={pendingId === shopToLock.id}
+              onClick={async () => {
+                const success = await toggleActive(shopToLock);
 
-              <button
-                type="button"
-                className="primary-button"
-                disabled={pendingId === shopToLock.id}
-                onClick={async () => {
-                  const success = await toggleActive(shopToLock);
-
-                  if (success) {
-                    setShopToLock(null);
-                  }
-                }}
-              >
-                {pendingId === shopToLock.id ? "Đang xử lý..." : "Khóa shop"}
-              </button>
-            </div>
-          </section>
-        </div>
+                if (success) {
+                  setShopToLock(null);
+                }
+              }}
+            >
+              {pendingId === shopToLock.id ? "Đang xử lý..." : "Khóa shop"}
+            </button>
+          </div>
+        </ModalDialog>
       )}
     </>
   );

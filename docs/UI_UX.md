@@ -6,16 +6,18 @@
 ## Quy ước giao diện
 
 - Font **Be Vietnam Pro**, các weight 400/600/700, được phục vụ từ `frontend/public/fonts/`. Font hỗ trợ tiếng Việt và dùng `font-display: swap`; không cần kết nối Google Fonts khi chạy website. Giấy phép SIL OFL được lưu cùng font.
-- Màu, typography, control và header nằm ở `frontend/src/styles/foundation.css`. Bố cục catalog, buyer và vận hành dùng `frontend/src/styles.css`; các panel dashboard dùng stylesheet riêng hiện có.
+- Màu, typography, control và header nằm ở `frontend/src/styles/foundation.css`. Catalog/buyer dùng `frontend/src/styles.css`; sidebar, bảng và form quản lý dùng `frontend/src/styles/management.css`; dashboard và chatbot dùng stylesheet riêng.
 - Tiêu đề và nội dung dùng cùng font. Tiêu đề trang thông thường khoảng 26–36 px, line-height 1.3; chỉ hero catalog và tên sản phẩm chi tiết dùng chữ lớn hơn. Nhãn dùng chữ thường, tránh giãn chữ làm dấu tiếng Việt khó đọc.
-- Header nằm ngoài vùng nội dung. Auth dùng form giới hạn 520 px; các trang rộng dùng tối đa 1440 px. Trên màn hình nhỏ, điều hướng tài khoản cuộn ngang với link đang hoạt động và focus bàn phím rõ ràng.
-- Sidebar shop/admin có icon trang trí và nhãn chữ. Khi màn hình nhỏ, sidebar chuyển thành nhóm link phía trên nội dung.
+- Header nằm ngoài vùng nội dung. Auth dùng form giới hạn 520 px; các trang rộng dùng tối đa 1360 px. Trên màn hình nhỏ, điều hướng tài khoản cuộn ngang với link đang hoạt động và focus bàn phím rõ ràng.
+- Catalog dùng nền trung tính, ảnh và thông tin sản phẩm trực tiếp; khu shop/admin dùng màu navy, sidebar tối và bảng trên nền trắng. Bỏ announcement và nhãn trang trí lặp lại, giữ hướng dẫn thao tác, trạng thái lỗi và cảnh báo hậu quả trong xác nhận.
+- Sidebar shop/admin có icon trang trí và nhãn chữ. Dưới 1000 px, sidebar thành một hàng link cuộn ngang phía trên nội dung.
 - Bảng có vùng cuộn riêng. Cột tiền/số dùng `numeric-cell` căn phải và chữ số có độ rộng bằng nhau; cột ngày dùng `date-cell`. Không suy đoán kiểu dữ liệu theo số thứ tự cột của các bảng khác nhau. Tên/email dài được phép xuống dòng.
 - Checkbox/radio giữ kích thước 18 px, tách khỏi chiều cao 44 px của input văn bản. Nút chính, lỗi, thành công, disabled và focus dùng style chung.
-- `ProductImage` giữ tỷ lệ ảnh 3:4, lazy-load cho card/giỏ/wishlist, tải ngay ảnh chi tiết. Khi URL trống hoặc tải ảnh lỗi, component hiển thị icon và nhãn “Chưa có ảnh”; đổi URL sẽ thử ảnh mới. URL ảnh và dữ liệu giá/tồn kho vẫn do API cung cấp.
-- Mục Dành cho bạn giữ thứ tự và tối đa 8 sản phẩm theo API, hiển thị một hàng cuộn ngang để giảm chiều dài trước catalog. Link trong hàng vẫn truy cập được bằng bàn phím.
+- Card sản phẩm dùng tỷ lệ ảnh 4:5, lazy-load cho card/giỏ/wishlist, tải ngay ảnh chi tiết. `ProductImage` dùng minh họa SVG và nhãn “Chưa có ảnh” khi URL trống, lỗi hoặc thuộc `placehold.co` của dữ liệu demo; tránh hiển thị mã seed trong ảnh mẫu. Đổi URL sẽ thử ảnh mới. URL ảnh thật và giá/tồn kho vẫn do API cung cấp.
+- Mục Dành cho bạn giữ thứ tự và tối đa 8 sản phẩm theo API, hiển thị một hàng card ngang nhỏ với ảnh bên cạnh tên/giá. Link và nút yêu thích vẫn truy cập được bằng bàn phím.
 - Link “Đến nội dung chính” là điểm focus đầu trang; đích là `<main id="main-content" tabindex="-1">`. Hiệu ứng tiếp tục tôn trọng `prefers-reduced-motion`.
-- Dialog có chiều cao tối đa theo viewport và cuộn nội dung bên trong để các control không bị cắt ở màn hình thấp.
+- Dialog dùng `<dialog>` native trong top layer, có chiều cao tối đa theo viewport và cuộn bên trong. `ModalDialog` dùng chung cho form/xác nhận, chặn tương tác nền, hỗ trợ Escape (trừ lúc đang gửi) và trả focus về nút mở. Form sản phẩm có hai cột trên desktop, một cột trên mobile.
+- Nút chatbot nổi trên mobile dùng icon tròn 52 px để giảm che nút lưu/thao tác bảng; nhãn hỗ trợ đọc màn hình được giữ. Luồng hội thoại và quyền hiển thị nằm ở [Genie Chatbot](GENIE_CHATBOT.md).
 
 ## Nguồn tham khảo
 
@@ -69,3 +71,26 @@ Giỏ hàng giữ số lượng nháp của dòng khác khi cập nhật/xóa m�
 Mã đơn trong bảng shop/admin mở dialog chi tiết bằng API `/orders/{id}` hiện có. Dialog native giữ focus, hỗ trợ Escape, trạng thái tải/lỗi/thử lại và snapshot giao hàng/sản phẩm/lịch sử; backend vẫn quyết định quyền. Buyer dùng chung phần hiển thị snapshot, giữ quyền đánh giá của người mua. Ngày giờ đơn/đánh giá/phiếu nhập luôn hiển thị theo `Asia/Ho_Chi_Minh`, độc lập timezone máy người dùng.
 
 Đổi route chi tiết đơn xóa đơn/dialog đánh giá cũ và bỏ response trễ. Chi tiết sản phẩm có trạng thái tải/lỗi đánh giá riêng; không hiển thị đánh giá của sản phẩm trước hoặc trạng thái rỗng giả khi request thất bại. Phạm vi sử dụng trực tiếp và bằng chứng kiểm tra ở [Rà soát người dùng](USER_JOURNEY_REVIEW.md).
+
+### Lượt rà soát theo vai trò ngày 07/10/2026
+
+Dùng Chromium qua Playwright CLI tại `http://localhost:5173`, API đang chạy và tài khoản demo của từng role. Mở toàn bộ trang dưới đây ở **1440 × 1000** và **390 × 844**: 62 lượt trang/role/kích thước, không tràn ngang toàn trang. Bảng, menu và hàng gợi ý cuộn trong vùng riêng.
+
+| Vai trò | Trang đã mở |
+|---|---|
+| Khách/auth | Catalog, đăng nhập, đăng ký, quên mật khẩu, đặt lại mật khẩu, xác nhận email, chờ xác nhận email |
+| BUYER | Catalog, chi tiết sản phẩm 45, giỏ, checkout, wishlist, sở thích, danh sách đơn, chi tiết đơn 33, hồ sơ/sổ địa chỉ |
+| SHOP_OWNER | Dashboard, sản phẩm, đơn, tồn kho, cảnh báo, nhà cung cấp, nhập hàng, chatbot, hồ sơ |
+| ADMIN | Dashboard, người dùng, shop, đơn toàn hệ thống, chatbot, hồ sơ |
+
+Các vấn đề đã sửa: hero/catalog và hàng gợi ý quá cao; chữ giới thiệu/nhãn trang trí lặp lại; ảnh placeholder lộ mã seed; mã role thô trong hồ sơ; menu quản lý mobile chiếm nhiều hàng; mã đơn bị bẻ dòng trong bảng; thiếu chỉ báo kỳ dashboard đang chọn; hộp thoại tùy biến thiếu Escape/top layer/focus; nút chatbot mobile che một phần thao tác.
+
+Lỗi API khi xác nhận/hủy/đánh giá được hiển thị ngay trong dialog đang mở, tránh bị backdrop che trên trang nền. Regression xác nhận khóa shop đã tái hiện fail trước sửa và pass sau sửa.
+
+Đã mở/đóng dialog tạo sản phẩm và xác nhận khóa tài khoản, kiểm tra Escape trả focus về nút mở; lọc người dùng theo vai trò. Giỏ ban đầu trống được thêm một biến thể để xem giỏ/checkout ở cả hai kích thước, rồi khôi phục trống. Wishlist có sẵn được giữ nguyên. Không đặt đơn, khóa tài khoản/shop, sửa sản phẩm/nhà cung cấp hoặc nhận phiếu nhập; các nhánh ghi/phân quyền tiếp tục có suite test hiện có. Các form email chỉ kiểm tra hiển thị, không gửi email thật.
+
+Bằng chứng ảnh và script ở `output/playwright/role-review-v2/` (ignored), không đưa snapshot tài khoản vào commit. Ảnh sản phẩm demo vẫn là minh họa trạng thái thiếu ảnh; chất lượng ảnh hàng thật phụ thuộc dữ liệu shop cung cấp. Không thay schema, API, metric hoặc backend trong lượt nâng cấp giao diện này.
+
+Xác minh: `docker compose exec -T frontend npm test` **156 pass / 24 file**;
+`npm run build`, `npm run lint`, `npm run format:check` qua cùng container và
+`git diff --check` đều **Pass**. Phạm vi regression ở [Testing](TESTING.md#regression-giao-diện-theo-vai-trò-07102026).

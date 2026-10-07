@@ -7,7 +7,7 @@ export default function StockPanel({ stock, admin }) {
     <DashboardPanel
       title="Ưu tiên nhập hàng"
       className="dashboard-wide"
-      description="Tồn kho hiện tại của các biến thể đang bán. Ưu tiên hết hàng, sau đó sức bán trong kỳ; không phải dự báo lượng cần nhập."
+      description="Tồn kho hiện tại · Ưu tiên hết hàng, sau đó sức bán trong kỳ"
       action={
         <Link to={admin ? "/admin/shops" : "/shop/inventory"}>
           {admin ? "Quản lý shop" : "Mở tồn kho"}
@@ -60,9 +60,7 @@ export default function StockPanel({ stock, admin }) {
           </table>
         </div>
       )}
-      <p className="dashboard-footnote">
-        Hiển thị tối đa 8 biến thể cần ưu tiên. Sức bán chỉ tính đơn đã giao thành công trong kỳ.
-      </p>
+      <p className="dashboard-footnote">Tối đa 8 biến thể · Đã bán tính theo đơn giao trong kỳ</p>
     </DashboardPanel>
   );
 }

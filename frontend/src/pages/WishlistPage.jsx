@@ -48,7 +48,6 @@ export default function WishlistPage() {
     <SiteLayout wide>
       <header className="page-heading">
         <div>
-          <p className="eyebrow">Bộ sưu tập cá nhân</p>
           <h1>Sản phẩm yêu thích</h1>
         </div>
         <Link to="/">Tiếp tục mua sắm</Link>
@@ -93,7 +92,7 @@ export default function WishlistPage() {
                 <div className="wishlist-actions">
                   {item.is_available && (
                     <Link to={`/products/${item.product_id}`} className="primary-button">
-                      Chọn phân loại
+                      Mua hàng
                     </Link>
                   )}
                   <button

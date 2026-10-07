@@ -6,6 +6,8 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import AddressBook from "../components/AddressBook.jsx";
 import SiteLayout from "../components/SiteLayout.jsx";
 
+const ROLE_LABELS = { BUYER: "Người mua", SHOP_OWNER: "Chủ shop", ADMIN: "Quản trị viên" };
+
 export default function ProfilePage() {
   const { session } = useAuth();
   const [profile, setProfile] = useState(null);
@@ -73,7 +75,6 @@ export default function ProfilePage() {
 
   return (
     <SiteLayout wide>
-      <p className="eyebrow">Tài khoản của tôi</p>
       <h1>Hồ sơ cá nhân</h1>
       {error && (
         <p className="form-error" role="alert">
@@ -103,7 +104,7 @@ export default function ProfilePage() {
             </label>
             <label>
               Vai trò
-              <input value={profile.role} disabled />
+              <input value={ROLE_LABELS[profile.role] ?? profile.role} disabled />
             </label>
             <label>
               Họ và tên

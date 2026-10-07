@@ -134,16 +134,12 @@ export default function ProductListPage() {
     <SiteLayout wide>
       <header className="catalog-hero">
         <div>
-          <p className="eyebrow">Bộ sưu tập chọn lọc</p>
-          <h1>Mặc đẹp theo cách của bạn.</h1>
-          <p className="catalog-lead">
-            Khám phá thời trang từ nhiều gian hàng, chọn món đồ hợp với bạn.
-          </p>
+          <h1>Sản phẩm</h1>
         </div>
 
         <div className="catalog-proof" aria-label="Thông tin catalog">
           <strong>{result.total}</strong>
-          <span>sản phẩm đang hiển thị</span>
+          <span>sản phẩm</span>
         </div>
       </header>
 
@@ -180,7 +176,6 @@ export default function ProductListPage() {
         >
           <div className="filter-heading">
             <div>
-              <p className="eyebrow">Tinh chỉnh</p>
               <h2>Bộ lọc</h2>
             </div>
 
@@ -247,8 +242,6 @@ export default function ProductListPage() {
         <section className="catalog-results" aria-label="Danh sách sản phẩm">
           <div className="results-heading">
             <div>
-              <p className="eyebrow">Sản phẩm</p>
-
               <strong>
                 {loading
                   ? "Đang tải sản phẩm..."

@@ -243,6 +243,7 @@ it("shop: xác nhận trước khi khóa, mở khóa theo response và hiện l�
     is_active: false,
   });
   expect(alertText()).toBe("Không tìm thấy shop");
+  expect(dialog().querySelector('[role="alert"]')?.textContent).toBe("Không tìm thấy shop");
   expect(rowContaining("Shop 1").textContent).toContain("Hoạt động");
   expect(dialog().textContent).toContain("Shop 1");
 });

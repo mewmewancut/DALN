@@ -29,7 +29,6 @@ export default function VerificationPendingPage() {
 
   return (
     <SiteLayout>
-      <p className="eyebrow">Xác minh tài khoản</p>
       <h1>Kiểm tra email của bạn</h1>
       {location.state?.deliveryFailed ? (
         <p role="status">

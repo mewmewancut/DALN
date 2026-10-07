@@ -181,6 +181,33 @@ it("tồn kho tô đỏ dòng sắp hết và sửa ngưỡng inline theo respon
   expect(rowContaining("P5-M-Đỏ").querySelector("input").value).toBe("6");
 });
 
+it("tồn 0 hiện Hết hàng kể cả ngưỡng 0, tồn dương dưới ngưỡng hiện Sắp hết", async () => {
+  routeGet({
+    "/shop/inventory": [
+      ...inventory,
+      { ...inventory[0], variant_id: 3, sku: "ZERO-5", quantity: 0 },
+      {
+        ...inventory[0],
+        variant_id: 4,
+        sku: "ZERO-0",
+        quantity: 0,
+        low_stock_threshold: 0,
+        is_low: false,
+      },
+    ],
+  });
+  await renderAt("/shop/inventory");
+
+  for (const sku of ["ZERO-5", "ZERO-0"]) {
+    const row = rowContaining(sku);
+    expect(row.textContent).toContain("Hết hàng");
+    expect(row.textContent).not.toContain("Sắp hết");
+    expect(row.className).toBe("row-low");
+  }
+  expect(rowContaining("P5-M-Đỏ").textContent).toContain("Sắp hết");
+  expect(rowContaining("P5-L-Đỏ").textContent).not.toMatch(/Hết hàng|Sắp hết/);
+});
+
 it("tồn kho tìm kiếm, lọc mức tồn và phân trang phía client", async () => {
   const manyItems = Array.from({ length: 12 }, (_, index) => ({
     ...inventory[index % inventory.length],

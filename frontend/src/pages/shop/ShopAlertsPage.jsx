@@ -43,7 +43,6 @@ export default function ShopAlertsPage() {
 
   return (
     <>
-      <p className="eyebrow">Chủ shop</p>
       <h1>Cảnh báo tồn kho</h1>
       <div className="toolbar">
         <label>
@@ -70,7 +69,7 @@ export default function ShopAlertsPage() {
       {!loading && !error && filteredAlerts.length > 0 && (
         <>
           <p>
-            Cảnh báo tự đóng khi tồn kho được bổ sung trên ngưỡng.{" "}
+            Cảnh báo tự đóng khi tồn kho được bổ sung đạt ngưỡng trở lên.{" "}
             <Link to="/shop/purchase-orders">Tạo phiếu nhập hàng</Link>
           </p>
           <p className="list-summary">Tìm thấy {total} cảnh báo.</p>

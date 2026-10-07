@@ -1,3 +1,5 @@
+import UiIcon from "./UiIcon.jsx";
+
 export default function WishlistButton({
   isFavorite,
   isBusy = false,
@@ -16,7 +18,7 @@ export default function WishlistButton({
       disabled={isBusy}
       onClick={onClick}
     >
-      <span aria-hidden="true">{isFavorite ? "♥" : "♡"}</span>
+      <UiIcon name="heart" />
     </button>
   );
 }

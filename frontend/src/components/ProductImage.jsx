@@ -11,10 +11,21 @@ export default function ProductImage({
 }) {
   const [failedSource, setFailedSource] = useState(null);
 
-  if (!src || failedSource === src) {
+  const sampleImage = /^https?:\/\/placehold\.co(?:\/|$)/i.test(src ?? "");
+  const illustration = /váy/i.test(alt)
+    ? "dress"
+    : /quần/i.test(alt)
+      ? "pants"
+      : /giày/i.test(alt)
+        ? "shoe"
+        : /túi/i.test(alt)
+          ? "bag"
+          : "shirt";
+
+  if (!src || sampleImage || failedSource === src) {
     return (
       <div className={placeholderClassName} role="img" aria-label={`${alt}: chưa có ảnh`}>
-        <UiIcon name="shirt" />
+        <UiIcon name={illustration} />
         <span>Chưa có ảnh</span>
       </div>
     );

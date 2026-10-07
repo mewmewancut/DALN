@@ -85,7 +85,6 @@ export default function AdminOrdersPage() {
 
   return (
     <>
-      <p className="eyebrow">Admin</p>
       <h1>Đơn hàng toàn hệ thống</h1>
       <div className="toolbar">
         <label>

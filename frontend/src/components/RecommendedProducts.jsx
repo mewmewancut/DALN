@@ -38,9 +38,7 @@ export default function RecommendedProducts({
     <section className="recommendations" aria-label="Dành cho bạn">
       <div className="recommendations-heading">
         <div>
-          <p className="eyebrow">Khám phá thêm</p>
           <h2>Dành cho bạn</h2>
-          <p className="muted">Ưu tiên sở thích đã lưu, sau đó là sản phẩm mới còn hàng.</p>
         </div>
         <Link to="/account/preferences" className="text-button">
           Chỉnh sở thích

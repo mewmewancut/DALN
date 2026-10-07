@@ -92,6 +92,8 @@ Test hook chạy hook thật với Docker giả lập: giữ kiểm tra lỗi de
 - Low-stock alert mặc định ở trạng thái chưa xử lý.
 - Seed tạo đủ tài khoản, shop, catalog, tồn kho, supplier và đơn hàng; mật khẩu admin kiểm tra được bằng bcrypt.
 - Chạy seed lần hai không làm thay đổi số lượng bản ghi.
+- Seed tạo cảnh báo đúng variant/shop và snapshot số lượng cho toàn bộ tồn dưới ngưỡng; chạy lại bù cảnh báo thiếu, giữ tồn kho/ngưỡng đã sửa, cảnh báo mở và lịch sử đã giải quyết, không tạo trùng. Tồn bằng ngưỡng hoặc ngưỡng 0 với tồn 0 không tạo cảnh báo.
+- Trang Tồn kho phân biệt `Hết hàng` ở số lượng 0 (kể cả ngưỡng 0), `Sắp hết` ở tồn dương dưới ngưỡng và tồn đủ không có nhãn cảnh báo.
 - SKU của seed khớp `P{product_id}-{size}-{color}` và chạy lại với mốc ngày khác vẫn không nhân đôi đơn hàng.
 - Các bảng có luồng cập nhật nhận `updated_at` có timezone.
 - Auth: mật khẩu 8–72 byte được bcrypt hash; tài khoản mới bị chặn login trước xác minh; token xác minh/reset hết hạn, dùng một lần và token resend thay thế token cũ; response forgot không lộ email tồn tại; cooldown trả `429`; reset đổi mật khẩu và vô hiệu JWT cũ qua `auth_version`; lỗi SMTP đăng ký vẫn giữ account để resend; `/auth/me` không lộ hash.
@@ -151,6 +153,13 @@ nhập, chữ ký/hết hạn, trạng thái Genie/query, giới hạn kết qu�
 contract Axios, hội thoại tiếp nối/reset, chặn gửi trùng, polling/retry/timeout,
 response trễ, lỗi/rỗng/truncated, text HTML an toàn và định dạng VND.
 
+`frontend/src/components/chatbot/chatbotWidget.test.jsx` kiểm tra nút nổi cho
+ADMIN/SHOP_OWNER có shop, tải API khi mở lần đầu, thu gọn/Escape và focus,
+giữ hội thoại/câu hỏi nháp qua chuyển trang, trang hồ sơ và mở rộng; chỉ poll
+một luồng khi thu gọn/chuyển trang, không gửi lại câu hỏi; lỗi/retry cấu hình,
+lịch sử khi không khả dụng; đăng xuất dừng request và bỏ dữ liệu riêng tư.
+BUYER, khách và chủ shop chưa tạo shop không thấy nút và không gọi API chatbot.
+
 `data/tests/test_genie_space.py` kiểm tra metadata chỉ dùng Gold, metric C9,
 gate trước provision, shared shop view/grant, retry dùng lại principal/space.
 `test_genie_acceptance.py` chỉ chấp nhận permission denial thật, phân biệt lỗi
@@ -202,3 +211,19 @@ cho shop/admin. `orderPresentation.test.js` kiểm tra mốc UTC qua ngày Việ
 sơ/đổi route/CORS đã tái hiện fail trước khi sửa và pass sau sửa.
 
 Kết quả dùng thử và giới hạn ở [Rà soát người dùng](USER_JOURNEY_REVIEW.md).
+
+## Regression giao diện theo vai trò (07/10/2026)
+
+`components/modalDialog.test.jsx` kiểm tra mở native dialog, focus vào form,
+Escape đóng và trả focus về nút mở, giữ dialog khi request đang chờ và dọn
+native dialog khi unmount. `productImage.test.jsx` kiểm tra ảnh mẫu
+`placehold.co` dùng fallback cục bộ, đúng minh họa và vẫn tải URL ảnh thật.
+`profilePage.test.jsx` kiểm tra nhãn vai trò dễ đọc, giữ trường role chỉ đọc.
+`dashboard.test.jsx` kiểm tra kỳ 7/30/90 ngày đang chọn và bỏ trạng thái chọn
+khi đổi sang ngày tùy chỉnh. `siteLayout.test.jsx` kiểm tra theme theo role
+cùng các điều hướng được phép. Phạm vi trình duyệt và giới hạn ghi ở
+[UI/UX](UI_UX.md#lượt-rà-soát-theo-vai-trò-ngày-07102026).
+
+Modal có test hiển thị lỗi API bên trong. Regression `adminPages.test.jsx`
+đã fail trước sửa vì lỗi khóa shop chỉ nằm trên trang nền, rồi pass sau khi
+lỗi xuất hiện trong dialog đang mở; trạng thái shop vẫn giữ nguyên khi lỗi.

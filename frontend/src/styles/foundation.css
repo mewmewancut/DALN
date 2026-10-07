@@ -26,19 +26,19 @@
   font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
-  color: #20312c;
-  background: #f6f8f7;
-  line-height: 1.6;
-  --ink: #20312c;
-  --muted: #62716b;
-  --line: #dce4df;
+  color: #242424;
+  background: #faf9f6;
+  line-height: 1.5;
+  --ink: #242424;
+  --muted: #6e6c68;
+  --line: #e3e1dc;
   --surface: #fff;
-  --surface-soft: #f0f4f1;
-  --accent: #286452;
-  --accent-dark: #184534;
-  --accent-soft: #e4efe9;
+  --surface-soft: #f2f1ed;
+  --accent: #242424;
+  --accent-dark: #080808;
+  --accent-soft: #eeede9;
   --success: #24663e;
-  --shadow: 0 8px 30px rgb(32 49 44 / 5%);
+  --shadow: 0 4px 20px rgb(36 36 36 / 4%);
 }
 
 * {
@@ -114,7 +114,7 @@ a {
   top: 8px;
   left: 16px;
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--ink);
   color: #fff;
   transform: translateY(-180%);
@@ -124,29 +124,13 @@ a {
   transform: none;
 }
 
-.announcement-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 28px;
-  min-height: 34px;
-  padding: 6px 16px;
-  background: var(--ink);
-  color: #fff;
-  font-size: 0.75rem;
-}
-
-.announcement-bar span + span {
-  padding-left: 28px;
-  border-left: 1px solid rgb(255 255 255 / 25%);
-}
-
 .site-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 22px max(24px, calc((100vw - 1440px) / 2));
+  min-height: 76px;
+  padding: 16px max(28px, calc((100vw - 1360px) / 2));
   border-bottom: 1px solid var(--line);
   background: var(--surface);
 }
@@ -157,7 +141,8 @@ a {
   align-items: center;
   gap: 10px;
   color: var(--ink);
-  font-size: 1.1rem;
+  font-size: 1.25rem;
+  letter-spacing: 0.1em;
   font-weight: 700;
   line-height: 1.3;
   text-decoration: none;
@@ -168,18 +153,10 @@ a {
   width: 40px;
   height: 40px;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 2px;
   background: var(--ink);
   color: #fff;
   font-size: 1.35rem;
-}
-
-.brand small {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 0.7rem;
-  font-weight: 400;
 }
 
 .site-nav {
@@ -196,7 +173,7 @@ a {
   gap: 7px;
   min-height: 44px;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: 3px;
   color: var(--muted);
   font-size: 0.85rem;
   font-weight: 600;
@@ -231,7 +208,7 @@ a {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   align-items: start;
-  padding: 32px 24px 64px;
+  padding: 32px 28px 88px;
   scroll-margin-top: 16px;
 }
 
@@ -240,13 +217,13 @@ a {
   min-width: 0;
   padding: 36px;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 6px;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 
 .card-wide {
-  width: min(1440px, 100%);
+  width: min(1360px, 100%);
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -273,8 +250,8 @@ a.primary-button {
   gap: 8px;
   min-height: 44px;
   padding: 10px 16px;
-  border: 1px solid #bdcec5;
-  border-radius: 8px;
+  border: 1px solid #d0cec8;
+  border-radius: 4px;
   background: #fff;
   color: var(--accent-dark);
   font-weight: 600;
@@ -323,7 +300,7 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible {
-  outline: 3px solid #549b81;
+  outline: 3px solid #7b8cb8;
   outline-offset: 3px;
 }
 
@@ -357,11 +334,11 @@ textarea {
   min-width: 0;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px solid #bdcec5;
-  border-radius: 8px;
+  border: 1px solid #d0cec8;
+  border-radius: 4px;
   background: #fff;
   color: var(--ink);
-  font-size: 1rem;
+  font-size: 0.925rem;
   font-weight: 400;
   line-height: 1.5;
   transition:
@@ -372,7 +349,7 @@ textarea {
 input:hover,
 select:hover,
 textarea:hover {
-  border-color: #7b9689;
+  border-color: #92918c;
 }
 
 input:focus,
@@ -433,8 +410,8 @@ textarea {
   .site-header {
     flex-direction: column;
     align-items: start;
-    gap: 14px;
-    padding: 18px 24px 12px;
+    gap: 10px;
+    padding: 16px 24px 8px;
   }
 
   .site-nav {
@@ -451,14 +428,6 @@ textarea {
 }
 
 @media (max-width: 700px) {
-  .announcement-bar span + span {
-    display: none;
-  }
-
-  .announcement-bar {
-    font-size: 0.7rem;
-  }
-
   .site-header {
     padding-inline: 16px;
   }

@@ -7,6 +7,7 @@ import RequireAuth from "./auth/RequireAuth.jsx";
 import { homeForRole } from "./auth/session.js";
 import AdminLayout from "./components/AdminLayout.jsx";
 import ShopLayout from "./components/ShopLayout.jsx";
+import ChatbotSession from "./components/chatbot/ChatbotSession.jsx";
 import AdminDashboardPage from "./pages/admin/AdminDashboardPage.jsx";
 import AdminOrdersPage from "./pages/admin/AdminOrdersPage.jsx";
 import AdminShopsPage from "./pages/admin/AdminShopsPage.jsx";
@@ -63,7 +64,7 @@ function ScrollToTop() {
 
 export default function App() {
   return (
-    <>
+    <ChatbotSession>
       <ScrollToTop />
       <Routes>
         <Route
@@ -195,6 +196,6 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
+    </ChatbotSession>
   );
 }

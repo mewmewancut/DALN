@@ -79,7 +79,6 @@ export default function ShopInventoryPage() {
 
   return (
     <>
-      <p className="eyebrow">Chủ shop</p>
       <h1>Tồn kho</h1>
       <div className="toolbar">
         <label>
@@ -135,14 +134,21 @@ export default function ShopInventoryPage() {
                   const threshold = thresholds[item.variant_id] ?? "";
                   const invalid = !/^\d+$/.test(threshold);
                   return (
-                    <tr key={item.variant_id} className={item.is_low ? "row-low" : undefined}>
+                    <tr
+                      key={item.variant_id}
+                      className={item.quantity === 0 || item.is_low ? "row-low" : undefined}
+                    >
                       <td>{item.product_name}</td>
                       <td>{item.size}</td>
                       <td>{item.color}</td>
                       <td>{item.sku}</td>
                       <td className="numeric-cell">
                         {item.quantity}
-                        {item.is_low && <span className="low-label"> Sắp hết</span>}
+                        {item.quantity === 0 ? (
+                          <span className="low-label"> Hết hàng</span>
+                        ) : (
+                          item.is_low && <span className="low-label"> Sắp hết</span>
+                        )}
                       </td>
                       <td>
                         <input

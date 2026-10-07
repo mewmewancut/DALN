@@ -1,3 +1,4 @@
+import ModalDialog from "../../components/ModalDialog.jsx";
 import { useEffect, useState } from "react";
 
 import client from "../../api/client.js";
@@ -175,7 +176,6 @@ export default function ShopSuppliersPage() {
 
   return (
     <>
-      <p className="eyebrow">Chủ shop</p>
       <h1>Nhà cung cấp</h1>
 
       <section className="management-form">
@@ -192,7 +192,6 @@ export default function ShopSuppliersPage() {
 
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Danh sách</p>
           <h2>Nhà cung cấp hiện có</h2>
         </div>
       </div>
@@ -225,7 +224,7 @@ export default function ShopSuppliersPage() {
         </p>
       )}
 
-      {actionError && (
+      {actionError && !editing && !supplierToStop && (
         <p className="form-error" role="alert">
           {actionError}
         </p>
@@ -274,7 +273,8 @@ export default function ShopSuppliersPage() {
                       <div className="table-actions">
                         <button
                           type="button"
-                          onClick={() =>
+                          onClick={() => {
+                            setActionError("");
                             setEditing({
                               id: supplier.id,
                               form: {
@@ -282,8 +282,8 @@ export default function ShopSuppliersPage() {
                                 phone: supplier.phone ?? "",
                                 address: supplier.address ?? "",
                               },
-                            })
-                          }
+                            });
+                          }}
                         >
                           Sửa
                         </button>
@@ -292,7 +292,10 @@ export default function ShopSuppliersPage() {
                           <button
                             type="button"
                             disabled={pending === supplier.id}
-                            onClick={() => setSupplierToStop(supplier)}
+                            onClick={() => {
+                              setActionError("");
+                              setSupplierToStop(supplier);
+                            }}
                           >
                             {pending === supplier.id ? "Đang xử lý..." : "Ngừng hợp tác"}
                           </button>
@@ -333,81 +336,82 @@ export default function ShopSuppliersPage() {
       )}
 
       {editing && (
-        <div className="dialog-backdrop">
-          <section className="dialog" role="dialog" aria-modal="true" aria-label="Sửa nhà cung cấp">
-            <h2>Sửa nhà cung cấp</h2>
+        <ModalDialog
+          onClose={() => setEditing(null)}
+          closeDisabled={pending === editing.id}
+          error={actionError}
+          className="dialog"
+          aria-label="Sửa nhà cung cấp"
+        >
+          <h2>Sửa nhà cung cấp</h2>
 
-            <form className="form-stack" onSubmit={saveEdit}>
-              <SupplierFields
-                form={editing.form}
-                onChange={(next) => setEditing({ ...editing, form: next })}
-              />
-
-              <div className="dialog-actions">
-                <button
-                  type="button"
-                  onClick={() => setEditing(null)}
-                  disabled={pending === editing.id}
-                >
-                  Đóng
-                </button>
-
-                <button type="submit" disabled={pending === editing.id}>
-                  {pending === editing.id ? "Đang lưu..." : "Lưu"}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
-      )}
-      {supplierToStop && (
-        <div className="dialog-backdrop">
-          <section
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="stop-supplier-title"
-            aria-describedby="stop-supplier-description"
-          >
-            <p className="eyebrow">Xác nhận thao tác</p>
-
-            <h2 id="stop-supplier-title">Ngừng hợp tác với nhà cung cấp?</h2>
-
-            <p id="stop-supplier-description">
-              Bạn có chắc muốn ngừng hợp tác với <strong>{supplierToStop.name}</strong>? Nhà cung
-              cấp sẽ chuyển sang trạng thái ngừng hợp tác và có thể khôi phục lại sau.
-            </p>
+          <form className="form-stack" onSubmit={saveEdit}>
+            <SupplierFields
+              form={editing.form}
+              onChange={(next) => setEditing({ ...editing, form: next })}
+            />
 
             <div className="dialog-actions">
               <button
                 type="button"
-                disabled={pending === supplierToStop.id}
-                onClick={() => setSupplierToStop(null)}
+                onClick={() => setEditing(null)}
+                disabled={pending === editing.id}
               >
-                Hủy
+                Đóng
               </button>
 
-              <button
-                type="button"
-                className="primary-button"
-                disabled={pending === supplierToStop.id}
-                onClick={async () => {
-                  const success = await run(
-                    supplierToStop.id,
-                    () => client.delete(`/shop/suppliers/${supplierToStop.id}`),
-                    "Đã ngừng hợp tác với nhà cung cấp.",
-                  );
-
-                  if (success) {
-                    setSupplierToStop(null);
-                  }
-                }}
-              >
-                {pending === supplierToStop.id ? "Đang xử lý..." : "Ngừng hợp tác"}
+              <button type="submit" disabled={pending === editing.id}>
+                {pending === editing.id ? "Đang lưu..." : "Lưu"}
               </button>
             </div>
-          </section>
-        </div>
+          </form>
+        </ModalDialog>
+      )}
+      {supplierToStop && (
+        <ModalDialog
+          onClose={() => setSupplierToStop(null)}
+          closeDisabled={pending === supplierToStop.id}
+          error={actionError}
+          className="dialog"
+          aria-labelledby="stop-supplier-title"
+          aria-describedby="stop-supplier-description"
+        >
+          <h2 id="stop-supplier-title">Ngừng hợp tác với nhà cung cấp?</h2>
+
+          <p id="stop-supplier-description">
+            Bạn có chắc muốn ngừng hợp tác với <strong>{supplierToStop.name}</strong>? Nhà cung cấp
+            sẽ chuyển sang trạng thái ngừng hợp tác và có thể khôi phục lại sau.
+          </p>
+
+          <div className="dialog-actions">
+            <button
+              type="button"
+              disabled={pending === supplierToStop.id}
+              onClick={() => setSupplierToStop(null)}
+            >
+              Hủy
+            </button>
+
+            <button
+              type="button"
+              className="primary-button"
+              disabled={pending === supplierToStop.id}
+              onClick={async () => {
+                const success = await run(
+                  supplierToStop.id,
+                  () => client.delete(`/shop/suppliers/${supplierToStop.id}`),
+                  "Đã ngừng hợp tác với nhà cung cấp.",
+                );
+
+                if (success) {
+                  setSupplierToStop(null);
+                }
+              }}
+            >
+              {pending === supplierToStop.id ? "Đang xử lý..." : "Ngừng hợp tác"}
+            </button>
+          </div>
+        </ModalDialog>
       )}
     </>
   );

@@ -9,7 +9,7 @@ export default function ShopPerformancePanel({ shops, revenue }) {
     <DashboardPanel
       title="Shop đóng góp doanh thu"
       className="dashboard-wide"
-      description="Top 10 theo doanh thu giao thành công trong kỳ. Tỷ lệ hủy giúp kiểm tra chất lượng xử lý đơn ở các shop này."
+      description="Top 10 theo doanh thu đã giao trong kỳ"
     >
       <div className="shop-performance-grid">
         <div>

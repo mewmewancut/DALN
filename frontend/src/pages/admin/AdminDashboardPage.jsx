@@ -11,11 +11,7 @@ export default function AdminDashboardPage() {
   const { data, loading, error, refresh } = useDashboard("/admin/stats/dashboard", range);
   return (
     <div className="dashboard-page">
-      <p className="eyebrow">Admin · Hiệu quả toàn hệ thống</p>
       <h1>Quản trị hệ thống</h1>
-      <p className="dashboard-intro">
-        Nắm xu hướng doanh thu, đóng góp của shop và các vấn đề cần xử lý.
-      </p>
       <DashboardToolbar range={range} onChange={setRange} loading={loading} onRefresh={refresh} />
       {loading && <p role="status">Đang tải số liệu...</p>}
       {error && (

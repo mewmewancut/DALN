@@ -27,7 +27,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <SiteLayout>
-      <p className="eyebrow">Khôi phục tài khoản</p>
       <h1>Quên mật khẩu</h1>
       <p>Nhập email để nhận liên kết đặt lại mật khẩu có hiệu lực trong 30 phút.</p>
       <form className="form-stack" onSubmit={submit}>

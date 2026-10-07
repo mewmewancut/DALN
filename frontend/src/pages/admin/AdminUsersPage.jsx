@@ -1,3 +1,4 @@
+import ModalDialog from "../../components/ModalDialog.jsx";
 import { useEffect, useState } from "react";
 
 import client from "../../api/client.js";
@@ -120,7 +121,6 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      <p className="eyebrow">Admin</p>
       <h1>Người dùng</h1>
 
       <div className="toolbar">
@@ -163,7 +163,7 @@ export default function AdminUsersPage() {
         </p>
       )}
 
-      {actionError && (
+      {actionError && !userToLock && (
         <p className="form-error" role="alert">
           {actionError}
         </p>
@@ -212,6 +212,7 @@ export default function AdminUsersPage() {
                         disabled={pendingId === user.id}
                         onClick={() => {
                           if (user.is_active) {
+                            setActionError("");
                             setUserToLock(user);
                           } else {
                             toggleActive(user);
@@ -242,50 +243,47 @@ export default function AdminUsersPage() {
       />
 
       {userToLock && (
-        <div className="dialog-backdrop">
-          <section
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="lock-user-title"
-            aria-describedby="lock-user-description"
-          >
-            <p className="eyebrow">Xác nhận thao tác</p>
+        <ModalDialog
+          onClose={() => setUserToLock(null)}
+          closeDisabled={pendingId === userToLock.id}
+          error={actionError}
+          className="dialog"
+          aria-labelledby="lock-user-title"
+          aria-describedby="lock-user-description"
+        >
+          <h2 id="lock-user-title">Khóa tài khoản?</h2>
 
-            <h2 id="lock-user-title">Khóa tài khoản?</h2>
+          <p id="lock-user-description">
+            Bạn có chắc muốn khóa tài khoản{" "}
+            <strong>{userToLock.full_name || userToLock.email}</strong>? Người dùng sẽ không thể
+            tiếp tục sử dụng tài khoản cho đến khi được mở khóa.
+          </p>
 
-            <p id="lock-user-description">
-              Bạn có chắc muốn khóa tài khoản{" "}
-              <strong>{userToLock.full_name || userToLock.email}</strong>? Người dùng sẽ không thể
-              tiếp tục sử dụng tài khoản cho đến khi được mở khóa.
-            </p>
+          <div className="dialog-actions">
+            <button
+              type="button"
+              disabled={pendingId === userToLock.id}
+              onClick={() => setUserToLock(null)}
+            >
+              Hủy
+            </button>
 
-            <div className="dialog-actions">
-              <button
-                type="button"
-                disabled={pendingId === userToLock.id}
-                onClick={() => setUserToLock(null)}
-              >
-                Hủy
-              </button>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={pendingId === userToLock.id}
+              onClick={async () => {
+                const success = await toggleActive(userToLock);
 
-              <button
-                type="button"
-                className="primary-button"
-                disabled={pendingId === userToLock.id}
-                onClick={async () => {
-                  const success = await toggleActive(userToLock);
-
-                  if (success) {
-                    setUserToLock(null);
-                  }
-                }}
-              >
-                {pendingId === userToLock.id ? "Đang xử lý..." : "Khóa tài khoản"}
-              </button>
-            </div>
-          </section>
-        </div>
+                if (success) {
+                  setUserToLock(null);
+                }
+              }}
+            >
+              {pendingId === userToLock.id ? "Đang xử lý..." : "Khóa tài khoản"}
+            </button>
+          </div>
+        </ModalDialog>
       )}
     </>
   );

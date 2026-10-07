@@ -1,4 +1,7 @@
 const paths = {
+  pants: "M6 3h12l2 18h-7l-1-11-1 11H4L6 3Zm0 4h12M12 3v7",
+  dress: "M9 3h6l1 6-2 3 5 9H5l5-9-2-3 1-6Zm-1 6h8M10 12h4",
+  shoe: "M4 6h5l3 6 8 3 1 5H3v-7l1-7Zm-1 11h18M11 10l-2 2M14 13l-2 2",
   chat: "M3 4h18v13H8l-5 4V4Zm4 5h10M7 13h6",
   bag: "M6 7h12l1 13H5L6 7Zm3 0V5a3 3 0 0 1 6 0v2",
   heart:

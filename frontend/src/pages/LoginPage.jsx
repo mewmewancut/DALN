@@ -32,7 +32,6 @@ export default function LoginPage() {
 
   return (
     <SiteLayout>
-      <p className="eyebrow">Tài khoản</p>
       <h1>Đăng nhập</h1>
       <form className="form-stack" onSubmit={submit}>
         <label>

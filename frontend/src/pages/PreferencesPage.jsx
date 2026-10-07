@@ -92,11 +92,8 @@ export default function PreferencesPage() {
     <SiteLayout wide>
       <header className="page-heading">
         <div>
-          <p className="eyebrow">Cá nhân hóa</p>
           <h1>Sở thích mua sắm</h1>
-          <p className="muted">
-            Chọn những gì bạn thường quan tâm để ưu tiên sản phẩm trong mục Dành cho bạn.
-          </p>
+          <p className="muted">Dùng để gợi ý sản phẩm trong mục Dành cho bạn.</p>
         </div>
       </header>
       {loading && <p role="status">Đang tải sở thích...</p>}
@@ -119,7 +116,6 @@ export default function PreferencesPage() {
         <form className="preference-form" onSubmit={save}>
           <fieldset>
             <legend>Danh mục yêu thích</legend>
-            <p className="muted">Bạn có thể chọn nhiều danh mục.</p>
             <div className="preference-options">
               {options.categories.map((category) => (
                 <label key={category.id}>
@@ -137,7 +133,7 @@ export default function PreferencesPage() {
           <fieldset>
             <legend>Màu sắc thường chọn</legend>
             {options.colors.length === 0 ? (
-              <p className="muted">Catalog chưa có màu sắc để lựa chọn.</p>
+              <p className="muted">Chưa có màu sắc để chọn.</p>
             ) : (
               <div className="preference-options">
                 {options.colors.map((color) => (

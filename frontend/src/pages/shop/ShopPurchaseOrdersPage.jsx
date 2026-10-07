@@ -106,7 +106,6 @@ export default function ShopPurchaseOrdersPage() {
 
   return (
     <>
-      <p className="eyebrow">Chủ shop</p>
       <h1>Nhập hàng</h1>
       {referencesLoading && <p role="status">Đang tải nhà cung cấp và biến thể...</p>}
       {referencesError && (

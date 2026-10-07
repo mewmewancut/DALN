@@ -1,6 +1,17 @@
 # Chatbot Genie trên website
 
 Người dùng đăng nhập tài khoản dự án, mở **Chatbot Genie** ở sidebar admin/shop.
+Nút **Chatbot Genie** ở góc dưới bên phải xuất hiện trên các trang của ADMIN và
+SHOP_OWNER đã có shop, gồm cả trang hồ sơ. Bấm để mở hoặc thu gọn khung chat;
+Escape thu gọn và trả focus về nút mở. Khung chat thích ứng với màn hình nhỏ,
+có câu hỏi gợi ý, gửi câu hỏi, kết quả và lịch sử (mở mục **Lịch sử trò chuyện**
+để xem, đổi tên hoặc xóa). Nút **Mở rộng** đưa tới trang chatbot đầy đủ.
+Hai giao diện dùng chung cuộc trò chuyện, câu hỏi đang soạn và trạng thái xử lý
+trong phiên đăng nhập: thu gọn hoặc chuyển trang không làm mất chat hay gửi lại
+câu hỏi. Trên trang chatbot đầy đủ, khung nổi được ẩn để chỉ có một giao diện.
+Chỉ tải API chatbot khi mở khung chat hoặc trang chatbot lần đầu. Đăng xuất hoặc
+đổi tài khoản/phạm vi phiên xóa trạng thái trên frontend và dừng polling.
+Yêu cầu khung chat nổi được người dùng xác nhận ngày 07/10/2026.
 Không yêu cầu đăng nhập hoặc cấp quyền Databricks cho từng người dùng web.
 Yêu cầu mở rộng này được người dùng xác nhận ngày 06/10/2026. Không thay Planning.
 Gate [E4](E4_QUALITY.md) đã PASS 5/5 trước khi bắt đầu triển khai Genie.
@@ -58,7 +69,8 @@ không thay token đăng nhập; tài khoản khác (kể cả admin) không th�
 Genie xử lý bất đồng bộ. Frontend poll mỗi hai giây sau khi request trước hoàn
 tất, dừng sau 60 lần và cho Kiểm tra lại kết quả. Retry này chỉ đọc kết quả,
 không gửi lại câu hỏi. Chặn gửi trùng trong khi đang xử lý; bỏ response cũ khi
-đổi cuộc trò chuyện/rời trang. Mỗi HTTP request backend timeout 20 giây;
+đổi cuộc trò chuyện/kết thúc phiên. Poll tiếp tục khi thu gọn hoặc chuyển trang
+trong cùng phiên, vẫn giữ giới hạn 60 lần. Mỗi HTTP request backend timeout 20 giây;
 lỗi upstream được làm sạch, không trả secret, lỗi SQL nội bộ hoặc link tải
 chứa credential. HTTP 429 hiển thị quá tải. Không tự retry POST tạo câu hỏi.
 

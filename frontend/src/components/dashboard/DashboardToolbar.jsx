@@ -6,7 +6,12 @@ export default function DashboardToolbar({ range, onChange, loading, onRefresh }
     <div className="dashboard-toolbar">
       <div className="dashboard-presets" aria-label="Khoảng thời gian nhanh">
         {[7, 30, 90].map((days) => (
-          <button key={days} type="button" onClick={() => onChange(lastDays(days))}>
+          <button
+            key={days}
+            type="button"
+            aria-pressed={range.from === lastDays(days).from && range.to === lastDays(days).to}
+            onClick={() => onChange(lastDays(days))}
+          >
             {days} ngày
           </button>
         ))}

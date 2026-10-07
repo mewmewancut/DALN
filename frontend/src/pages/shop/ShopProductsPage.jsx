@@ -87,7 +87,6 @@ export default function ShopProductsPage() {
 
   return (
     <>
-      <p className="eyebrow">Chủ shop</p>
       <h1>Sản phẩm</h1>
       <div className="toolbar">
         <label>
@@ -116,6 +115,7 @@ export default function ShopProductsPage() {
         </label>
         <button
           type="button"
+          className="primary-button"
           disabled={categoriesLoading || !!categoriesError}
           onClick={() => setDialog({ product: null })}
         >

@@ -52,3 +52,19 @@ it("hiển thị fallback khi sản phẩm không có URL ảnh", async () => {
   expect(container.querySelector("img")).toBeNull();
   expect(container.querySelector('[role="img"]').textContent).toContain("Chưa có ảnh");
 });
+
+it("uses a local illustration for demo placeholder URLs without exposing their technical labels", async () => {
+  await render("https://placehold.co/600x800?text=shop-3-product-15", { alt: "Váy linen" });
+  expect(container.querySelector("img")).toBeNull();
+  expect(container.querySelector('[role="img"]').getAttribute("aria-label")).toBe(
+    "Váy linen: chưa có ảnh",
+  );
+  expect(container.textContent).not.toContain("shop-3-product-15");
+  const dress = container.querySelector("path").getAttribute("d");
+  await render(null, { alt: "Quần linen" });
+  expect(container.querySelector("path").getAttribute("d")).not.toBe(dress);
+  await render("https://example.com/placehold.co-shirt.jpg");
+  expect(container.querySelector("img").getAttribute("src")).toBe(
+    "https://example.com/placehold.co-shirt.jpg",
+  );
+});

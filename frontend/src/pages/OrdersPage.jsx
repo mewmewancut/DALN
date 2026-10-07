@@ -1,3 +1,4 @@
+import ModalDialog from "../components/ModalDialog.jsx";
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 
@@ -69,7 +70,6 @@ export default function OrdersPage() {
 
   return (
     <SiteLayout wide>
-      <p className="eyebrow">Tài khoản</p>
       <h1>Đơn hàng của tôi</h1>
       <div className="status-tabs" aria-label="Lọc trạng thái đơn hàng">
         <button
@@ -102,7 +102,7 @@ export default function OrdersPage() {
           {loadError}
         </p>
       )}
-      {actionError && (
+      {actionError && !cancelOrder && (
         <p className="form-error" role="alert">
           {actionError}
         </p>
@@ -154,29 +154,33 @@ export default function OrdersPage() {
         </button>
       </div>
       {cancelOrder && (
-        <div className="dialog-backdrop">
-          <section className="dialog" role="dialog" aria-modal="true" aria-label="Hủy đơn hàng">
-            <h2>Hủy {cancelOrder.code}</h2>
-            <form className="form-stack" onSubmit={confirmCancel}>
-              <label>
-                Lý do hủy
-                <textarea
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                  required
-                />
-              </label>
-              <div className="dialog-actions">
-                <button type="button" disabled={cancelling} onClick={() => setCancelOrder(null)}>
-                  Giữ đơn
-                </button>
-                <button type="submit" disabled={cancelling}>
-                  {cancelling ? "Đang hủy..." : "Xác nhận hủy"}
-                </button>
-              </div>
-            </form>
-          </section>
-        </div>
+        <ModalDialog
+          onClose={() => setCancelOrder(null)}
+          closeDisabled={cancelling}
+          error={actionError}
+          className="dialog"
+          aria-label="Hủy đơn hàng"
+        >
+          <h2>Hủy {cancelOrder.code}</h2>
+          <form className="form-stack" onSubmit={confirmCancel}>
+            <label>
+              Lý do hủy
+              <textarea
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                required
+              />
+            </label>
+            <div className="dialog-actions">
+              <button type="button" disabled={cancelling} onClick={() => setCancelOrder(null)}>
+                Giữ đơn
+              </button>
+              <button type="submit" disabled={cancelling}>
+                {cancelling ? "Đang hủy..." : "Xác nhận hủy"}
+              </button>
+            </div>
+          </form>
+        </ModalDialog>
       )}
     </SiteLayout>
   );

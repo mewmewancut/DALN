@@ -50,7 +50,6 @@ export default function ResetPasswordPage() {
 
   return (
     <SiteLayout>
-      <p className="eyebrow">Khôi phục tài khoản</p>
       <h1>Đặt mật khẩu mới</h1>
       {message ? (
         <>

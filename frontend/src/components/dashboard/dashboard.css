@@ -11,12 +11,12 @@
 .dashboard-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 10px;
   align-items: end;
-  padding: 18px;
+  padding: 14px 16px;
   margin: 24px 0;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 6px;
   background: #fff;
 }
 .dashboard-toolbar label {
@@ -36,6 +36,11 @@
 .dashboard-presets button {
   padding: 10px 12px;
 }
+.dashboard-presets button[aria-pressed="true"] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
 .dashboard-period {
   font-size: 0.85rem;
   margin: 0 0 16px;
@@ -46,7 +51,8 @@
 }
 .dashboard-page .stat-card {
   padding: 20px;
-  border-top: 3px solid #316b65;
+  border-top: 1px solid var(--line);
+  border-radius: 6px;
 }
 .dashboard-page .stat-card strong {
   font-size: clamp(1.1rem, 1.6vw, 1.7rem);
@@ -72,9 +78,9 @@
 }
 .dashboard-panel {
   min-width: 0;
-  padding: 24px;
+  padding: 22px;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 6px;
   background: #fff;
 }
 .dashboard-panel-heading {
@@ -90,7 +96,7 @@
 }
 .dashboard-panel-heading a {
   font-size: 0.85rem;
-  color: #316b65;
+  color: var(--accent);
   font-weight: 600;
 }
 .dashboard-description {
@@ -139,7 +145,7 @@
 }
 .bar-track > div {
   height: 100%;
-  background: #39796f;
+  background: var(--accent);
   border-radius: inherit;
 }
 .dashboard-bars [data-tone="warning"] .bar-track > div {
@@ -149,7 +155,7 @@
   background: #829ba2;
 }
 .dashboard-bars [data-tone="success"] .bar-track > div {
-  background: #39796f;
+  background: #42765b;
 }
 .work-queue {
   display: grid;
@@ -160,9 +166,9 @@
   display: grid;
   gap: 8px;
   padding: 18px;
-  border-radius: 12px;
-  background: #f3f6f5;
-  border: 1px solid #e4ece8;
+  border-radius: 4px;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
 }
 .work-queue span {
   font-size: 0.85rem;
@@ -226,14 +232,14 @@
   display: none;
 }
 .dashboard-page .chart-line {
-  stroke: #39796f;
+  stroke: var(--accent);
   stroke-width: 2.5;
 }
 .dashboard-page .chart-point {
-  fill: #39796f;
+  fill: var(--accent);
 }
 .chart-point:focus {
-  outline: 2px solid #39796f;
+  outline: 2px solid var(--accent);
 }
 .chart-label {
   fill: #66736e;

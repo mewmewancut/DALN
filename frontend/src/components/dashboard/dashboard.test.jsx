@@ -184,6 +184,21 @@ it("ignores an old request that resolves after the selected period has changed",
   expect(container.textContent).toContain("2026-09-11 → 2026-09-17");
 });
 
+it("indicates the selected preset and clears it when the dates become custom", async () => {
+  mockDashboard("SHOP_OWNER");
+  await renderAt("/shop/dashboard");
+  expect(button("30 ngày").getAttribute("aria-pressed")).toBe("true");
+  await click(button("7 ngày"));
+  expect(button("7 ngày").getAttribute("aria-pressed")).toBe("true");
+  expect(button("30 ngày").getAttribute("aria-pressed")).toBe("false");
+  await fill("Từ ngày", "2026-09-01");
+  expect(
+    [...container.querySelectorAll(".dashboard-presets button")].every(
+      (node) => node.getAttribute("aria-pressed") === "false",
+    ),
+  ).toBe(true);
+});
+
 it("empty data shows zero totals, undefined ratios and explanations without a fake chart", async () => {
   mockDashboard("ADMIN");
   await renderAt("/admin/dashboard");

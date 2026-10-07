@@ -40,7 +40,6 @@ export default function VerifyEmailPage() {
 
   return (
     <SiteLayout>
-      <p className="eyebrow">Xác minh tài khoản</p>
       <h1>Xác nhận email</h1>
       {message ? (
         <>

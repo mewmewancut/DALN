@@ -60,6 +60,20 @@ function mockProfileLoad(addresses = []) {
   });
 }
 
+it.each([
+  ["BUYER", "Người mua"],
+  ["SHOP_OWNER", "Chủ shop"],
+  ["ADMIN", "Quản trị viên"],
+])("shows a readable role on the %s profile", async (role, label) => {
+  signInAs(role, role === "SHOP_OWNER" ? 7 : null);
+  vi.spyOn(client, "get").mockImplementation(async (url) => ({
+    data: url === "/users/me/profile" ? { ...profile, role } : [],
+  }));
+  await renderAt("/account/profile");
+  expect(field("Vai trò").value).toBe(label);
+  expect(field("Vai trò").disabled).toBe(true);
+});
+
 async function chooseCombobox(label, query, optionText, keyboard = false) {
   const input = field(label);
   await act(async () => input.focus());

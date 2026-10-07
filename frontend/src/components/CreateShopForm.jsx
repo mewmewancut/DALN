@@ -29,7 +29,6 @@ export default function CreateShopForm() {
 
   return (
     <>
-      <p className="eyebrow">Chủ shop</p>
       <h1>Tạo shop của bạn</h1>
       <p>Tài khoản chưa có shop. Tạo shop để bắt đầu đăng sản phẩm và nhận đơn.</p>
       <form className="form-stack" onSubmit={handleSubmit}>

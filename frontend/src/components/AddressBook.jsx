@@ -138,7 +138,6 @@ export default function AddressBook({ onError, onNotice }) {
   return (
     <section className="address-section">
       <div>
-        <p className="eyebrow">Giao hàng</p>
         <h2>Sổ địa chỉ</h2>
       </div>
       {loading ? (

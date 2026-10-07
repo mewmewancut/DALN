@@ -1,3 +1,4 @@
+import ModalDialog from "../components/ModalDialog.jsx";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 
@@ -130,7 +131,7 @@ export default function ProductDetailPage() {
         <span>{product?.name ?? "Chi tiết"}</span>
       </nav>
       {loading && <p role="status">Đang tải sản phẩm...</p>}
-      {error && (
+      {error && !differentShop && (
         <p className="form-error" role="alert">
           {error}
         </p>
@@ -251,7 +252,6 @@ export default function ProductDetailPage() {
           <section className="reviews" aria-label="Đánh giá sản phẩm">
             <div className="review-heading">
               <div>
-                <p className="eyebrow">Từ người mua</p>
                 <h2>Đánh giá sản phẩm</h2>
               </div>
               <strong>
@@ -279,26 +279,25 @@ export default function ProductDetailPage() {
         </>
       )}
       {differentShop && (
-        <div className="dialog-backdrop">
-          <section
-            className="dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Đổi shop trong giỏ"
-          >
-            <h2>Giỏ hàng đang có sản phẩm khác shop</h2>
-            <p>{differentShop.message}</p>
-            <p>Shop hiện tại: {differentShop.currentShop.name}</p>
-            <div className="dialog-actions">
-              <button type="button" onClick={() => setDifferentShop(null)}>
-                Giữ giỏ hiện tại
-              </button>
-              <button type="button" disabled={adding} onClick={replaceCart}>
-                Xóa giỏ và thêm
-              </button>
-            </div>
-          </section>
-        </div>
+        <ModalDialog
+          onClose={() => setDifferentShop(null)}
+          closeDisabled={adding}
+          error={error}
+          className="dialog"
+          aria-label="Đổi shop trong giỏ"
+        >
+          <h2>Giỏ hàng đang có sản phẩm khác shop</h2>
+          <p>{differentShop.message}</p>
+          <p>Shop hiện tại: {differentShop.currentShop.name}</p>
+          <div className="dialog-actions">
+            <button type="button" onClick={() => setDifferentShop(null)}>
+              Giữ giỏ hiện tại
+            </button>
+            <button type="button" disabled={adding} onClick={replaceCart}>
+              Xóa giỏ và thêm
+            </button>
+          </div>
+        </ModalDialog>
       )}
     </SiteLayout>
   );

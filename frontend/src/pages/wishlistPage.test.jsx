@@ -106,7 +106,8 @@ it("hiện sản phẩm tạm ẩn trong wishlist và vẫn cho xóa", async () 
 
   await renderAt("/wishlist");
   expect(container.textContent).toContain("Sản phẩm tạm ẩn");
-  expect(container.textContent).not.toContain("Chọn phân loại");
+  expect(container.textContent).not.toContain("Mua hàng");
+  expect(container.querySelector('a[href="/products/5"]')).toBeNull();
   await click(button("Bỏ yêu thích"));
   expect(remove).toHaveBeenCalledWith("/wishlist/items/5");
   expect(container.textContent).toContain("Chưa có sản phẩm yêu thích");

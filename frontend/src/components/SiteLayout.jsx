@@ -5,29 +5,22 @@ import UiIcon from "./UiIcon.jsx";
 
 export default function SiteLayout({ children, wide = false }) {
   const { session, logout } = useAuth();
+  const management = ["ADMIN", "SHOP_OWNER"].includes(session?.role);
 
   const navClassName = ({ isActive }) => `site-nav-link${isActive ? " active" : ""}`;
 
   return (
-    <div className="site-frame">
+    <div className={`site-frame${management ? " is-management" : " is-storefront"}`}>
       <a className="skip-link" href="#main-content">
         Đến nội dung chính
       </a>
-      <div className="announcement-bar">
-        <span>Marketplace thời trang Việt</span>
-        <span>Khám phá phong cách từ nhiều gian hàng</span>
-      </div>
-
       <header className="site-header">
         <Link to="/" className="brand" aria-label="Fashion Marketplace - Trang chủ">
           <span className="brand-mark" aria-hidden="true">
             F
           </span>
 
-          <span>
-            Fashion
-            <small>Marketplace</small>
-          </span>
+          <span>FASHION</span>
         </Link>
 
         <nav className="site-nav" aria-label="Điều hướng tài khoản">

@@ -98,7 +98,6 @@ export default function CheckoutPage() {
 
   return (
     <SiteLayout wide>
-      <p className="eyebrow">Hoàn tất đơn hàng</p>
       <h1>Thanh toán</h1>
       {loading && <p role="status">Đang kiểm tra giỏ hàng...</p>}
       {loadError && (
