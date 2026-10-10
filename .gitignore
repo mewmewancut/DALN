@@ -31,4 +31,6 @@ Thumbs.db
 htmlcov/
 coverage/
 output/playwright/
+output/pdf/
+output/sql/
 backend/runtime/product-images/

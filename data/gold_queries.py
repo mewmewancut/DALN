@@ -50,7 +50,11 @@ def build_query(table, silver, gold):
         return f"""
             WITH created AS (
                 SELECT created_date_vn AS date, shop_id, COUNT(*) AS total_orders,
-                       COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) AS cancelled
+                       COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) AS cancelled,
+                       COUNT(CASE WHEN status = 'PENDING' THEN 1 END) AS pending,
+                       COUNT(CASE WHEN status = 'CONFIRMED' THEN 1 END) AS confirmed,
+                       COUNT(CASE WHEN status = 'PREPARING' THEN 1 END) AS preparing,
+                       COUNT(CASE WHEN status = 'SHIPPING' THEN 1 END) AS shipping
                 FROM {silver}.fact_orders GROUP BY created_date_vn, shop_id
             )
             SELECT COALESCE(c.date, r.date) AS date, COALESCE(c.shop_id, r.shop_id) AS shop_id,
@@ -58,7 +62,11 @@ def build_query(table, silver, gold):
                    COALESCE(r.delivered_orders, 0) AS delivered,
                    COALESCE(c.cancelled, 0) AS cancelled,
                    c.cancelled / NULLIF(c.total_orders, 0) AS cancel_rate,
-                   r.revenue / NULLIF(r.delivered_orders, 0) AS aov
+                   r.revenue / NULLIF(r.delivered_orders, 0) AS aov,
+                   COALESCE(c.pending, 0) AS pending,
+                   COALESCE(c.confirmed, 0) AS confirmed,
+                   COALESCE(c.preparing, 0) AS preparing,
+                   COALESCE(c.shipping, 0) AS shipping
             FROM created c FULL OUTER JOIN {gold}.revenue_daily r
                 ON c.date = r.date AND c.shop_id = r.shop_id
         """

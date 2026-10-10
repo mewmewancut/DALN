@@ -60,6 +60,37 @@ def test_space_rejects_raw_sources_unknown_columns_and_unsafe_catalog():
         build_space("fashion", {"orders": ["id"]})
 
 
+@pytest.mark.parametrize("shared", [False, True])
+def test_e5_status_columns_enable_shipping_without_raw_sources_or_default_month(shared):
+    available = columns()
+    available["orders_summary_daily"] = [
+        "shop_id",
+        "date",
+        "total_orders",
+        "delivered",
+        "cancelled",
+        "pending",
+        "confirmed",
+        "preparing",
+        "shipping",
+    ]
+    payload = json.loads(build_space("fashion", available, shared=shared))
+    instruction = " ".join(payload["instructions"]["text_instructions"][0]["content"])
+    assert "SUM(shipping) across ALL dates" in instruction
+    assert "not default to this month" in instruction
+    assert "does not contain a SHIPPING" not in instruction
+    example = next(
+        e
+        for e in payload["instructions"]["example_question_sqls"]
+        if e["question"] == ["Có bao nhiêu đơn hàng đang giao?"]
+    )
+    assert "SUM(shipping)" in " ".join(example["sql"])
+    assert "WHERE date" not in " ".join(example["sql"])
+    assert ("chatbot_orders_summary_daily" if shared else "orders_summary_daily") in " ".join(
+        example["sql"]
+    )
+
+
 def test_provision_refuses_pre_gate_or_unignored_secret_output_without_mutation(tmp_path):
     client, sql = Mock(), Mock()
     with pytest.raises(ValueError, match="E4"):

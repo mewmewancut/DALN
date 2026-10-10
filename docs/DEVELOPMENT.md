@@ -123,4 +123,12 @@ Sửa định dạng chủ động bằng `docker compose --env-file .env.exampl
 
 ## Skill review DALN
 
+Demo build production với nginx, reset database độc lập và browser E2E nằm ở
+[DEMO.md](DEMO.md). Vite trong demo dùng `VITE_API_URL=/api`; Axios dùng chung
+và resolver ảnh chấp nhận cả base URL tương đối cùng origin và URL tuyệt đối.
+Runner browser dùng Playwright được khóa version trong lockfile, Node test
+runner và image Chromium tương ứng; không yêu cầu cài browser trên host.
+[CI](../.github/workflows/ci.yml) chạy hook đầy đủ và browser journey ở hai job
+riêng; không triển khai public hoặc dùng credential Lakebase/Genie trong CI.
+
 Skill cá nhân `daln-review` đã được tạo trên máy phát triển tại `~/.codex/skills/daln-review/SKILL.md`; file này nằm ngoài repository và không tự có trên máy của người clone. Có thể gọi: `Dùng $daln-review để review thay đổi hiện tại theo Planning, kiểm tra test và báo lỗi trước commit.` Skill đọc nguồn sự thật trong repository, review theo phần nghiệp vụ bị thay đổi và báo phát hiện kèm bằng chứng; yêu cầu review đơn thuần không tự cho phép sửa code hay tạo commit.

@@ -28,6 +28,10 @@ COLUMNS = {
     "total_orders": "Count of orders created in the period, across all statuses.",
     "delivered": "Orders delivered on this delivery date, independent of creation date.",
     "cancelled": "Currently CANCELLED orders grouped by their creation date.",
+    "pending": "Currently PENDING orders grouped by their Vietnam creation date.",
+    "confirmed": "Currently CONFIRMED orders grouped by their Vietnam creation date.",
+    "preparing": "Currently PREPARING orders grouped by their Vietnam creation date.",
+    "shipping": "Current SHIPPING orders by Vietnam creation date; pipeline snapshot.",
     "cancel_rate": "Cancelled / total created orders; ratio 0-1, NULL for zero denominator.",
     "aov": "Delivered revenue / delivered order count in VND; NULL if no delivered orders.",
     "product_id": "Product identifier; aggregates all variants of this product.",
@@ -114,6 +118,39 @@ def build_space(catalog, columns, shop_id=None, *, shared=False):
 
     examples.extend(natural_examples(quoted, shop=shared or shop_id is not None))
 
+    status_breakdown = {"pending", "confirmed", "preparing", "shipping"}.issubset(
+        columns["orders_summary_daily"]
+    )
+    if status_breakdown:
+        shipping_query = (
+            f"SELECT COALESCE(SUM(shipping),0) AS shipping_orders "
+            f"FROM {quoted['orders_summary_daily']}"
+        )
+        examples.extend(
+            [
+                (questions[2], shipping_query),
+                ("co bao nhieu don dang giao", shipping_query),
+                (
+                    "Có bao nhiêu đơn đang giao được tạo tháng này?",
+                    shipping_query
+                    + f" WHERE date BETWEEN date_trunc('MONTH',{current_date}) AND {current_date}",
+                ),
+            ]
+        )
+
+    status_instruction = (
+        "Gold contains pending/confirmed/preparing/shipping counts by creation date. "
+        "For current shipping orders SUM(shipping) across ALL dates; an unqualified current "
+        "status question must not default to this month. Only apply a creation-date period "
+        "when explicitly requested. For delivered status by creation date use total_orders - "
+        "pending - confirmed - preparing - shipping - cancelled; the delivered column itself "
+        "uses DELIVERY date and is for AOV/revenue, not creation-date status distributions. "
+        if status_breakdown
+        else "Gold does not contain a SHIPPING count or other operational status breakdown. "
+        "If asked how many orders are shipping, explain that the available Gold data "
+        "does not support that question. "
+    )
+
     def uid(label):
         return uuid5(NAMESPACE_URL, f"daln-genie/{catalog}/{shop_id}/{label}").hex
 
@@ -147,10 +184,9 @@ def build_space(catalog, columns, shop_id=None, *, shared=False):
         "Period AOV = SUM(revenue)/SUM(delivered_orders); use SUM(cancelled)/SUM(total_orders) "
         "for cancellation rate; return NULL when denominator is zero. Never join aggregate tables "
         "at incompatible grains and multiply metrics. top_products/shop_performance are all-time. "
-        "Do not invent period product rankings because top_products has no date. Gold does not "
-        "contain a SHIPPING count or other operational status breakdown. If asked how many orders "
-        "are shipping, explain that the available Gold data does not support that question. "
-        "Never query Bronze, Silver, federation or operational tables to fill missing information. "
+        "Do not invent period product rankings because top_products has no date. "
+        + status_instruction
+        + "Never query Bronze, Silver, federation or operational tables for missing information. "
         "Stock is a pipeline snapshot, not real time. "
         + (
             "This is the admin scope covering all shops."

@@ -183,6 +183,46 @@ def test_overwrite_is_repeatable_and_removes_old_groups_even_when_sources_empty(
     assert all(not sql.execute(f"SELECT * FROM gold.{table}") for table in GOLD_TABLES)
 
 
+def test_upgrade_existing_summary_preserves_delivery_metrics_and_counts_creation_statuses(gold_sql):
+    sql = gold_sql
+    sql.execute(
+        "CREATE TABLE gold.orders_summary_daily (date DATE, shop_id BIGINT, "
+        "total_orders BIGINT, delivered BIGINT, cancelled BIGINT, cancel_rate DOUBLE, "
+        "aov DECIMAL(24,6)) USING DELTA"
+    )
+    sql.execute("INSERT INTO gold.orders_summary_daily VALUES (DATE '2020-01-01',99,10,10,0,0,100)")
+    for index, status in enumerate(
+        ("PENDING", "CONFIRMED", "PREPARING", "SHIPPING", "CANCELLED", "DELIVERED")
+    ):
+        delivered = "DATE '2026-10-02'" if status == "DELIVERED" else "NULL"
+        sql.execute(
+            f"INSERT INTO silver.fact_orders VALUES "
+            f"({index + 1},1,'{status}',100,DATE '2026-10-01',{delivered})"
+        )
+    runner = transform(sql)
+    runner.run()
+    summary = rows(sql, "orders_summary_daily", "date")
+    assert [
+        (
+            r.date,
+            r.total_orders,
+            r.delivered,
+            r.pending,
+            r.confirmed,
+            r.preparing,
+            r.shipping,
+            r.cancelled,
+            r.aov,
+        )
+        for r in summary
+    ] == [
+        (date(2026, 10, 1), 6, 0, 1, 1, 1, 1, 1, None),
+        (date(2026, 10, 2), 0, 1, 0, 0, 0, 0, 0, Decimal(100)),
+    ]
+    runner.run()
+    assert rows(sql, "orders_summary_daily", "date") == summary
+
+
 @pytest.mark.parametrize(
     "shop,status,created,delivered",
     [

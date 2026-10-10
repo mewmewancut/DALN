@@ -28,6 +28,8 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`E2_SILVER.md`](E2_SILVER.md) | Implemented | 7 bảng Silver, dependency skip, nghiệp vụ/transaction và kiểm thử |
 | [`E3_GOLD.md`](E3_GOLD.md) | Implemented | 6 bảng Gold, metric C9, overwrite, điều phối Spark/warehouse và nghiệm thu |
 | [`E4_QUALITY.md`](E4_QUALITY.md) | Implemented | Gate 5 kiểm tra, hai lượt pipeline và đối chiếu Lakebase |
+| [`E5_DASHBOARD.md`](E5_DASHBOARD.md) | Implemented | Dashboard AI/BI Gold, KPI C9, sáu trạng thái và nghiệm thu |
+| [`DEMO.md`](DEMO.md) | Implemented | Docker demo riêng, reset, browser E2E và kịch bản 10 phút/F7 |
 | [`GENIE_CHATBOT.md`](GENIE_CHATBOT.md) | Implemented | Chatbot admin/shop, Space chung và view theo danh tính, worker cấp quyền, lịch sử và nghiệm thu |
 | [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) | Implemented | Cài đặt Docker, chọn database local/Lakebase, cutover/rollback, migration, seed và kiểm tra local/demo |
 | [`DEVELOPMENT.md`](DEVELOPMENT.md) | In progress | Setup và workflow phát triển |

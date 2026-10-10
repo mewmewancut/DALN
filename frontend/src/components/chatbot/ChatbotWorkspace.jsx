@@ -147,8 +147,8 @@ export default function ChatbotWorkspace({ compact = false }) {
             )}
             {compact && config?.available && (
               <p className="genie-note">
-                Kết quả dùng dữ liệu tại lần cập nhật gần nhất. Chatbot chưa hỗ trợ số đơn đang giao
-                hoặc xếp hạng sản phẩm theo kỳ.
+                Kết quả dùng dữ liệu tại lần cập nhật gần nhất. Xếp hạng sản phẩm tính trên toàn
+                thời gian.
               </p>
             )}
           </div>
@@ -186,8 +186,8 @@ export default function ChatbotWorkspace({ compact = false }) {
               <p className="genie-note">Enter để gửi · Shift + Enter để xuống dòng.</p>
               {!compact && (
                 <p className="genie-note">
-                  Kết quả dùng dữ liệu tại lần cập nhật gần nhất. Chatbot chưa hỗ trợ số đơn đang
-                  giao hoặc xếp hạng sản phẩm theo kỳ.
+                  Kết quả dùng dữ liệu tại lần cập nhật gần nhất. Xếp hạng sản phẩm tính trên toàn
+                  thời gian.
                 </p>
               )}
             </>

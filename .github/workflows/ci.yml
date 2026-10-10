@@ -1,0 +1,42 @@
+name: Verify DALN
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Verify Compose and image isolation
+        run: python -m unittest discover -s tests -v
+      - name: Run repository checks
+        run: sh .githooks/pre-commit
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and reset isolated production demo
+        run: sh reset_demo.sh --confirm-local-demo
+      - name: Run browser journey against real API and Postgres
+        run: docker compose --env-file .env.example -f compose.demo.yml --profile test run --build --rm e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-evidence
+          path: output/playwright/e2e
+          if-no-files-found: ignore
+      - name: Stop isolated demo
+        if: always()
+        run: docker compose --env-file .env.example -f compose.demo.yml down

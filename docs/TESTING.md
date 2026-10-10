@@ -5,7 +5,7 @@
 
 Frontend D1–D4 có test gắn token, xử lý `401`, điều hướng theo vai trò, form auth, catalog/wishlist/preferences/recommendations, toàn bộ luồng buyer từ giỏ hàng tới review, toàn bộ trang quản lý của chủ shop và các trang admin.
 
-Test UI dùng chung kiểm tra skip link đến vùng nội dung có thể focus, nhãn điều hướng theo ba role và ảnh sản phẩm khi thiếu URL/tải lỗi/đổi URL. Quy ước trình bày và bằng chứng kiểm tra trình duyệt thủ công nằm ở [UI/UX](UI_UX.md); các kiểm tra này không thay browser end-to-end tự động còn Planned.
+Test UI dùng chung kiểm tra skip link đến vùng nội dung có thể focus, nhãn điều hướng theo ba role và ảnh sản phẩm khi thiếu URL/tải lỗi/đổi URL. Quy ước trình bày và bằng chứng kiểm tra trình duyệt thủ công nằm ở [UI/UX](UI_UX.md); các kiểm tra này bổ sung cho browser E2E ở [DEMO.md](DEMO.md).
 
 ## Các lớp kiểm tra hiện có
 
@@ -30,7 +30,7 @@ Test UI dùng chung kiểm tra skip link đến vùng nội dung có thể focus
 | Gate E4 | pytest + nghiệm thu workspace | Hai lượt pipeline, đối chiếu năm mục và phát hiện nguồn biến động |
 | Chatbot Genie | pytest + Vitest + nghiệm thu OAuth/browser | Role/shop/database, token hội thoại, bất đồng bộ, view và principal riêng, câu hỏi đối chiếu SQL |
 
-Bronze/Silver có test Delta local và Job/đối chiếu trên Databricks thật; bằng chứng nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md). Gold E3 có test Delta và công cụ nghiệm thu riêng, trạng thái workspace ở [`E3_GOLD.md`](E3_GOLD.md). Gate E4 của F6 đã PASS, bằng chứng ở [`E4_QUALITY.md`](E4_QUALITY.md). Browser end-to-end tự động và demo tổng thể F7 còn **Planned**. Test API dùng database test/rollback; không thay browser end-to-end.
+Bronze/Silver có test Delta local và Job/đối chiếu trên Databricks thật; bằng chứng nằm ở [`DATA_PLATFORM.md`](DATA_PLATFORM.md). Gold E3 có test Delta và công cụ nghiệm thu riêng, trạng thái workspace ở [`E3_GOLD.md`](E3_GOLD.md). Gate E4 của F6 đã PASS, bằng chứng ở [`E4_QUALITY.md`](E4_QUALITY.md). Browser E2E trên API/Postgres demo đã triển khai; nghiệm thu chuỗi Lakebase–Gold–Genie F7 theo [DEMO.md](DEMO.md). Test API dùng database test/rollback; không thay browser end-to-end.
 
 Data có notebook chính `00_pipeline.py` và ba notebook riêng E1/E2/E3. Test notebook kiểm tra điều phối E1→E2→E3, từng entry chỉ chạy đúng tầng, trả kết quả cho Job và không báo thành công khi xử lý lỗi. Test preflight xác nhận lượt E1/E2 không đổi không gọi Spark/writer E1/E2 nhưng Gold vẫn refresh trên warehouse; thay đổi nguồn/dependency/target/config không được SKIP sai. Test warehouse kiểm tra metadata thiếu, deduplicate, deadline chung, giới hạn reader và đóng checkpoint stream. `acceptance.py` và `gold_acceptance.py` chạy riêng. Cách demo từng bước ở [Data platform](DATA_PLATFORM.md#demo-từng-bước-bronze--silver).
 
@@ -133,7 +133,7 @@ Test hook chạy hook thật với Docker giả lập: giữ kiểm tra lỗi de
 
 - Dashboard website mở rộng D3/D4: `backend/app/tests/test_dashboards.py` kiểm tra kỳ trước cùng số ngày, ngày Việt Nam, revenue theo giao và status theo tạo, giá snapshot, tồn đọng ngoài kỳ, tồn kho hiện tại, không nhân đôi khi nối bảng, giới hạn shop từ user/database, role và lỗi ngày, giữ sales lịch sử catalog đã ẩn. `frontend/src/components/dashboard/dashboard.test.jsx` kiểm tra so sánh kỳ trước bằng 0/null, tỷ lệ hủy dùng điểm %, tỷ trọng shop trên tổng hệ thống, link đúng role, preset/làm mới, request cũ hoàn thành muộn, trạng thái rỗng, trục/bảng VND và nhóm tháng/năm đúng biên. Kiểm tra responsive bằng trình duyệt thật; định nghĩa ở [`WEB_DASHBOARDS.md`](WEB_DASHBOARDS.md).
 
-Toàn bộ backend Planning C0–C10, P1–P4 và frontend D1–D4 đã có test. Data E1–E4 và chatbot Genie đã có test và nghiệm thu workspace; Dashboard Databricks E5 và demo tổng thể G còn Planned.
+Toàn bộ backend Planning C0–C10, P1–P4 và frontend D1–D4 đã có test. Data E1–E4 và chatbot Genie đã có test và nghiệm thu workspace; implementation/nghiệm thu E5 và G được theo dõi tại [E5 Dashboard](E5_DASHBOARD.md) và [Demo](DEMO.md).
 
 ## E4 và chatbot Genie trên website
 
@@ -238,7 +238,7 @@ docker compose --env-file .env.example exec -T backend pytest -q app/tests/test_
 docker compose --env-file .env.example exec -T frontend npm test -- src/cart/guestCart.test.js src/pages/guestCartFlow.test.jsx src/pages/cartSafety.test.jsx src/pages/buyerFlow.test.jsx
 ```
 
-Browser E2E tự động vẫn Planned; Vitest/API là kiểm tra hành vi ở từng lớp.
+Browser E2E dùng Chromium thật trên demo độc lập; Vitest/API tiếp tục kiểm tra hành vi ở từng lớp. Xem [Demo](DEMO.md) để chạy runner và giới hạn môi trường.
 
 ## Ảnh sản phẩm — 07/10/2026
 
@@ -270,3 +270,20 @@ docker compose --env-file .env.example exec -T frontend npm run build
 ```
 
 Toàn bộ backend: 288 test PASS; frontend: 207 test PASS trong lượt triển khai. Lint/format backend và frontend PASS. Kiểm tra browser và phạm vi còn Planned xem [UI/UX](UI_UX.md#gian-hàng-công-khai).
+
+## Dashboard E5, nâng cấp Gold và demo G (10/10/2026)
+
+- Gold summary có regression test nâng cấp bảng cũ, đủ sáu trạng thái và rerun idempotent.
+- Dashboard có test Delta cho kỳ/ngày tạo–giao khác nhau, NULL khi mẫu số 0, calculated measures tỷ lệ/AOV và tên trùng vẫn tách theo ID; deployment chỉ publish sau E4/đối chiếu pass.
+- Genie language acceptance thêm doanh thu hôm nay và SHIPPING mọi ngày, kiểm tra phạm vi shop và chỉ lấy cột metric trong kết quả.
+- Root unittest kiểm tra demo không kế thừa Lakebase/secret, reset chỉ dùng database local qua socket và lỗi chặn startup.
+- Playwright chạy guest multi-shop/reload/login/checkout, giao hàng/review/mobile, nhập kho/nhận lại/alert và quyền dashboard trên API/Postgres thật. Luồng browser PASS 5/5 ngày 10/10; frontend Vitest PASS 208/208.
+
+```powershell
+python -m unittest discover -s tests -v
+docker run --rm -v D:/DALN/data:/data daln-data-test pytest -q tests/test_dashboard.py tests/test_gold_transform.py tests/test_genie_space.py tests/test_genie_language.py
+bash reset_demo.sh --confirm-local-demo
+docker compose --env-file .env.example -f compose.demo.yml --profile test run --build --rm e2e
+```
+
+[CI](../.github/workflows/ci.yml) chạy hook đầy đủ và browser ở hai job riêng; ảnh là artifact, không commit. Kết quả chạy GitHub được xác minh riêng, không suy từ kết quả local.

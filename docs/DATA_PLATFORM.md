@@ -1,6 +1,6 @@
 # Data platform — E1/E2/E3/E4 và Genie
 
-E1/E2 dùng Lakebase CDC và Spark trên serverless notebook compute. E3 đã triển khai và nghiệm thu sáu bảng Gold; nghiệp vụ, cách chạy và bằng chứng nằm ở [E3_GOLD.md](E3_GOLD.md). [Gate E4](E4_QUALITY.md) đã PASS 5/5 trên workspace; [chatbot Genie admin/shop](GENIE_CHATBOT.md) dùng Gold và quyền dữ liệu riêng cho từng shop. Dashboard Databricks E5 còn **Planned**. Phạm vi bảng và nghiệp vụ theo [Planning phần E](PLANNING.md#phần-e--data-platform-databricks), cách xử lý ngày tạo/ngày giao E3 được ghi rõ trong tài liệu Gold.
+E1/E2 dùng Lakebase CDC và Spark trên serverless notebook compute. E3 đã triển khai và nghiệm thu sáu bảng Gold; nghiệp vụ, cách chạy và bằng chứng nằm ở [E3_GOLD.md](E3_GOLD.md). [Gate E4](E4_QUALITY.md) đã PASS 5/5 trên workspace; [chatbot Genie admin/shop](GENIE_CHATBOT.md) dùng Gold và quyền dữ liệu riêng cho từng shop. Implementation và nghiệm thu Dashboard Databricks nằm ở [E5 Dashboard](E5_DASHBOARD.md). Phạm vi bảng và nghiệp vụ theo [Planning phần E](PLANNING.md#phần-e--data-platform-databricks), cách xử lý ngày tạo/ngày giao E3 được ghi rõ trong tài liệu Gold.
 
 Người dùng đã duyệt đổi cách lấy dữ liệu E1 từ đọc Lakebase đầy đủ mỗi lượt sang CDC để tối ưu Job. Catalog đích vẫn là `fashion`; Bronze vẫn 13 bảng E1 và Silver vẫn 7 bảng E2. Feed nguồn có thể chứa nhiều bảng hơn nhưng pipeline không sao chép bảng ngoài allow-list E1.
 

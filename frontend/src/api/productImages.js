@@ -2,7 +2,8 @@ import client from "./client.js";
 
 export function productImageSource(src) {
   if (!src?.startsWith("/media/product-images/")) return src;
-  return new URL(src, client.defaults.baseURL).href;
+  const apiBase = new URL(client.defaults.baseURL, window.location.origin);
+  return new URL(src, apiBase).href;
 }
 
 export async function uploadProductImage(file) {

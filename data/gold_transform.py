@@ -38,6 +38,17 @@ class GoldTransform:
                 f"CREATE TABLE IF NOT EXISTS {target} USING DELTA AS "
                 f"SELECT * FROM ({query}) projected WHERE FALSE"
             )
+            if table == "orders_summary_daily":
+                # Add the approved E5 status counts to existing E3 tables without
+                # replacing the table identity or its Unity Catalog grants.
+                columns = {row[0] for row in self.sql.execute(f"SHOW COLUMNS IN {target}")}
+                missing = [
+                    f"{name} BIGINT"
+                    for name in ("pending", "confirmed", "preparing", "shipping")
+                    if name not in columns
+                ]
+                if missing:
+                    self.sql.execute(f"ALTER TABLE {target} ADD COLUMNS ({', '.join(missing)})")
             # Full data replacement is one Delta commit, including an empty result.
             # INSERT OVERWRITE works on both Databricks and the local Delta test runtime.
             self.sql.execute(f"INSERT OVERWRITE TABLE {target} {query}")

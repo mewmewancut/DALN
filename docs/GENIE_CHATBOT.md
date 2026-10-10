@@ -87,13 +87,20 @@ AOV và tỷ lệ hủy phải tính lại từ tổng số, không trung bình 
 `today`/`this month` dựa current_timestamp chuyển Asia/Ho_Chi_Minh, không cộng
 múi giờ lần hai lên cột date/month đã chuẩn hóa.
 
-Gold chưa có số đơn SHIPPING. Câu hỏi README “Có bao nhiêu đơn hàng đang giao?”
-được test để Genie giải thích không đủ dữ liệu, không đoán số và không đọc
-bảng thô. `top_products` không có date nên chỉ hỗ trợ sản phẩm bán chạy toàn
-thời gian. Tồn kho là snapshot pipeline, không phải tồn kho trực tiếp thời gian
-thực. Không mở rộng metric/schema Gold trong task chatbot này.
+Người dùng duyệt bổ sung `pending`, `confirmed`, `preparing`, `shipping` vào
+`orders_summary_daily` ngày 10/10/2026 để Dashboard hiển thị đủ sáu trạng thái.
+Space builder nhận diện schema mới và thêm example SQL cho “Có bao nhiêu đơn
+hàng đang giao?”: cộng `shipping` toàn snapshot, chỉ lọc ngày tạo khi câu hỏi
+nêu kỳ cụ thể. Với schema cũ, builder vẫn yêu cầu giải thích thiếu dữ liệu;
+không đoán số hoặc đọc bảng thô. Cột `delivered` vẫn theo ngày giao C9;
+trạng thái DELIVERED theo ngày tạo là phần còn lại của sáu trạng thái.
+Triển khai lại Space/view và nghiệm thu quyền là bắt buộc sau nâng cấp Gold.
+`top_products` chỉ hỗ trợ toàn thời gian; tồn kho và trạng thái là snapshot
+pipeline. Bằng chứng nghiệm thu ngày 06/10 bên dưới mô tả schema trước nâng cấp.
 
 ## Cấu hình và triển khai
+
+Ngày 10/10/2026 đã cập nhật hai Space/view hiện có sau gate Gold mới; không tạo thêm principal hoặc mở rộng quyền. Admin và ba shop đã qua đối chiếu UC bằng danh tính thực. Bộ ngôn ngữ 12 câu PASS cho admin và shop1; bốn câu demo sau đơn mới cũng PASS cho cả hai role. Số liệu và evidence chuẩn ở [Demo](DEMO.md#tự-động-hóa-và-giới-hạn), schema/metric ở [E5 Dashboard](E5_DASHBOARD.md).
 
 `backend/genie.example.json` là mẫu giả, `e4_passed=false` để không bật nhầm.
 File runtime thật `backend/.env.genie.json` và journal `.env.genie.json.provision`

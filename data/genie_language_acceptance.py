@@ -55,6 +55,13 @@ def cases(shop_id=None):
             f"SELECT COUNT(*) FROM fashion.gold.low_stock_current WHERE TRUE{scope}",
             False,
         ),
+        ("Doanh thu hôm nay là bao nhiêu?", revenue(f"date = {day}"), False),
+        (
+            "Có bao nhiêu đơn hàng đang giao?",
+            "SELECT COALESCE(SUM(shipping),0) FROM fashion.gold.orders_summary_daily "
+            f"WHERE TRUE{scope}",
+            False,
+        ),
     ]
 
 
@@ -66,7 +73,13 @@ def numbers(message):
             for index, column in enumerate(table["columns"])
             if any(
                 name in column["name"].lower()
-                for name in ("revenue", "total_orders", "order_count", "low_stock_variants")
+                for name in (
+                    "revenue",
+                    "total_orders",
+                    "order_count",
+                    "low_stock_variants",
+                    "shipping_orders",
+                )
             )
         ]
         for row in table["rows"]:

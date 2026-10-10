@@ -23,7 +23,7 @@ export default [
     },
   },
   {
-    files: ["*.js", "**/*.test.{js,jsx}"],
+    files: ["*.js", "**/*.test.{js,jsx}", "e2e/**/*.js"],
     languageOptions: { globals: globals.node },
   },
 ];

@@ -600,7 +600,7 @@ Không tự tạo Dashboard hoặc Genie từ dữ liệu Bronze/Silver. Genie c
 
 ## 16. Giới hạn của cấu hình hiện tại
 
-Cấu hình Docker hiện tại là môi trường phát triển/local demo:
+Cấu hình mặc định `compose.yml` là môi trường phát triển:
 
 - Backend chạy Uvicorn với `--reload`.
 - Frontend chạy Vite development server.
@@ -608,7 +608,13 @@ Cấu hình Docker hiện tại là môi trường phát triển/local demo:
 - CORS backend chỉ cho phép origin của `FRONTEND_PUBLIC_URL` (mặc định `http://localhost:5173`); path trong URL không thuộc origin. Khi đổi hostname/cổng frontend, cập nhật biến này và URL API của frontend rồi khởi động lại backend/frontend. Origin khác bị từ chối, không dùng wildcard.
 - PostgreSQL được publish trực tiếp ra cổng `5432`.
 - Chưa có backup/restore production, monitoring hoặc CI/CD triển khai public.
-- Chưa có script `reset_demo.sh` và `DEMO.md` theo Planning G.
+
+Môi trường demo riêng dùng `compose.demo.yml`: frontend build production sau nginx,
+backend không reload, database không publish, port ứng dụng chỉ bind loopback.
+Script `reset_demo.sh --confirm-local-demo` chỉ reset database `fashion_demo` của
+project `daln-demo`, không đọc `.env` Lakebase. Lệnh chạy, phạm vi reset và kịch bản
+10 phút có một nơi chuẩn tại [Demo](DEMO.md). Đây là demo local; các giới hạn
+HTTPS, secret store, backup và triển khai Internet ở trên vẫn áp dụng.
 
 Vì vậy không đưa cấu hình này trực tiếp lên Internet. Production deployment phải được thiết kế và kiểm thử trong một task riêng trước khi sử dụng thật.
 

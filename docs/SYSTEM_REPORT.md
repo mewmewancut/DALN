@@ -2,7 +2,7 @@
 
 Nền tảng thương mại điện tử thời trang đa nhà bán hàng tích hợp phân tích dữ liệu và chatbot Databricks Genie
 
-Ngày báo cáo: 06/10/2026. Phiên bản đối chiếu: commit `5d8b5b1`.
+Ngày cập nhật: 10/10/2026. Baseline báo cáo: commit `5d8b5b1` ngày 06/10; gian hàng công khai đã có ở `fbf7805`. Trạng thái nghiệm thu E5/F7/G mới nhất nằm tại [E5 Dashboard](E5_DASHBOARD.md) và [Demo](DEMO.md). Các snapshot số liệu ngày 06/10 được giữ nguyên và ghi ngày. Phụ lục schema/API ban đầu được đối chiếu lại bằng các bổ sung cuối báo cáo.
 
 Nhóm thực hiện: Nguyễn Trường Sơn, mã sinh viên 23010313; Nguyễn Ngọc Minh, mã sinh viên 23010623. Giảng viên hướng dẫn: Nguyễn Văn Sơn. Thông tin đề tài theo [PROPOSAL.md](PROPOSAL.md).
 
@@ -12,7 +12,7 @@ Fashion E-Commerce phục vụ ba nhóm người dùng: người mua, chủ shop
 
 Hệ thống gồm website React, API FastAPI, database vận hành tương thích PostgreSQL trên Lakebase, pipeline Delta Lake theo mô hình Bronze–Silver–Gold và chatbot Genie đọc dữ liệu Gold. Giá trị kỹ thuật chính nằm ở việc bảo toàn nghiệp vụ khi có nhiều tài khoản và request đồng thời, giữ lịch sử đơn hàng, thống nhất metric và cưỡng chế quyền dữ liệu của chatbot theo từng shop.
 
-Backend C0–C10, frontend D1–D4, các phần hồ sơ, wishlist, sở thích và gợi ý P1–P4 đã triển khai. Pipeline E1–E4 và chatbot admin/shop có bằng chứng nghiệm thu trong tài liệu dự án. Dashboard website đọc dữ liệu vận hành đã triển khai. AI/BI Dashboard Databricks E5, kiểm thử browser E2E tự động đầy đủ, chuỗi nghiệm thu F7 toàn hệ thống và triển khai production vẫn còn Planned.
+Backend C0–C10, frontend D1–D4, các phần hồ sơ, wishlist, sở thích và gợi ý P1–P4 đã triển khai. Pipeline E1–E4 và chatbot admin/shop có bằng chứng nghiệm thu trong tài liệu dự án. Dashboard website đọc dữ liệu vận hành đã triển khai. AI/BI Dashboard E5 và demo production local đã có nghiệm thu ngày 10/10 theo các tài liệu chuyên trách; browser E2E Chromium trên API/Postgres demo đã PASS 5/5 ngày 10/10. Triển khai public vẫn Planned.
 
 Báo cáo này tổng hợp hệ thống để học, thuyết trình và bàn giao. Đặc tả nghiệp vụ chuẩn nằm ở [PLANNING.md](PLANNING.md); API, schema và quy trình triển khai tiếp tục được duy trì tại các tài liệu chuyên trách. Số liệu nghiệm thu là snapshot có ngày, không phải số liệu trực tiếp tại thời điểm người đọc mở báo cáo.
 
@@ -35,9 +35,9 @@ Hoạt động vận hành tạo ra dữ liệu cần phân tích: đơn nào đ
 
 ### 1.3 Ranh giới nghiệp vụ
 
-Một user sở hữu tối đa một shop; mỗi shop quản lý một kho. Một giỏ hàng chỉ chứa hàng của một shop và mỗi đơn thuộc đúng một shop. Thanh toán hỗ trợ COD và MOCK_CARD; MOCK_CARD là mô phỏng, không kết nối cổng thanh toán thật. Quy trình giao hàng là chuyển trạng thái trong hệ thống, không tích hợp đơn vị vận chuyển.
+Một user sở hữu tối đa một shop; mỗi shop quản lý một kho. Giỏ khách/buyer chứa hàng nhiều shop; mỗi checkout chọn đúng một shop và giữ hàng còn lại. Mỗi đơn thuộc đúng một shop. Thanh toán hỗ trợ COD và MOCK_CARD; MOCK_CARD là mô phỏng, không kết nối cổng thanh toán thật. Quy trình giao hàng là chuyển trạng thái trong hệ thống, không tích hợp đơn vị vận chuyển.
 
-Danh mục là danh sách phẳng. Ảnh sản phẩm và avatar lưu URL. Product, variant và supplier có cơ chế ẩn hoặc soft delete để giữ tham chiếu lịch sử. Các phần voucher, phí vận chuyển tự tính, đổi trả, lợi nhuận, dự báo nhu cầu, nhiều kho và recommender học máy không thuộc implementation hiện tại.
+Danh mục là danh sách phẳng. Ảnh sản phẩm có upload local/gallery và URL; avatar lưu URL. Contract/storage ở [API](API.md) và [Deployment guide](DEPLOYMENT_GUIDE.md). Product, variant và supplier có cơ chế ẩn hoặc soft delete để giữ tham chiếu lịch sử. Các phần voucher, phí vận chuyển tự tính, đổi trả, lợi nhuận, dự báo nhu cầu, nhiều kho và recommender học máy không thuộc implementation hiện tại.
 
 ### 1.4 Trạng thái các phân hệ
 
@@ -51,9 +51,9 @@ Danh mục là danh sách phẳng. Ảnh sản phẩm và avatar lưu URL. Produ
 | Pipeline E1–E3 | Implemented | 13 Bronze, 7 Silver, 6 Gold |
 | Gate chất lượng E4 | Implemented | 5/5 kiểm tra trên workspace theo bằng chứng nghiệm thu |
 | Chatbot Genie | Implemented | Admin/shop, quyền theo danh tính, worker, lịch sử |
-| AI/BI Dashboard E5 | Planned | Dashboard Databricks từ Gold |
-| E2E browser và nghiệm thu F7 đầy đủ | Planned | Chuỗi đơn mới đến Gold, Dashboard và Genie |
-| Demo G và production deployment | Planned | Nghiệm thu tổng thể, triển khai public |
+| AI/BI Dashboard E5 | Implemented | Artifact đã publish; nghiệm thu ở E5_DASHBOARD.md |
+| E2E browser / F7 | Implemented | Browser local PASS 5/5; nghiệm thu tích hợp ở DEMO.md |
+| Demo G / triển khai public | Implemented / Planned | Demo nginx/reset/CI đã có; public ngoài phạm vi demo |
 
 Nguồn: [ARCHITECTURE.md](ARCHITECTURE.md), [USER_JOURNEY_REVIEW.md](USER_JOURNEY_REVIEW.md), [GENIE_CHATBOT.md](GENIE_CHATBOT.md).
 
@@ -61,7 +61,7 @@ Nguồn: [ARCHITECTURE.md](ARCHITECTURE.md), [USER_JOURNEY_REVIEW.md](USER_JOURN
 
 ### 2.1 Khách chưa đăng nhập
 
-Khách xem catalog và chi tiết sản phẩm qua API public, tìm theo tên và lọc theo danh mục, shop, giá hoặc sắp xếp. Khách đăng ký buyer hoặc chủ shop, xác minh email, đăng nhập và dùng luồng quên mật khẩu. Các thao tác giỏ hàng, wishlist, đơn riêng và chatbot yêu cầu tài khoản có role phù hợp.
+Khách xem catalog và chi tiết sản phẩm qua API public, tìm theo tên và lọc theo danh mục, shop, giá hoặc sắp xếp. Khách đăng ký buyer hoặc chủ shop, xác minh email, đăng nhập và dùng luồng quên mật khẩu. Khách có giỏ tạm trên trình duyệt và merge khi đăng nhập; checkout, wishlist, đơn riêng và chatbot yêu cầu role phù hợp.
 
 ### 2.2 Người mua
 
@@ -108,7 +108,7 @@ Database vận hành cấp dữ liệu cho website và API dashboard. Luồng ph
 
 ![Sơ đồ kiến trúc tổng thể](report_assets/architecture.png)
 
-Hình 1. Hai đường đọc chính: API vận hành từ Lakebase và chatbot phân tích từ Gold. AI/BI Dashboard Databricks E5 còn Planned.
+Hình 1. Hai đường đọc chính: API vận hành từ Lakebase và chatbot phân tích từ Gold. Trạng thái artifact và nghiệm thu AI/BI Dashboard ở [E5 Dashboard](E5_DASHBOARD.md).
 
 ### 3.2 Công nghệ đang sử dụng
 
@@ -163,7 +163,7 @@ Constraint bảo vệ các điều kiện có thể kiểm tra ngay ở database
 | Đánh giá | reviews | Review gắn item đã giao |
 | Chatbot | chat_conversations, chat_messages | Hội thoại và snapshot kết quả riêng user |
 
-Schema vận hành hiện có 24 bảng. Pipeline E1 chỉ lấy 13 bảng trong allow-list; không có quy tắc sao chép mọi bảng vận hành sang Gold.
+Schema vận hành hiện có 26 bảng (không tính alembic_version); hai bảng bổ sung là cart_merges và product_detail_images. Pipeline E1 chỉ lấy 13 bảng trong allow-list; không có quy tắc sao chép mọi bảng vận hành sang Gold.
 
 ### 4.3 Quan hệ chính
 
@@ -305,11 +305,11 @@ Sản phẩm phải hoạt động, shop hoạt động và có variant hoạt �
 
 ## 8 Giỏ hàng checkout và trạng thái đơn
 
-### 8.1 Một giỏ một shop
+### 8.1 Giỏ nhiều shop, checkout một shop
 
-Cart thuộc buyer và có shop_id nullable khi rỗng. Thêm cùng variant cộng số lượng vào item hiện tại. Thêm hàng khác shop trả 409; frontend chỉ xóa giỏ cũ và thêm lại sau khi buyer xác nhận. Backend không tự gộp các shop hoặc tự xóa giỏ.
+Cart thuộc buyer, không có shop_id. Cart item tham chiếu variant và được nhóm theo shop từ catalog. Thêm cùng variant cộng số lượng; hàng khác shop cùng tồn tại. Khách lưu variant/quantity và merge_id trên trình duyệt; giá/kho được preview từ API public. Merge khi đăng nhập có transaction và receipt cart_merges để retry không cộng trùng.
 
-Các thao tác giỏ tuần tự hóa theo buyer để hai request đầu tiên không phá invariant. Xóa item cuối đặt shop_id về NULL. Giỏ không giữ hàng: việc thêm vào giỏ không trừ kho và không bảo đảm hàng vẫn còn lúc checkout.
+Giỏ không giữ hàng; thêm vào giỏ không trừ kho. Checkout chọn một shop, lấy lại dữ liệu hiện tại từ database và chỉ xóa các item của shop đó sau thành công. Contract/test chuẩn tại [API](API.md), [Business rules](BUSINESS_RULES.md) và [Testing](TESTING.md).
 
 ### 8.2 Transaction checkout
 
@@ -321,13 +321,13 @@ Checkout khóa user/buyer và cart để hai request trên cùng giỏ không t�
 
 Tồn kho được trừ bằng UPDATE có điều kiện số lượng còn đủ. Nếu số dòng cập nhật bằng 0, backend trả lỗi thiếu hàng. Cách này tránh hai buyer cùng đọc quantity=1 rồi cùng đặt thành công. Constraint quantity không âm là lớp bảo vệ bổ sung.
 
-Trong cùng transaction, backend tạo order PENDING, snapshot order_items, tổng tiền, history đầu tiên và trạng thái thanh toán; xóa cart_items và reset cart.shop_id. Một item thiếu hàng hoặc lỗi ghi làm rollback toàn bộ, kể cả kho của item đã xử lý trước đó.
+Trong cùng transaction, backend tạo order PENDING, snapshot order_items, tổng tiền, history đầu tiên và trạng thái thanh toán; xóa cart_items thuộc shop được chọn và giữ hàng shop khác. Một item thiếu hàng hoặc lỗi ghi làm rollback toàn bộ, kể cả kho của item đã xử lý trước đó.
 
 ### 8.3 Ví dụ kiểm soát giá và rollback
 
 Buyer thêm hai áo vào giỏ khi variant có giá 200.000 VND. Nếu trước checkout shop đổi thành 210.000 VND, backend dùng giá hiện tại và tổng thành 420.000 VND. Sau khi tạo đơn, việc đổi giá lần nữa không sửa snapshot 210.000 VND của đơn.
 
-Nếu giỏ có áo và quần nhưng quần thiếu kho, toàn bộ checkout thất bại; không để lại đơn nửa chừng, không mất kho áo và không xóa giỏ. Nếu hai request cùng checkout một giỏ, khóa buyer/cart cho request thứ hai thấy giỏ đã rỗng sau request thứ nhất thành công.
+Nếu giỏ có áo và quần nhưng quần thiếu kho, toàn bộ checkout thất bại; không để lại đơn nửa chừng, không mất kho áo và không xóa giỏ. Nếu hai request cùng checkout một giỏ, khóa buyer/cart cho request thứ hai thấy nhóm shop đã checkout không còn item sau request thứ nhất thành công.
 
 ### 8.4 State machine đơn hàng
 
@@ -429,9 +429,9 @@ Tồn đọng PENDING/CONFIRMED/PREPARING/SHIPPING là hiện trạng mọi th�
 
 Top product trong dashboard lọc kỳ và tối đa 5. Endpoint C9 top-products cũ và Gold top_products là toàn thời gian. Hai màn hình có thể đưa ra thứ tự khác nhau đúng theo phạm vi đã công bố.
 
-### 11.4 Dashboard Databricks còn Planned
+### 11.4 Dashboard Databricks E5
 
-E5 dự kiến dùng Gold để hiển thị KPI, doanh thu ngày, top shop/product, low stock và phân bố trạng thái. Báo cáo không coi dashboard website là đã hoàn thành E5. Link dashboard ngoài chỉ hiện khi được cấu hình; cấu hình link không chứng minh dashboard đã được xây dựng hoặc nghiệm thu.
+E5 dùng Gold để hiển thị KPI, doanh thu ngày, top shop/product, low stock và đủ sáu trạng thái với bốn cột summary đã được duyệt bổ sung ngày 10/10. Báo cáo không coi dashboard website là đã hoàn thành E5. Link dashboard ngoài chỉ hiện khi được cấu hình; cấu hình link không chứng minh dashboard đã được xây dựng hoặc nghiệm thu.
 
 ## 12 Pipeline Bronze Silver Gold
 
@@ -593,9 +593,9 @@ Không xóa checkpoint, volumes hoặc dữ liệu chỉ để một lượt ch�
 
 ### 15.1 Các lớp test
 
-Database test kiểm tra constraint, timestamp và seed idempotent. API/service test kiểm tra kết quả, lỗi, role, ownership, transaction và snapshot. Các test hai session/thread trên PostgreSQL thật bảo vệ giỏ một shop, checkout chống âm kho, đơn không trùng và race chuyển trạng thái/cảnh báo.
+Database test kiểm tra constraint, timestamp và seed idempotent. API/service test kiểm tra kết quả, lỗi, role, ownership, transaction và snapshot. Các test hai session/thread trên PostgreSQL thật bảo vệ merge/checkout một shop trong giỏ nhiều shop, checkout chống âm kho, đơn không trùng và race chuyển trạng thái/cảnh báo.
 
-Frontend Vitest/jsdom kiểm tra auth client, route, form, nút và các trạng thái loading/empty/error, request race, giỏ, checkout, các trang shop/admin, dashboard và chatbot. Build kiểm tra bundle. Kiểm tra trình duyệt thủ công có bằng chứng riêng và không thay bộ E2E browser tự động còn Planned.
+Frontend Vitest/jsdom kiểm tra auth client, route, form, nút và các trạng thái loading/empty/error, request race, giỏ, checkout, các trang shop/admin, dashboard và chatbot. Build kiểm tra bundle. Kiểm tra trình duyệt thủ công có bằng chứng riêng và bổ sung cho bộ E2E browser tự động trong [Demo](DEMO.md).
 
 Data test Spark/Delta local kiểm tra bootstrap/CDC/retry, dependency Silver, múi giờ, Gold snapshot/join, overwrite và failure recovery. Acceptance workspace kiểm tra projection/tổng độc lập; quality gate kiểm tra năm mục. Genie acceptance kiểm tra danh tính đọc thật và permission denial, không coi mọi query lỗi là bằng chứng chặn quyền.
 
@@ -651,12 +651,9 @@ LocalStorage JWT, rate limiter một instance, cấu hình local và kiểm th�
 
 ### 16.2 Hạng mục Planned
 
-- E5 AI/BI Dashboard Databricks từ Gold và nghiệm thu từng visualization.
-- F7 chuỗi đặt hàng mới, shop giao, pipeline, dashboard và Genie đối chiếu cùng dữ liệu.
-- Bộ kiểm thử browser E2E tự động và demo G tổng thể.
 - Triển khai public/production và nghiệm thu vận hành tương ứng.
 
-Các mục này là phần còn lại theo tài liệu dự án, không phải tính năng được tự bổ sung hoặc quyết định triển khai mới trong báo cáo.
+E5/F7/demo local đã có bằng chứng tại tài liệu chuyên trách; hai thành viên cần cùng diễn tập trước bảo vệ. Phần public chưa triển khai.
 
 ### 16.3 Khác biệt đã được ghi nhận so với Planning ban đầu
 
@@ -678,9 +675,9 @@ Những bước demo làm thay đổi dữ liệu; chỉ thực hiện trong mô
 
 ### 17.3 Trình diễn dữ liệu và chatbot
 
-Ghi nhận thời điểm dữ liệu, chờ CDC, chạy pipeline E1 → E2 → E3 và chỉ dùng lượt thành công. Đối chiếu revenue với order DELIVERED, kiểm tra ngày Việt Nam và nói rõ E4 là gate nghiệm thu riêng. AI/BI Dashboard E5 còn Planned nên trình bày dashboard website theo đúng nguồn API vận hành.
+Ghi nhận thời điểm dữ liệu, chờ CDC, chạy pipeline E1 → E2 → E3 và chỉ dùng lượt thành công. Đối chiếu revenue với order DELIVERED, kiểm tra ngày Việt Nam và nói rõ E4 là gate nghiệm thu riêng. Mở AI/BI Dashboard theo [E5 Dashboard](E5_DASHBOARD.md) và phân biệt với dashboard website đọc API vận hành.
 
-Đăng nhập shop hỏi doanh thu của mình, sau đó admin hỏi cùng kỳ để thấy khác phạm vi. Dùng Hình 5 giải thích principal/view và thử câu yêu cầu shop khác. Mở lại lịch sử và chứng minh lịch sử tách user. Chuỗi demo này là kịch bản trình bày đề xuất; nghiệm thu F7 đầy đủ vẫn còn Planned.
+Đăng nhập shop hỏi doanh thu của mình, sau đó admin hỏi cùng kỳ để thấy khác phạm vi. Dùng Hình 5 giải thích principal/view và thử câu yêu cầu shop khác. Mở lại lịch sử và chứng minh lịch sử tách user. Chuỗi demo này là kịch bản trình bày đề xuất; trạng thái nghiệm thu F7 được ghi tại [Demo](DEMO.md).
 
 ### 17.4 Các câu hỏi thường gặp khi bảo vệ
 
@@ -696,7 +693,7 @@ Ghi nhận thời điểm dữ liệu, chờ CDC, chạy pipeline E1 → E2 → 
 
 **Tỷ lệ hủy hoặc AOV NULL nghĩa gì?** Không có mẫu số hợp lệ; NULL thể hiện chưa đủ dữ liệu, không đồng nghĩa 0.
 
-**Đã hoàn thành toàn bộ đồ án chưa?** Các phân hệ nghiệp vụ, pipeline E1–E4 và chatbot đã có implementation/bằng chứng; E5, F7 đầy đủ, demo G và production vẫn Planned.
+**Đã hoàn thành toàn bộ đồ án chưa?** Các phân hệ nghiệp vụ, pipeline E1–E4 và chatbot đã có implementation/bằng chứng; E5/F7/G có implementation và trạng thái nghiệm thu tại tài liệu chuyên trách; production public vẫn Planned.
 
 ## 18 Tài liệu tham chiếu và thuật ngữ
 
@@ -743,7 +740,7 @@ Phụ lục schema và API được trích từ metadata model/OpenAPI của cod
 
 ## Phụ lục A Từ điển dữ liệu đầy đủ
 
-Danh mục dưới đây gồm đủ 24 bảng và các cột SQLAlchemy hiện tại. PK là khóa chính; FK là khóa ngoại; NULL cho biết cột cho phép thiếu giá trị. Default và các quy tắc service được giải thích tại DATABASE.md và BUSINESS_RULES.md.
+Danh mục A1–A24 dưới đây là snapshot schema ngày 06/10. Schema hiện tại có 26 bảng; xem phụ lục cập nhật cuối báo cáo và DATABASE.md. Riêng carts đã bỏ shop_id qua migration giỏ nhiều shop. PK là khóa chính; FK là khóa ngoại; NULL cho biết cột cho phép thiếu giá trị. Default và các quy tắc service được giải thích tại DATABASE.md và BUSINESS_RULES.md.
 
 ### A1 categories
 
@@ -1187,7 +1184,7 @@ Ràng buộc bổ sung: CHECK rating BETWEEN 1 AND 5; UNIQUE (order_item_id).
 
 ## Phụ lục B Danh mục toàn bộ API
 
-Danh mục có 76 operation method/path từ OpenAPI của code hiện tại. Query và tên schema giúp tra cứu contract; quyền, nhánh lỗi và JSON chi tiết xem API.md hoặc Swagger /docs. Nhãn No body nghĩa endpoint không công bố request body. Mã response trong bảng là response thành công được OpenAPI công bố, không phải toàn bộ mã lỗi.
+Danh mục dưới đây là snapshot 76 operation method/path ngày 06/10. OpenAPI ngày 10/10 có 81 operation; các operation mới được bổ sung ở cuối báo cáo. API.md/Swagger là contract chuẩn hiện tại. Query và tên schema giúp tra cứu contract; quyền, nhánh lỗi và JSON chi tiết xem API.md hoặc Swagger /docs. Nhãn No body nghĩa endpoint không công bố request body. Mã response trong bảng là response thành công được OpenAPI công bố, không phải toàn bộ mã lỗi.
 
 ### B1 admin
 
@@ -1421,3 +1418,12 @@ Danh mục có 76 operation method/path từ OpenAPI của code hiện tại. Qu
 
 
 Các đường dẫn backend trong phụ lục này tương đối với backend/app/services/ nếu không ghi thư mục khác. Các file pipeline và Genie quyền tương đối với data/. Cây thư mục trực tiếp và tài liệu chuyên trách là nơi tra cứu chi tiết khi phát triển.
+
+## Phụ lục D — Cập nhật implementation ngày 10/10/2026
+
+- `carts` bỏ cột `shop_id`; `cart_merges` lưu receipt `(buyer_id, merge_id)` duy nhất để merge giỏ khách idempotent. Schema/constraint/migration chuẩn tại [Database](DATABASE.md).
+- `product_detail_images` lưu thứ tự/gallery ảnh phụ riêng với CDC product; storage local/proxy/backup tại [Deployment guide](DEPLOYMENT_GUIDE.md).
+- OpenAPI có 81 operation, bổ sung `GET /shops/{shop_id}`, `POST /cart/preview`, `POST /cart/merge`, `POST /shop/product-images`, `GET /media/product-images/{shop_id}/{filename}` so với snapshot phụ lục B. Tên path chính xác đối chiếu API.md/Swagger.
+- Gold `orders_summary_daily` thêm bốn cột BIGINT `pending`, `confirmed`, `preparing`, `shipping`, giữ ngày giao của `delivered`/AOV. Quyết định người dùng duyệt và test nâng cấp tại [E3 Gold](E3_GOLD.md).
+- Dashboard E5 có module SQL/definition/deploy/acceptance riêng; calculated measures tỷ lệ/AOV tính từ tổng sau lọc. Tên trùng của shop/product được tách bằng ID trong nhãn.
+- Demo G có build nginx, reset project/database độc lập, Chromium E2E với API/DB thật và workflow CI. Snapshot/bằng chứng mới nằm tại [Demo](DEMO.md) và [E5 Dashboard](E5_DASHBOARD.md), không thay các bằng chứng lịch sử ngày 06/10.

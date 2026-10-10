@@ -2,7 +2,27 @@ from unittest.mock import Mock
 
 import pytest
 
-from genie_language_acceptance import verify
+from genie_language_acceptance import cases, numbers, verify
+
+
+def test_today_and_current_shipping_acceptance_preserve_dates_and_shop_scope():
+    admin = {q: sql for q, sql, _ in cases()}
+    shop = {q: sql for q, sql, _ in cases(2)}
+    today = admin["Doanh thu hôm nay là bao nhiêu?"]
+    assert "Asia/Ho_Chi_Minh" in today and "date =" in today
+    shipping = admin["Có bao nhiêu đơn hàng đang giao?"]
+    assert "SUM(shipping)" in shipping and "date" not in shipping
+    assert "shop_id = 2" in shop["Có bao nhiêu đơn hàng đang giao?"]
+    assert numbers(
+        {
+            "tables": [
+                {
+                    "columns": [{"name": "shipping_orders"}, {"name": "shop_id"}],
+                    "rows": [["7", "2"]],
+                }
+            ]
+        }
+    ) == [7]
 
 
 def test_language_acceptance_compares_sql_and_cleans_only_its_created_history(

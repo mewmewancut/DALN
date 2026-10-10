@@ -2,6 +2,8 @@
 
 ## 1. Giới thiệu
 
+Cách chạy bản demo production local, reset dữ liệu và trình diễn 10 phút: [Demo](docs/DEMO.md). Trạng thái nghiệm thu dữ liệu và Dashboard: [E5 Dashboard](docs/E5_DASHBOARD.md). Mục lục tài liệu kỹ thuật: [docs/README.md](docs/README.md).
+
 Dự án xây dựng một **nền tảng thương mại điện tử đa nhà bán hàng dành cho thời trang**, lấy cảm hứng từ mô hình marketplace như Shopee nhưng thu gọn phạm vi để phù hợp với đồ án.
 
 Hệ thống cho phép:
@@ -282,7 +284,7 @@ Một số chức năng có thể mở rộng sau phiên bản đầu:
 ## 12. Thông tin dự án
 
 **Tên dự án:** Hệ thống thương mại điện tử dành cho thời trang  
-**Trạng thái:** Đang triển khai
+**Trạng thái:** Đã triển khai và nghiệm thu demo local, E5/F7 ngày 10/10/2026; triển khai public còn Planned
 **Ngày bắt đầu:** 17/08/2026  
 **Deadline dự kiến:** 12/10/2026  
 

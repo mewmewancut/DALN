@@ -6,7 +6,8 @@ Gold có sáu bảng Delta trong `fashion.gold`. Entry riêng là
 [`03_gold_aggregate.py`](../data/03_gold_aggregate.py); Job chính `00_pipeline.py`
 chạy E1 → E2 → E3. Metric theo [Planning C9](PLANNING.md#c9-thống-kê-shop-shop_statspy).
 [Gate E4](E4_QUALITY.md) đã PASS; [Genie admin/shop](GENIE_CHATBOT.md) dùng các
-bảng Gold này. Dashboard Databricks E5 còn **Planned**.
+bảng Gold này. Implementation và nghiệm thu Dashboard E5 được theo dõi tại
+[E5 Dashboard](E5_DASHBOARD.md).
 
 ## Bảng và metric
 
@@ -31,6 +32,8 @@ Chọn giữ định nghĩa C9 để Gold khớp API thống kê hiện có:
 
 - `total_orders`: số đơn được tạo trong ngày, mọi trạng thái.
 - `cancelled`: số đơn tạo trong ngày có trạng thái hiện tại CANCELLED.
+- `pending`, `confirmed`, `preparing`, `shipping`: số đơn tạo trong ngày có
+  trạng thái hiện tại tương ứng; bổ sung được người dùng duyệt ngày 10/10/2026.
 - `cancel_rate = cancelled / total_orders`; NULL nếu không có đơn tạo.
 - `delivered`: số đơn giao thành công trong ngày, cùng số đếm ở revenue_daily.
 - `aov`: doanh thu giao trong ngày / delivered; NULL nếu không giao đơn nào.
@@ -42,6 +45,9 @@ Bảng lấy hợp ngày tạo và ngày giao. Ví dụ một đơn tạo 30/09,
 delivered=1, cancel_rate=NULL và AOV bằng giá trị đơn. Vì dùng hai mốc ngày,
 delivered không nhất thiết nhỏ hơn total_orders trong cùng dòng.
 Không lấy total_orders trừ delivered/cancelled để suy số đơn đang xử lý trong ngày.
+Dashboard phân bố sáu trạng thái dùng bốn cột mới và `cancelled`; DELIVERED theo
+ngày tạo là `total_orders - pending - confirmed - preparing - shipping - cancelled`.
+Genie đếm đơn đang giao hiện tại bằng tổng `shipping` toàn snapshot.
 
 ## Join và dữ liệu lịch sử
 
@@ -62,7 +68,9 @@ threshold không bị xem là thấp.
 
 - Gold được refresh đầy đủ mỗi lượt, không append, MERGE hoặc checkpoint SKIP.
   Tạo bảng nếu thiếu bằng projection rỗng, rồi `INSERT OVERWRITE TABLE` trong một
-  Delta commit cho từng bảng. Nguồn rỗng xóa các nhóm cũ; schema không tự mở rộng.
+  Delta commit cho từng bảng. Nguồn rỗng xóa các nhóm cũ. Bảng summary cũ được
+  nâng cấp bằng `ALTER TABLE ADD COLUMNS` đúng bốn cột BIGINT đã duyệt trước
+  overwrite; giữ table identity/quyền UC và không đổi schema PostgreSQL.
 - revenue_daily chạy trước revenue_monthly/orders_summary_daily. Silver thành
   công mới chạy Gold; lỗi ghi/query Gold làm Job fail và dừng các bảng tiếp theo.
 - Một bảng ghi nguyên tử; sáu bảng không có transaction chung. Retry refresh lại
