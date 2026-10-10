@@ -23,6 +23,7 @@ import OrdersPage from "./pages/OrdersPage.jsx";
 import PreferencesPage from "./pages/PreferencesPage.jsx";
 import ProductDetailPage from "./pages/ProductDetailPage.jsx";
 import ProductListPage from "./pages/ProductListPage.jsx";
+import ShopStorefrontPage from "./pages/ShopStorefrontPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
@@ -81,6 +82,14 @@ export default function App() {
           element={
             <BuyerRoute>
               <ProductDetailPage />
+            </BuyerRoute>
+          }
+        />
+        <Route
+          path="/shops/:id"
+          element={
+            <BuyerRoute>
+              <ShopStorefrontPage />
             </BuyerRoute>
           }
         />

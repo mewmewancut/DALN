@@ -256,3 +256,17 @@ Test Compose kiểm tra thư mục storage mặc định/tùy chỉnh và bind m
 docker compose --env-file .env.example exec -T backend pytest -q app/tests/test_product_images.py app/tests/test_product_image_migration.py app/tests/test_product_image_concurrency.py app/tests/test_catalog.py app/tests/test_catalog_flow.py
 docker compose --env-file .env.example exec -T frontend npm test -- src/pages/productImages.test.jsx src/pages/shop/shopCatalog.test.jsx src/components/productImage.test.jsx src/pages/productDetailNavigation.test.jsx
 ```
+
+## Gian hàng công khai
+
+`backend/app/tests/test_storefront.py` có 12 test: public access cho khách và mọi role, whitelist không lộ thông tin chủ shop, GET không ghi dữ liệu, mô tả null/profile cập nhật, 404 đồng nhất cho shop thiếu/bị khóa, 422 cho ID sai, scope/filter/sort/phân trang và giá active variant, catalog bị ẩn, đơn cũ giữ snapshot khi shop khóa/đổi giá/tên và chặn buyer khác xem đơn.
+
+`frontend/src/pages/shopStorefront.test.jsx` có 23 test: khách/BUYER, ngày Việt Nam và text HTML an toàn, link card/detail/giỏ/danh sách và chi tiết đơn, filter và query string không ghi đè shop, reset page/xóa filter, URL sai, tải/rỗng/404/lỗi/retry, danh mục lỗi độc lập, mobile toggle, response profile/catalog trễ sau chuyển shop, wishlist buyer và khách chuyển login. Hai test route trong `App.test.jsx` xác nhận ADMIN/SHOP_OWNER quay về đúng dashboard mà không gọi API gian hàng/catalog. Test recommendation tiếp tục xác nhận thứ tự API, giá và cả link ảnh/tên sản phẩm sau khi tách link shop khỏi card.
+
+```powershell
+docker compose --env-file .env.example exec -T backend pytest -q app/tests/test_storefront.py app/tests/test_catalog.py app/tests/test_orders.py
+docker compose --env-file .env.example exec -T frontend npm test -- src/pages/shopStorefront.test.jsx src/pages/recommendations.test.jsx src/pages/buyerPages.test.jsx src/pages/buyerFlow.test.jsx
+docker compose --env-file .env.example exec -T frontend npm run build
+```
+
+Toàn bộ backend: 288 test PASS; frontend: 207 test PASS trong lượt triển khai. Lint/format backend và frontend PASS. Kiểm tra browser và phạm vi còn Planned xem [UI/UX](UI_UX.md#gian-hàng-công-khai).

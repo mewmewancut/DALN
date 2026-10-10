@@ -109,3 +109,13 @@ Khách có link giỏ hàng và thêm variant trước khi đăng nhập. Giỏ 
 Đã kiểm tra bằng Chromium với catalog/API Lakebase: khách thêm hai variant thuộc hai shop, tải lại vẫn giữ đủ hàng và shop đã chọn; đổi lựa chọn luôn chỉ có một radio được chọn, tổng thanh toán chỉ tính shop đó. Thanh toán chuyển sang đăng nhập; mở đăng ký vẫn giữ giỏ tạm. Giỏ hiển thị ở 1440 × 1000 và 390 × 844, không tràn ngang trên mobile. Ảnh kiểm tra ở `output/playwright/guest-cart/`, không đưa vào commit. Lượt trình duyệt này chưa gửi email thật hoặc đặt đơn thật; luồng đăng ký/xác minh/login/merge/checkout được kiểm tra trong Vitest và API tests.
 
 Xác minh toàn bộ: backend **260 pass**, frontend **177 pass / 26 file**; Ruff, ESLint, Prettier, frontend build, Compose config và `git diff --check` **Pass**. Migration đã áp dụng trên PostgreSQL local và Lakebase; Alembic schema parity **Pass**. Lệnh và phạm vi regression ở [Testing](TESTING.md#giỏ-khách-và-checkout-một-shop).
+
+## Gian hàng công khai
+
+Ngày 07/10/2026, bổ sung `/shops/:id`, dùng cùng SiteLayout và catalog của người mua. Header có icon shop, tên, giới thiệu xuống dòng và tháng tham gia; mobile bố trí gọn, tên/mô tả dài được phép xuống dòng. Card dùng link riêng cho ảnh/tên sản phẩm và tên shop; không lồng link. Nội dung và ranh giới dữ liệu tại [Gian hàng shop](SHOP_STOREFRONT.md).
+
+Đã kiểm tra bằng Chromium thực trên runtime Docker: 1440×1000, 390×844 và 320×740; trang không tràn ngang, filter mobile mở/đóng, tìm tên/chọn danh mục/sort chỉ trả sản phẩm shop đã chọn. Mở sản phẩm rồi Back giữ keyword/category/sort trong URL; tải lại giữ bộ lọc. Luồng khách từ gian hàng → chi tiết → chọn variant/thêm giỏ tạm → giỏ → tên shop quay lại đúng gian hàng đã chạy thực. Gian hàng không tồn tại hiển thị thông báo và link quay về catalog. Không đặt đơn hoặc khóa shop thật trong browser; link từ đơn và lịch sử sau khóa shop được kiểm tra bằng Vitest/API trên database test.
+
+Ảnh kiểm tra ở `output/playwright/storefront-desktop.png` và `output/playwright/storefront-mobile.png` (artifact local, không đưa vào commit). Có 12 test backend cho API/nghiệp vụ, 23 test frontend cho gian hàng và 2 test route quản trị bổ sung; lệnh/kết quả chuẩn tại [Testing](TESTING.md#gian-hàng-công-khai).
+
+Browser E2E tự động trong CI, kiểm tra Safari/Firefox, logo/banner tùy chỉnh, theo dõi/chat/đánh giá shop vẫn Planned.

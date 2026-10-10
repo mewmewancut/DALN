@@ -96,6 +96,17 @@ it("đưa admin vào dashboard khi mở trang gốc", async () => {
   expect(text).toContain("Quản trị hệ thống");
 });
 
+it.each([
+  ["SHOP_OWNER", "Tổng quan shop"],
+  ["ADMIN", "Quản trị hệ thống"],
+])("giữ khu vực đúng vai trò %s khi mở gian hàng buyer", async (role, heading) => {
+  const text = await renderAt("/shops/7", role);
+  expect(text).toContain(heading);
+  expect(client.get.mock.calls.some(([url]) => url === "/shops/7" || url === "/products")).toBe(
+    false,
+  );
+});
+
 it("lưu phiên và đi tới trang đúng vai trò sau đăng nhập", async () => {
   await renderAt("/login", null, <LoginTrigger />);
   await act(async () => container.querySelector("#test-login").click());

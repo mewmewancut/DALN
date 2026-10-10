@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -20,3 +22,12 @@ class ShopResponse(BaseModel):
     name: str
     description: str | None
     is_active: bool
+
+
+class PublicShopResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    description: str | None
+    created_at: datetime

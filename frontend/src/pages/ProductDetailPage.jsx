@@ -6,6 +6,7 @@ import { addGuestItem } from "../cart/guestCart.js";
 import { cartErrorMessage as errorMessage } from "../cart/errorMessage.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 import SiteLayout from "../components/SiteLayout.jsx";
+import ShopLink from "../components/ShopLink.jsx";
 import ProductGallery from "../components/ProductGallery.jsx";
 import WishlistButton from "../components/WishlistButton.jsx";
 import { formatCurrency } from "../components/formatCurrency.js";
@@ -119,7 +120,9 @@ export default function ProductDetailPage() {
             <ProductGallery key={product.id} product={product} />
             <div className="detail-content">
               <div className="detail-meta">
-                <p className="eyebrow">{product.shop_name}</p>
+                <p className="eyebrow">
+                  <ShopLink shopId={product.shop_id}>{product.shop_name}</ShopLink>
+                </p>
                 <span className="rating-pill">
                   <span aria-hidden="true">★</span>{" "}
                   {product.rating_average == null

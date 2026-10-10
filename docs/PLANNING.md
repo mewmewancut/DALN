@@ -486,6 +486,7 @@ Backend khóa dòng user khi cập nhật để tuần tự hóa hai request lư
 |---|---|---|
 | POST `/shops` | SHOP_OWNER chưa có shop | tạo shop; 400 nếu đã có |
 | PUT `/shops/me` | SHOP_OWNER | sửa shop của mình |
+| GET `/shops/{id}` | public | gian hàng đang hoạt động: chỉ `id`, `name`, `description`, `created_at`; shop thiếu/bị khóa cùng trả 404, id không nguyên dương trả 422 |
 | GET `/categories` | public | danh sách category |
 | POST `/products` | SHOP_OWNER | tạo product cho shop mình, kèm mảng variants `[{size,color,price,initial_quantity}]` — tạo product + variants + dòng inventory trong 1 transaction |
 | PUT `/products/{id}` | SHOP_OWNER | ⚠️ trước khi sửa: load product, nếu `product.shop_id != current_shop.id` → **403**. Viết hàm chung `get_owned_product_or_403()` dùng cho mọi endpoint sửa/xóa |
@@ -731,6 +732,7 @@ Mọi query ở C9 đều có `WHERE shop_id = current_shop.id`.
 | `/login`, `/register` | Auth | form + báo lỗi từ API |
 | `/` | Danh sách sản phẩm | grid card (ảnh, tên, giá từ, shop, rating); thanh search; sidebar filter (category, khoảng giá); sort; phân trang. Mọi thay đổi filter → gọi lại GET /products với query params |
 | `/products/:id` | Chi tiết | chọn màu → chọn size → hiện giá + tồn kho của đúng variant đó; nút "Thêm vào giỏ" **disable khi chưa chọn đủ size+màu hoặc hết hàng**; block review + rating trung bình |
+| `/shops/:id` | Gian hàng công khai | khách/BUYER xem tên, mô tả, tháng tham gia theo giờ Việt Nam và catalog chỉ của shop này; tìm tên, lọc danh mục/giá, sort, phân trang, yêu thích và link chi tiết |
 | `/cart` | Giỏ hàng | nhóm theo shop; radio chọn đúng một shop thanh toán toàn nhóm; sửa/xóa item, tổng nhóm đã chọn. Khách dùng giỏ tạm, login khi checkout và gộp giỏ theo C3 |
 | `/checkout` | Đặt hàng | form người nhận + địa chỉ; chọn COD / MOCK_CARD; bấm đặt → gọi API → nếu 409 hết hàng thì hiện đúng thông báo sản phẩm nào thiếu → thành công thì sang trang đơn hàng |
 | `/orders` | Đơn của tôi | tab theo status; mỗi đơn: code, ngày, tổng, trạng thái (badge màu), nút "Hủy đơn" **chỉ hiện khi PENDING** |
@@ -744,6 +746,14 @@ Trang `/checkout` tải hồ sơ và sổ địa chỉ cùng giỏ hàng, tự c
 Card catalog và trang chi tiết có nút tim. Buyer đã đăng nhập thao tác trực tiếp với wishlist; khách chưa đăng nhập được chuyển tới `/login`. Product bị ẩn sau khi đã lưu vẫn xuất hiện tại `/wishlist`, nhưng không có nút mở chi tiết để mua.
 
 P4 thêm mục **Dành cho bạn** phía trên catalog cho BUYER đã đăng nhập, tải riêng tối đa 8 sản phẩm từ C1e và giữ thứ tự API. Card có link chi tiết và nút tim dùng chung trạng thái wishlist với catalog; có link Chỉnh sở thích tới `/account/preferences`. Hiển thị tải/rỗng/lỗi riêng; lỗi gợi ý không chặn catalog. Tìm kiếm/filter/sort/phân trang catalog vẫn gọi C2 và không tải lại gợi ý. Đăng xuất gỡ mục gợi ý và bỏ response đang chờ của phiên cũ.
+
+**Gian hàng công khai:** tên shop ở card catalog, chi tiết sản phẩm và từng nhóm giỏ là link tới `/shops/:id`; danh sách và chi tiết đơn BUYER có link "Xem shop" từ `order.shop_id`. Không thay đổi response/snapshot đơn và không tải thông tin shop để quyết định quyền xem đơn. Tên/mô tả trên gian hàng là thông tin hiện tại, chỉ hiển thị văn bản; không công khai owner, email, điện thoại, đơn hàng, doanh thu hoặc dữ liệu quản trị.
+
+Catalog gian hàng dùng C2 với `shop_id` cố định từ gian hàng đã tải; toàn bộ filter/sort/phân trang không được bỏ scope này. Giữ filter trong query string để tải lại/quay về bằng Back không mất tìm kiếm; đổi filter về trang 1, xóa filter vẫn giữ shop. Không đưa gợi ý toàn marketplace vào gian hàng. Yêu thích dùng P2; chọn variant và thêm giỏ vẫn tại chi tiết sản phẩm. Route này theo cùng UX role của catalog: khách và BUYER, role quản trị quay về khu vực của mình; API thông tin gian hàng vẫn public.
+
+Có trạng thái tải, lỗi kèm thử lại, shop không tồn tại/bị khóa, shop chưa có sản phẩm và tìm kiếm không có kết quả; bỏ response cũ khi đổi shop/filter. Shop bị khóa không có thông tin/sản phẩm công khai, nhưng đơn cũ và các quyền xem/đánh giá tiếp tục theo C4/C8. Shop không có mô tả hiện thông báo chưa cập nhật. Không thêm logo/banner, theo dõi, chat hoặc đánh giá shop ở phạm vi này.
+
+**Definition of Done gian hàng:** test API xác nhận whitelist thông tin, public access, 404/422, scope/filter/giá variant/phân trang và đơn lịch sử sau khóa shop; test frontend xác nhận route, link từ sản phẩm/giỏ/đơn, query filters, lỗi/rỗng/retry, response trễ và wishlist; Vitest, build và kiểm tra bố cục desktop/mobile đạt.
 
 ### D3. Trang SHOP_OWNER (layout riêng có sidebar)
 

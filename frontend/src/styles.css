@@ -228,6 +228,9 @@
 }
 
 .product-card-media {
+  display: block;
+  color: inherit;
+  text-decoration: none;
   position: relative;
   overflow: hidden;
 }
@@ -338,6 +341,24 @@
 .product-price {
   color: var(--accent-dark);
   font-size: 0.95rem;
+}
+
+.shop-link {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.shop-link:hover {
+  color: var(--accent-dark);
+}
+
+.product-title-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.product-title-link:hover {
+  text-decoration: underline;
 }
 
 .product-price,

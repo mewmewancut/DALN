@@ -96,6 +96,11 @@ export default function OrderDetailPage() {
               {orderStatusLabel(order.status)}
             </span>
           </div>
+          <p>
+            <Link className="shop-link" to={`/shops/${order.shop_id}`}>
+              Xem shop
+            </Link>
+          </p>
           <OrderSnapshot
             order={order}
             onReview={(item) => {

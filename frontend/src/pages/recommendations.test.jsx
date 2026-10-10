@@ -62,7 +62,8 @@ it("tải gợi ý theo thứ tự API, hiển thị giá và dẫn tới chi ti
   ]);
   expect(section().textContent).toContain("100.000 ₫");
   expect(section().textContent).toContain("Chưa có đánh giá");
-  expect(section().querySelector("a.product-card-link").getAttribute("href")).toBe("/products/6");
+  expect(section().querySelector("a.product-title-link").getAttribute("href")).toBe("/products/6");
+  expect(section().querySelector("a.product-card-media").getAttribute("href")).toBe("/products/6");
   expect(section().querySelector("a.text-button").getAttribute("href")).toBe(
     "/account/preferences",
   );

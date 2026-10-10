@@ -22,6 +22,7 @@ Thư mục này là điểm bắt đầu để hiểu mục tiêu, thiết kế,
 | [`API.md`](API.md) | In progress | Endpoint C0–C10 và P1–P4: auth, hồ sơ/địa chỉ, wishlist/sở thích/gợi ý, catalog, vận hành shop, đơn hàng, thống kê, admin, role và error contract |
 | [`WEB_DASHBOARDS.md`](WEB_DASHBOARDS.md) | Implemented | Dashboard website admin/shop: mục đích KPI, API, kỳ trước, biểu đồ và ưu tiên vận hành |
 | [`UI_UX.md`](UI_UX.md) | Implemented | Font tiếng Việt, layout theo role, responsive, bảng, trạng thái ảnh và kiểm tra giao diện |
+| [`SHOP_STOREFRONT.md`](SHOP_STOREFRONT.md) | Implemented | Gian hàng công khai, catalog theo shop, liên kết từ sản phẩm/giỏ/đơn và bảo toàn lịch sử khi khóa shop |
 | [`USER_JOURNEY_REVIEW.md`](USER_JOURNEY_REVIEW.md) | Reviewed | Rà soát từ góc nhìn khách/buyer/shop/admin đến chatbot, lỗi đã sửa, bằng chứng và giới hạn |
 | [`DATA_PLATFORM.md`](DATA_PLATFORM.md) | Implemented (E1–E4, Genie) | CDC/checkpoint, Job serverless, setup/recovery; liên kết gate E4 và chatbot Genie |
 | [`E2_SILVER.md`](E2_SILVER.md) | Implemented | 7 bảng Silver, dependency skip, nghiệp vụ/transaction và kiểm thử |

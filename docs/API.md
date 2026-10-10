@@ -75,10 +75,13 @@ Thứ tự dựa trên sở thích hiện tại của buyer và ba tiêu chí đ
 
 ## Shop và catalog
 
+Gian hàng công khai và luồng điều hướng được mô tả ở [Gian hàng shop](SHOP_STOREFRONT.md). Response public không dùng schema quản trị có `owner_id`; shop bị khóa và shop thiếu trả cùng thông báo `Gian hàng không tồn tại hoặc không khả dụng`. Danh sách sản phẩm vẫn dùng `GET /products?shop_id={id}` và giữ toàn bộ quy tắc catalog bên dưới.
+
 | Method | Path | Quyền | Request | Response thành công |
 |---|---|---|---|---|
 | POST | `/shops` | SHOP_OWNER chưa có shop | `name`, `description?` | `201` với `id`, `owner_id`, `name`, `description`, `is_active` |
 | PUT | `/shops/me` | SHOP_OWNER có shop | `name`, `description?` | `200` với shop đã sửa |
+| GET | `/shops/{id}` | Public | ID nguyên dương | `200` với `{id, name, description, created_at}`; `404` nếu không tồn tại/bị khóa; `422` nếu ID sai |
 | GET | `/categories` | Public | — | `200` với danh sách `{id, name}` |
 | POST | `/products` | SHOP_OWNER có shop | `category_id`, `name`, `description?`, `image_url`, `detail_image_urls?`, `base_price`, `variants` | `201` với chi tiết sản phẩm |
 | PUT | `/products/{id}` | Chủ shop của sản phẩm | Các trường product cần sửa | `200` với chi tiết sản phẩm |

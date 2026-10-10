@@ -27,3 +27,10 @@ def update_shop(db: Session, shop: Shop, request: ShopUpdate) -> Shop:
     db.commit()
     db.refresh(shop)
     return shop
+
+
+def get_public_shop(db: Session, shop_id: int) -> Shop:
+    shop = db.get(Shop, shop_id)
+    if shop is None or not shop.is_active:
+        raise HTTPException(status_code=404, detail="Gian hàng không tồn tại hoặc không khả dụng")
+    return shop

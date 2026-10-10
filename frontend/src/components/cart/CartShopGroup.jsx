@@ -1,5 +1,6 @@
 import "./cart.css";
 import ProductImage from "../ProductImage.jsx";
+import ShopLink from "../ShopLink.jsx";
 import { formatCurrency } from "../formatCurrency.js";
 
 export default function CartShopGroup({
@@ -18,7 +19,9 @@ export default function CartShopGroup({
       aria-label={`Giỏ của ${group.shop_name}`}
     >
       <header className="cart-shop-heading">
-        <h2>{group.shop_name}</h2>
+        <h2>
+          <ShopLink shopId={group.shop_id}>{group.shop_name}</ShopLink>
+        </h2>
         {onSelect && (
           <label>
             <input

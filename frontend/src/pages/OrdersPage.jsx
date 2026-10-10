@@ -117,6 +117,9 @@ export default function OrdersPage() {
                   <strong>{order.code}</strong>
                 </Link>
                 <p>{formatDateTime(order.created_at)}</p>
+                <Link className="shop-link" to={`/shops/${order.shop_id}`}>
+                  Xem shop
+                </Link>
               </div>
               <span className={`status-badge status-${order.status.toLowerCase()}`}>
                 {orderStatusLabel(order.status)}
