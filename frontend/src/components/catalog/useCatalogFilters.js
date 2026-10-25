@@ -13,30 +13,43 @@ const DEFAULTS = {
 export default function useCatalogFilters(persistInUrl) {
   const [localFilters, setLocalFilters] = useState(DEFAULTS);
   const [searchParams, setSearchParams] = useSearchParams();
+
   const urlFilters = useMemo(() => {
     const page = Number(searchParams.get("page"));
     const sort = searchParams.get("sort");
+
     return {
       keyword: searchParams.get("keyword") ?? "",
       category_id: searchParams.get("category_id") ?? "",
       min_price: searchParams.get("min_price") ?? "",
       max_price: searchParams.get("max_price") ?? "",
-      sort: ["newest", "price_asc", "price_desc"].includes(sort) ? sort : "newest",
+      sort: ["newest", "price_asc", "price_desc"].includes(sort)
+        ? sort
+        : "newest",
       page: Number.isSafeInteger(page) && page > 0 ? page : 1,
     };
   }, [searchParams]);
-  const filters = persistInUrl ? urlFilters : localFilters;
+
+  const filters = persistInUrl ? localFilters : urlFilters;
 
   function setFilters(update) {
-    if (!persistInUrl) {
-      setLocalFilters(update);
+    const next = typeof update === "function"
+      ? update(filters)
+      : update;
+
+    if (persistInUrl) {
+      setLocalFilters(next);
       return;
     }
-    const next = typeof update === "function" ? update(filters) : update;
+
     const params = new URLSearchParams();
+
     for (const key of Object.keys(DEFAULTS)) {
-      if (next[key] !== DEFAULTS[key]) params.set(key, String(next[key]));
+      if (next[key] !== DEFAULTS[key]) {
+        params.set(key, String(next[key]));
+      }
     }
+
     setSearchParams(params, { replace: true });
   }
 

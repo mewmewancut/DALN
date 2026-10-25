@@ -1,3 +1,5 @@
+import HeaderSearch from "./HeaderSearch.jsx";
+import BackHomeButton from "./BackHomeButton.jsx";
 import { Link, NavLink } from "react-router";
 
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -23,6 +25,7 @@ export default function SiteLayout({ children, wide = false }) {
           <span>FASHION</span>
         </Link>
 
+        <HeaderSearch />
         <nav className="site-nav" aria-label="Điều hướng tài khoản">
           {session ? (
             <>
@@ -94,8 +97,44 @@ export default function SiteLayout({ children, wide = false }) {
         </nav>
       </header>
       <main className="shell" id="main-content" tabIndex={-1}>
-        <section className={`card${wide ? " card-wide" : ""}`}>{children}</section>
+        <section className={`card${wide ? " card-wide" : ""}`}>
+          <BackHomeButton />
+          {children}
+        </section>
       </main>
+          <footer className="fashion-footer">
+        <div className="fashion-footer-inner">
+          <div className="fashion-footer-brand">
+            <h2>FASHION<span>.</span></h2>
+            <p>
+              Khám phá thời trang hiện đại, thể hiện
+              cá tính và phong cách riêng của bạn.
+            </p>
+          </div>
+
+          <div className="fashion-footer-column">
+            <h3>Khám phá</h3>
+            <Link to="/">Sản phẩm</Link>
+            <Link to="/cart">Giỏ hàng</Link>
+          </div>
+
+          <div className="fashion-footer-column">
+            <h3>Tài khoản</h3>
+            <Link to="/login">Đăng nhập</Link>
+            <Link to="/register">Đăng ký</Link>
+          </div>
+
+          <div className="fashion-footer-column">
+            <h3>FASHION</h3>
+            <p>Thời trang dành cho mọi phong cách.</p>
+            <p>Fashion Marketplace 2026</p>
+          </div>
+        </div>
+
+        <div className="fashion-footer-bottom">
+          © 2026 FASHION Marketplace. All rights reserved.
+        </div>
+      </footer>
     </div>
   );
 }

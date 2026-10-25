@@ -46,9 +46,11 @@ export default function WishlistPage() {
 
   return (
     <SiteLayout wide>
-      <header className="page-heading">
+      <header className="page-heading fashion-wishlist-heading">
         <div>
+          <span className="fashion-wishlist-label">FASHION / WISHLIST</span>
           <h1>Sản phẩm yêu thích</h1>
+          <p>Lưu giữ những thiết kế bạn yêu thích.</p>
         </div>
         <Link to="/">Tiếp tục mua sắm</Link>
       </header>
@@ -66,9 +68,9 @@ export default function WishlistPage() {
         </div>
       )}
       {!loading && items.length > 0 && (
-        <div className="wishlist-grid">
+        <div className="wishlist-grid fashion-wishlist-grid">
           {items.map((item) => (
-            <article className="wishlist-item" key={item.id}>
+            <article className="wishlist-item fashion-wishlist-item" key={item.id}>
               <ProductImage
                 src={item.image_url}
                 alt={item.name}

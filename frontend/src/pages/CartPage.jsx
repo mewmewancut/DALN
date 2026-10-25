@@ -148,6 +148,10 @@ export default function CartPage() {
             onRemove={remove}
           />
         ))}
+      <div className="fashion-cart-layout">
+        <div className="fashion-cart-items">
+        </div>
+        <div className="fashion-cart-sidebar">
       {!loading && !loadError && cart.items.length > 0 && (
         <div className="cart-summary">
           <strong>Tổng thanh toán: {formatCurrency(selected?.total_amount ?? 0)}</strong>
@@ -171,6 +175,8 @@ export default function CartPage() {
           </button>
         </div>
       )}
+        </div>
+      </div>
       {!loading && !loadError && mergeError && <GuestCartRecovery onRetry={refresh} />}
       {loadError && (
         <button type="button" onClick={refresh}>

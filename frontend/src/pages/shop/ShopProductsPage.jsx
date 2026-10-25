@@ -87,8 +87,12 @@ export default function ShopProductsPage() {
 
   return (
     <>
-      <h1>Sản phẩm</h1>
-      <div className="toolbar">
+      <header className="fashion-seller-heading">
+        <span>FASHION / PRODUCT MANAGEMENT</span>
+        <h1>Quản lý sản phẩm</h1>
+        <p>Quản lý danh mục hàng hóa và trạng thái kinh doanh.</p>
+      </header>
+      <div className="toolbar fashion-products-toolbar">
         <label>
           Tìm theo tên
           <input
@@ -140,8 +144,8 @@ export default function ShopProductsPage() {
       )}
       {!loading && !loadError && result.items.length === 0 && <p>Chưa có sản phẩm phù hợp.</p>}
       {!loading && !loadError && result.items.length > 0 && (
-        <div className="table-wrap">
-          <table className="data-table">
+        <div className="table-wrap fashion-products-table">
+          <table className="data-table fashion-products-data">
             <thead>
               <tr>
                 <th>Sản phẩm</th>

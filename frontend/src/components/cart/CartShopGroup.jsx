@@ -1,4 +1,5 @@
 import "./cart.css";
+import { Link } from "react-router";
 import ProductImage from "../ProductImage.jsx";
 import ShopLink from "../ShopLink.jsx";
 import { formatCurrency } from "../formatCurrency.js";
@@ -54,7 +55,7 @@ export default function CartShopGroup({
                 placeholderClassName="cart-image-placeholder"
               />
               <div>
-                <h3>{item.product_name}</h3>
+                <h3><Link to={`/products/${item.product_id}`}>{item.product_name}</Link></h3>
                 <p>
                   {item.color} / {item.size}
                 </p>

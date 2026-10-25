@@ -19,7 +19,7 @@ const icons = {
 export default function SidebarLayout({ label, links, children }) {
   return (
     <SiteLayout wide>
-      <div className="shop-layout">
+      <div className={`shop-layout${label === "Quản lý shop" ? " fashion-seller-layout" : ""}`}>
         <nav className="shop-sidebar" aria-label={label}>
           <p className="sidebar-label">{label}</p>
           {links.map((link) => (
