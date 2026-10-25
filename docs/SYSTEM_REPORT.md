@@ -196,7 +196,7 @@ Giỏ hàng đọc giá, tên và tồn kho hiện tại; giỏ không giữ gi�
 
 Schema đã phát triển qua các migration 0001–0009: nền tảng, nghiệp vụ, timestamp, alert unique, email auth, hồ sơ/địa chỉ, wishlist, sở thích và lịch sử chatbot. Migration mới nhất là `20261006_0009_add_chat_history.py`.
 
-Seed là idempotent: chạy lại không nhân bản bộ dữ liệu mẫu. Bộ seed mô tả trong hướng dẫn có 3 shop, 45 product, 135 variant, 6 supplier và 36 order. Đây là dữ liệu demo; số record thực tế có thể tăng khi người dùng thao tác. Tài khoản mẫu và hướng dẫn seed nằm ở [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md), không cần sao chép mật khẩu vào báo cáo.
+Seed là idempotent: chạy lại không nhân bản bộ dữ liệu mẫu. Bộ seed mô tả trong hướng dẫn có 3 shop, 46 product, 138 variant, 6 supplier và 36 order. Đây là dữ liệu demo; số record thực tế có thể tăng khi người dùng thao tác. Tài khoản mẫu và hướng dẫn seed nằm ở [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md), không cần sao chép mật khẩu vào báo cáo.
 
 ## 5 Backend và hợp đồng API
 

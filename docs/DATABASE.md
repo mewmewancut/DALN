@@ -196,6 +196,8 @@ docker compose --env-file .env.example exec -T backend alembic current
 
 `python -m app.seed` tạo dữ liệu demo idempotent theo Planning B15. Mật khẩu được hash bằng bcrypt; SKU theo đúng định dạng của B5; đơn hàng mới được rải trong 30 ngày tính từ ngày chạy. Chạy lại, kể cả vào ngày khác, không nhân đôi dữ liệu.
 
+Catalog lấy từ `backend/seed_assets/` (`products.csv`, `product_variants.csv`, `inventory.csv`): 46 sản phẩm (shop 1 và 2 mỗi shop 15, shop 3 có 16), 138 variant. ID và SKU trong CSV chỉ dùng để tìm bản ghi đã có cùng shop; SKU mới luôn sinh từ `product.id` của database đang chạy, nên sản phẩm khác shop có SKU trùng (ví dụ sản phẩm nghiệm thu) không bị ghi đè. Tên, mô tả, ảnh và giá được cập nhật theo CSV; số lượng tồn kho đang có không bị ghi đè. Ảnh trong `seed_assets/product-images/` được chép sang `backend/runtime/product-images/` (trùng giá trị mặc định của `PRODUCT_IMAGE_DIRECTORY`; seed chưa đọc biến này); database chỉ lưu URL `/media/product-images/...`.
+
 Các invariant cần transaction hoặc kiểm tra quyền đã được triển khai trong service tương ứng ở phần C; tài liệu chi tiết nằm trong [`BUSINESS_RULES.md`](BUSINESS_RULES.md).
 
 

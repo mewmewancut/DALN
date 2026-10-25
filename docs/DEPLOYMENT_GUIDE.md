@@ -220,7 +220,7 @@ Chạy seed:
 docker compose --env-file .env exec -T backend python -m app.seed
 ```
 
-Seed hiện tạo 3 shop, 45 sản phẩm, 135 variant, 6 nhà cung cấp và 36 đơn hàng mẫu. Có thể chạy lại lệnh này; script được thiết kế để không nhân đôi dữ liệu.
+Seed hiện tạo 3 shop, 46 sản phẩm có ảnh, 138 variant, 6 nhà cung cấp và 36 đơn hàng mẫu. Có thể chạy lại lệnh này; script được thiết kế để không nhân đôi dữ liệu. Với `.env` trỏ tới Lakebase, dữ liệu được ghi vào Lakebase, còn file ảnh được chép vào thư mục ảnh của backend đang chạy lệnh; mỗi máy chạy backend cần pull code và chạy seed để có ảnh. Chi tiết tại [DATABASE.md](DATABASE.md#seed-data).
 
 Tài khoản đăng nhập mẫu:
 

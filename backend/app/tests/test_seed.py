@@ -1,7 +1,9 @@
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 
 import bcrypt
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, text
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -17,7 +19,14 @@ from app.models import (
     Supplier,
     User,
 )
-from app.seed import seed_database
+from app.seed import (
+    SEED_ASSETS_DIR,
+    get_or_create_category,
+    get_or_create_shop,
+    get_or_create_user,
+    read_seed_csv,
+    seed_database,
+)
 
 TEST_REFERENCE_TIME = datetime(2026, 9, 22, 12, tzinfo=timezone.utc)
 
@@ -66,10 +75,10 @@ def test_seed_creates_complete_demo_data_and_is_idempotent(
         "users": 9,
         "shops": 3,
         "categories": 6,
-        "products": 45,
-        "variants": 135,
-        "inventory": 135,
-        "low_stock_alerts": 19,
+        "products": 46,
+        "variants": 138,
+        "inventory": 138,
+        "low_stock_alerts": 17,
         "suppliers": 6,
         "orders": 36,
     }
@@ -101,9 +110,17 @@ def test_seed_creates_complete_demo_data_and_is_idempotent(
     assert bcrypt.checkpw(b"Buyer@123", buyer.password_hash.encode())
 
     products_per_shop = db_session.execute(
-        select(Product.shop_id, func.count(Product.id)).group_by(Product.shop_id)
+        select(Shop.name, func.count(Product.id)).join(Product.shop).group_by(Shop.name)
     ).all()
-    assert {count for _, count in products_per_shop} == {15}
+    assert dict(products_per_shop) == {
+        "Thời trang Shop 1": 15,
+        "Thời trang Shop 2": 15,
+        "Thời trang Shop 3": 16,
+    }
+    assert all(
+        (SEED_ASSETS_DIR / product.image_url.removeprefix("/media/")).is_file()
+        for product in db_session.scalars(select(Product))
+    )
     variants_per_product = db_session.execute(
         select(ProductVariant.product_id, func.count(ProductVariant.id)).group_by(
             ProductVariant.product_id
@@ -186,3 +203,74 @@ def test_seed_repairs_missing_alerts_without_resetting_stock_or_existing_alerts(
     db_session.expire_all()
     assert [(item.id, item.quantity, item.low_stock_threshold) for item in items] == stock_before
     assert not any(seed_database(db_session, reference_time=TEST_REFERENCE_TIME).values())
+
+
+def test_seed_does_not_adopt_exported_sku_owned_by_another_shop(
+    db_session: Session,
+) -> None:
+    # The live database already has product 46 in shop 1, while the exported
+    # catalog's product 46 belongs to shop 3 and uses SKUs such as P46-M-Đen.
+    db_session.execute(text("SELECT setval(pg_get_serial_sequence('products', 'id'), 1000)"))
+    created = defaultdict(int)
+    owner = get_or_create_user(
+        db_session,
+        email="shop1@shop.vn",
+        password="Shop@123",
+        full_name="Chủ shop 1",
+        role="SHOP_OWNER",
+        created=created,
+    )
+    shop = get_or_create_shop(
+        db_session,
+        owner=owner,
+        name="Thời trang Shop 1",
+        description="Cửa hàng thời trang mẫu số 1.",
+        created=created,
+    )
+    unrelated = Product(
+        id=46,
+        shop=shop,
+        category=get_or_create_category(db_session, "Áo", created),
+        name="Áo nghiệm thu",
+        base_price=Decimal(100_000),
+    )
+    db_session.add(
+        ProductVariant(
+            product=unrelated, sku="P46-M-Đen", size="M", color="Đen", price=Decimal(100_000)
+        )
+    )
+    db_session.flush()
+
+    first_run = seed_database(db_session, reference_time=TEST_REFERENCE_TIME)
+
+    assert first_run["products"] == 46
+    db_session.refresh(unrelated)
+    assert (unrelated.shop_id, unrelated.name) == (shop.id, "Áo nghiệm thu")
+    assert [variant.sku for variant in unrelated.variants] == ["P46-M-Đen"]
+    exported = db_session.scalar(select(Product).where(Product.name == "Áo thun Basic Premium"))
+    assert exported is not None
+    assert exported.shop.name == "Thời trang Shop 3"
+    assert sorted(variant.sku for variant in exported.variants) == sorted(
+        f"P{exported.id}-{size}-{color}"
+        for size, color in [("M", "Đen"), ("L", "Trắng"), ("XL", "Xanh")]
+    )
+    assert not any(seed_database(db_session, reference_time=TEST_REFERENCE_TIME).values())
+
+
+def test_seed_reruns_on_database_with_legacy_csv_skus_and_shifted_ids(
+    db_session: Session,
+) -> None:
+    # The earlier CSV import stored exported SKUs verbatim even when product IDs
+    # in the database did not match the export, e.g. product 1046 with P46-M-Đen.
+    db_session.execute(text("SELECT setval(pg_get_serial_sequence('products', 'id'), 1000)"))
+    seed_database(db_session, reference_time=TEST_REFERENCE_TIME)
+    export_ids = {row["name"]: int(row["id"]) for row in read_seed_csv("products.csv")}
+    variants = db_session.scalars(select(ProductVariant)).all()
+    for variant in variants:
+        variant.sku = f"P{export_ids[variant.product.name]}-{variant.size}-{variant.color}"
+    db_session.flush()
+    legacy_skus = sorted(variant.sku for variant in variants)
+
+    assert not any(seed_database(db_session, reference_time=TEST_REFERENCE_TIME).values())
+    db_session.expire_all()
+    assert sorted(db_session.scalars(select(ProductVariant.sku))) == legacy_skus

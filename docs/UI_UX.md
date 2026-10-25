@@ -68,7 +68,7 @@ git diff --check
 
 Test mục tiêu: **7 pass**. Toàn bộ Vitest: **105 pass / 16 file**. Build, ESLint, Prettier và diff check: **Pass**. Backend không có thay đổi trong task này.
 
-Browser end-to-end tự động, thử nghiệm với người dùng và các luồng email thật còn **Planned**. Dữ liệu seed vẫn dùng ảnh placeholder; lượt chỉnh UI không thay ảnh hoặc tạo đơn trên database đang chạy.
+Browser end-to-end tự động, thử nghiệm với người dùng và các luồng email thật còn **Planned**. Dữ liệu seed hiện dùng ảnh sản phẩm thật trong `backend/seed_assets/`; lượt chỉnh UI không thay ảnh hoặc tạo đơn trên database đang chạy.
 
 ### Cải thiện thao tác sau rà soát người dùng
 

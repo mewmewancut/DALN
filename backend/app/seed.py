@@ -6,7 +6,6 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
-from random import Random
 
 import bcrypt
 from sqlalchemy import select
@@ -315,6 +314,8 @@ def create_catalog(
 
     # A previously seeded database may contain products that were renamed.
     # Locate those by their exported variant SKUs before trying product names.
+    # Product IDs differ between databases, so an exported SKU found in another
+    # shop belongs to an unrelated product and must not be adopted.
     variant_skus_by_product: dict[int, list[str]] = {}
     for row in variant_rows:
         variant_skus_by_product.setdefault(int(row["product_id"]), []).append(row["sku"])
@@ -326,8 +327,10 @@ def create_catalog(
         name = row["name"]
         product = None
         for sku in variant_skus_by_product.get(export_id, []):
-            matched_variant = session.scalar(select(ProductVariant).where(ProductVariant.sku == sku))
-            if matched_variant is not None:
+            matched_variant = session.scalar(
+                select(ProductVariant).where(ProductVariant.sku == sku)
+            )
+            if matched_variant is not None and matched_variant.product.shop_id == shop.id:
                 if product is not None and product.id != matched_variant.product_id:
                     raise ValueError(f"SKU của sản phẩm CSV {export_id} thuộc nhiều sản phẩm")
                 product = matched_variant.product
@@ -335,12 +338,13 @@ def create_catalog(
             product = session.scalar(
                 select(Product).where(Product.shop_id == shop.id, Product.name == name)
             )
-        if product is not None and product.shop_id != shop.id:
-            raise ValueError(f"Sản phẩm {name} thuộc sai shop")
         if product is None:
             product = Product(
-                shop=shop, category=category, name=name,
-                description=row["description"], image_url=row["image_url"],
+                shop=shop,
+                category=category,
+                name=name,
+                description=row["description"],
+                image_url=row["image_url"],
                 base_price=Decimal(row["base_price"]),
             )
             session.add(product)
@@ -358,7 +362,8 @@ def create_catalog(
     for row in variant_rows:
         export_id = int(row["id"])
         product = products_by_export_id[int(row["product_id"])]
-        sku = row["sku"]
+        # Planning B5 derives SKUs from the product ID in this database.
+        sku = f"P{product.id}-{row['size']}-{row['color']}"
         variant = session.scalar(select(ProductVariant).where(ProductVariant.sku == sku))
         if variant is not None and variant.product_id != product.id:
             raise ValueError(f"SKU {sku} đã thuộc sản phẩm khác; dừng seed để bảo vệ dữ liệu")
@@ -370,12 +375,16 @@ def create_catalog(
                     ProductVariant.color == row["color"],
                 )
             )
-            if variant is not None and variant.sku != sku:
-                raise ValueError(f"Biến thể {variant.id} có SKU khác CSV; dừng seed")
+            # Databases seeded by the earlier CSV import kept the exported SKU verbatim.
+            if variant is not None and variant.sku not in (sku, row["sku"]):
+                raise ValueError(f"Biến thể {variant.id} có SKU khác {sku}; dừng seed")
         if variant is None:
             variant = ProductVariant(
-                product=product, sku=sku, size=row["size"],
-                color=row["color"], price=Decimal(row["price"]),
+                product=product,
+                sku=sku,
+                size=row["size"],
+                color=row["color"],
+                price=Decimal(row["price"]),
             )
             session.add(variant)
             session.flush()
@@ -410,11 +419,13 @@ def create_catalog(
                 )
             )
             if open_alert is None:
-                session.add(LowStockAlert(
-                    variant_id=variant.id,
-                    shop_id=existing.shop_id,
-                    quantity_at_alert=existing.quantity,
-                ))
+                session.add(
+                    LowStockAlert(
+                        variant_id=variant.id,
+                        shop_id=existing.shop_id,
+                        quantity_at_alert=existing.quantity,
+                    )
+                )
                 session.flush()
                 created["low_stock_alerts"] += 1
 
@@ -422,7 +433,6 @@ def create_catalog(
         raise ValueError("Mỗi shop phải có ít nhất một biến thể để tạo đơn mẫu")
     copy_seed_images()
     return variants_by_shop
-
 
 
 def create_order_history(

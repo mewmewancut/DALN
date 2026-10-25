@@ -68,9 +68,9 @@ Sau khi migration hoàn tất, chạy seed bằng container backend:
 docker compose --env-file .env.example exec -T backend python -m app.seed
 ```
 
-Script có thể chạy lại an toàn mà không nhân đôi dữ liệu. Bộ dữ liệu hiện tại gồm 3 shop, 45 sản phẩm, 135 variant, 6 supplier và 36 đơn hàng mẫu.
+Script có thể chạy lại an toàn mà không nhân đôi dữ liệu. Bộ dữ liệu hiện tại gồm 3 shop, 46 sản phẩm, 138 variant, 6 supplier và 36 đơn hàng mẫu.
 
-Seed cũng tạo cảnh báo cho các variant mẫu có tồn kho dưới ngưỡng (19 cảnh báo trên bộ dữ liệu mới). Với database đã seed trước đây, chạy lại lệnh trên sẽ bổ sung cảnh báo thiếu dựa trên số lượng/ngưỡng hiện tại, không đặt lại tồn kho hoặc thay snapshot cảnh báo đang mở. Quy tắc tại [Tồn kho và cảnh báo](BUSINESS_RULES.md#tồn-kho-và-cảnh-báo-hết-hàng-c6).
+Seed cũng tạo cảnh báo cho các variant mẫu có tồn kho dưới ngưỡng (17 cảnh báo trên bộ dữ liệu mới). Với database đã seed trước đây, chạy lại lệnh trên sẽ bổ sung cảnh báo thiếu dựa trên số lượng/ngưỡng hiện tại, không đặt lại tồn kho hoặc thay snapshot cảnh báo đang mở. Quy tắc tại [Tồn kho và cảnh báo](BUSINESS_RULES.md#tồn-kho-và-cảnh-báo-hết-hàng-c6).
 
 Tài khoản demo:
 
