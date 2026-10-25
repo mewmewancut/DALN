@@ -1,0 +1,47 @@
+id,shop_id,category_id,name,description,image_url,base_price,is_active
+1,1,1,Áo thun nam Cotton Basic,Sản phẩm mẫu Áo thun nam Cotton Basic - Shop,/media/product-images/1/52207120207647dfb4fff0b29db331e3.webp,209000,t
+2,1,2,Quần jeans nam Slim Fit,Sản phẩm mẫu Quần jeans nam Slim Fit - Shop 1,/media/product-images/1/fc03701990fc487ebe0e220bedae4148.webp,319000,t
+3,1,3,Chân váy chữ A Classic,Sản phẩm mẫu Chân váy chữ A Classic - Shop 1,/media/product-images/1/4530c3bda1bf4ac7acae4f6bfd1266a5.webp,429000,t
+4,1,4,Giày sneaker nam Classic,Sản phẩm mẫu Giày sneaker nam Classic - Shop 1,/media/product-images/1/ec9ffc13d2744d3498a1383736730ca2.webp,539000,t
+5,1,5,Balo thời trang Urban,Sản phẩm mẫu Balo thời trang Urban - Shop 1,/media/product-images/1/ba4475ac3598462d80e2b6646d9c32d0.webp,649000,t
+6,1,6,Mũ lưỡi trai Basic,Sản phẩm mẫu Mũ lưỡi trai Basic - Shop 1,/media/product-images/1/37f2b08af31a473196a010d93fa8d0c9.webp,209000,t
+7,1,1,Áo polo nam Premium,Sản phẩm mẫu Áo polo nam Premium - Shop 1,/media/product-images/1/a9e42e96f247468fabb4d3d063ee1a80.webp,269000,t
+8,1,2,Quần kaki nam Regular,Sản phẩm mẫu Quần kaki nam Regular - Shop 1,/media/product-images/1/16f6e3695e18456e84fd1f309b1e1c2a.webp,379000,t
+9,1,3,Váy hoa Vintage,Sản phẩm mẫu Váy hoa Vintage - Shop 1,/media/product-images/1/9818d68066a7445ba45ec0223ffe9f62.webp,489000,t
+10,1,4,Giày thể thao Active,Sản phẩm mẫu Giày thể thao Active - Shop 1,/media/product-images/1/2c776717816144a49de35ab3bd49952e.webp,599000,t
+11,1,5,Túi đeo chéo Leather,Sản phẩm mẫu Túi đeo chéo Leather - Shop 1,/media/product-images/1/89ef1579fc4a4a0a8c273bbcd31f7506.webp,709000,t
+12,1,6,Thắt lưng da Classic,Sản phẩm mẫu Thắt lưng da Classic - Shop 1,/media/product-images/1/cfd1437a2eb947be8a133a602b813726.webp,269000,t
+13,1,1,Áo sơ mi Linen,Sản phẩm mẫu Áo sơ mi Linen - Shop 1,/media/product-images/1/d7b5d90f88094e87b552a4a88b0a8be2.webp,329000,t
+14,1,2,Quần jogger Streetwear,Sản phẩm mẫu Quần jogger Streetwear - Shop 1,/media/product-images/1/aa0a7455bf9e414f894ea2c585a192f1.webp,439000,t
+15,1,3,Đầm maxi mùa hè,Sản phẩm mẫu Đầm maxi mùa hè - Shop 1,/media/product-images/1/2eb03e6afb2f4227a87e9a8d47fe2ebe.webp,549000,t
+16,2,1,Áo blouse nữ tay phồng,Sản phẩm mẫu Áo blouse nữ tay phồng - Shop 2,/media/product-images/2/917c07c99ce14364afbe8c566570bd73.webp,209000,t
+17,2,2,Quần ống loe nữ Retro,Sản phẩm mẫu Quần ống loe nữ Retro - Shop 2,/media/product-images/2/d988be894e4740bf93cb980e425d5267.webp,319000,t
+18,2,3,Chân váy xếp ly Tennis,Sản phẩm mẫu Chân váy xếp ly Tennis - Shop 2,/media/product-images/2/82968446a8b14d27942fd9a18660222a.webp,429000,t
+19,2,4,Giày Mary Jane nữ,Sản phẩm mẫu Giày Mary Jane nữ - Shop 2,/media/product-images/2/c8376343a12f4af497f699a1b188a649.webp,539000,t
+20,2,5,Túi xách nữ dáng hộp,Sản phẩm mẫu Túi xách nữ dáng hộp - Shop 2,/media/product-images/2/51aba9394247476e88762d4d58e82159.webp,649000,t
+21,2,6,Băng đô tóc ngọc trai,Sản phẩm mẫu Băng đô tóc ngọc trai - Shop 2,/media/product-images/2/cacbd0c8da70437a8789cf6c40bfd754.webp,209000,t
+22,2,1,Áo hai dây nữ Satin,Sản phẩm mẫu Áo hai dây nữ Satin - Shop 2,/media/product-images/2/aeccfa593f7948cb9095a69c032c39cf.webp,269000,t
+23,2,2,Quần legging nữ Yoga,Sản phẩm mẫu Quần legging nữ Yoga - Shop 2,/media/product-images/2/337e294507ce48f0942270abbe01859a.webp,379000,t
+24,2,3,Đầm bodycon dự tiệc,Sản phẩm mẫu Đầm bodycon dự tiệc - Shop 2,/media/product-images/2/f55650e09af54b7babe690b8e7152680.webp,489000,t
+25,2,4,Giày sandal nữ quai mảnh,Sản phẩm mẫu Giày sandal nữ quai mảnh - Shop 2,/media/product-images/2/aaccccd53aaa4543a2d8b4614b6303ca.webp,599000,t
+26,2,5,Túi clutch nữ dự tiệc,Sản phẩm mẫu Túi clutch nữ dự tiệc - Shop 2,/media/product-images/2/df358a76a25044ffab627266104c62c6.webp,709000,t
+27,2,6,Hoa tai nữ đính đá,Sản phẩm mẫu Hoa tai nữ đính đá - Shop 2,/media/product-images/2/abb13b8d533d45a8bd1462629ed4e935.webp,269000,t
+28,2,1,Áo peplum nữ thanh lịch,Sản phẩm mẫu Áo peplum nữ thanh lịch - Shop 2,/media/product-images/2/66635d219152485abad2b67674bc7d37.webp,329000,t
+29,2,2,Quần short nữ lưng cao,Sản phẩm mẫu Quần short nữ lưng cao - Shop 2,/media/product-images/2/4fca355e7f95495eb9ad87c664cf4456.webp,439000,t
+30,2,3,Đầm babydoll nữ,Sản phẩm mẫu Đầm babydoll nữ - Shop 2,/media/product-images/2/077fdc40db7d42f8be5f35dba6760ead.webp,549000,t
+31,3,1,Áo thun Unisex Oversize Graphic,Sản phẩm mẫu Áo thun Unisex Oversize Graphic- Shop 3,/media/product-images/3/67fe64308c6f4682b0510f98da4aa7cf.webp,209000,t
+32,3,2,Quần cargo túi hộp Streetwear,Sản phẩm mẫu Quần cargo túi hộp Streetwear - Shop 3,/media/product-images/3/30a82d9ca31245c5a3b99789f97cb2b1.webp,319000,t
+33,3,3,Váy yếm Denim cá tính,Sản phẩm mẫu Váy yếm Denim cá tính - Shop 3,/media/product-images/3/39baa28728ed4f05b8a2f4e914bc130d.webp,429000,t
+34,3,4,Giày sneaker Chunky Unisex,Sản phẩm mẫu Giày sneaker Chunky Unisex - Shop 3,/media/product-images/3/02a08887b5fb48e188617143b7e577a1.webp,539000,t
+35,3,5,Túi tote Canvas Street Art,Sản phẩm mẫu Túi tote Canvas Street Art - Shop 3,/media/product-images/3/fb612ae0a5944c53983c5a162baab9ca.webp,649000,t
+36,3,6,Mũ bucket hai mặt Unisex,Sản phẩm mẫu Mũ bucket hai mặt Unisex - Shop 3,/media/product-images/3/42fb1a6efac84198b94e2b5ce3d3be15.webp,209000,t
+37,3,1,Áo sweater Unisex Colorblock,Sản phẩm mẫu Áo sweater Unisex Colorblock - Shop 3,/media/product-images/3/b5c8cc2952b04333801fdce295d85112.webp,269000,t
+38,3,2,Quần parachute ống rộng,Sản phẩm mẫu Quần parachute ống rộng - Shop 3,/media/product-images/3/771102f356ab4bf7b9567f012649945d.webp,379000,t
+39,3,3,Chân váy cargo túi hộp,Sản phẩm mẫu Chân váy cargo túi hộp - Shop 3,/media/product-images/3/6dadeb18cc994ffb8d6835ff21de05e2.webp,489000,t
+40,3,4,Giày slip-on Checkerboard,Sản phẩm mẫu Giày slip-on Checkerboard- Shop 3,/media/product-images/3/805ef0b677ab42c5889d44cb3a551663.webp,599000,t
+41,3,5,Balo Streetwear Techwear,Sản phẩm mẫu Balo Streetwear Techwear - Shop 3,/media/product-images/3/eabf34ecd040450f87ed75f1c5507941.webp,709000,t
+42,3,6,Vòng cổ dây chuyền Unisex,Sản phẩm mẫu Vòng cổ dây chuyền Unisex - Shop 3,/media/product-images/3/c839f163a9cd490a971e323efa0182da.webp,269000,t
+43,3,1,Áo khoác Bomber Street Style,Sản phẩm mẫu Áo khoác Bomber Street Style - Shop 3,/media/product-images/3/e5aaab46043e4a86aa2566d7464291c7.webp,329000,t
+44,3,2,Quần jeans Baggy Wash,Sản phẩm mẫu Quần jeans Baggy Wash - Shop 3,/media/product-images/3/561d4ad677f24b8f974884bfbf556310.webp,439000,t
+45,3,3,Chân váy Denim bất đối xứng,Sản phẩm mẫu Chân váy Denim bất đối xứng - Shop 3,/media/product-images/3/ba4a77dc30f146d9bac5612da8bf9466.webp,549000,t
+46,3,1,Áo thun Basic Premium,Sản phẩm mẫu Áo thun Basic Premium - Shop 3,/media/product-images/3/d7c3aa7735d14d318b090af54c4e4747.webp,199000,t

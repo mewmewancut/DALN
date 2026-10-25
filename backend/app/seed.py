@@ -1,8 +1,11 @@
 """Create deterministic demo data without duplicating rows on repeated runs."""
 
+import csv
+import shutil
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from pathlib import Path
 from random import Random
 
 import bcrypt
@@ -61,6 +64,32 @@ ORDER_PATHS = {
     "DELIVERED": ("CONFIRMED", "PREPARING", "SHIPPING", "DELIVERED"),
     "CANCELLED": ("CANCELLED",),
 }
+
+
+SEED_ASSETS_DIR = Path(__file__).resolve().parent.parent / "seed_assets"
+
+
+def read_seed_csv(filename: str) -> list[dict[str, str]]:
+    file_path = SEED_ASSETS_DIR / filename
+    if not file_path.is_file():
+        raise FileNotFoundError(f"Không tìm thấy file seed: {file_path}")
+    with file_path.open("r", encoding="utf-8-sig", newline="") as file:
+        return list(csv.DictReader(file))
+
+
+def copy_seed_images() -> None:
+    source = SEED_ASSETS_DIR / "product-images"
+    target = SEED_ASSETS_DIR.parent / "runtime" / "product-images"
+    if not source.is_dir():
+        raise FileNotFoundError(f"Không tìm thấy thư mục ảnh seed: {source}")
+    for image in source.rglob("*"):
+        if not image.is_file():
+            continue
+        relative = image.relative_to(source)
+        destination = target / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if not destination.exists():
+            shutil.copy2(image, destination)
 
 
 def hash_password(password: str) -> str:
@@ -270,62 +299,130 @@ def create_catalog(
     categories: Sequence[Category],
     created: dict[str, int],
 ) -> dict[int, list[ProductVariant]]:
-    random = Random(20260922)
-    variants_by_shop: dict[int, list[ProductVariant]] = {}
+    """Import the curated catalog, using CSV IDs only as lookup keys."""
+    product_rows = read_seed_csv("products.csv")
+    variant_rows = read_seed_csv("product_variants.csv")
+    inventory_rows = read_seed_csv("inventory.csv")
 
-    for shop_number, shop in enumerate(shops, start=1):
-        shop_variants: list[ProductVariant] = []
-        for product_number in range(1, 16):
-            category = categories[(product_number - 1) % len(categories)]
-            base_price = Decimal(CATEGORY_BASE_PRICES[category.name] + product_number * 10_000)
-            product = get_or_create_product(
-                session,
-                shop=shop,
-                category=category,
-                name=f"{category.name} mẫu {product_number:02d} - Shop {shop_number}",
-                image_url=(
-                    f"https://placehold.co/600x800?text=shop-{shop_number}-product-{product_number}"
-                ),
-                base_price=base_price,
-                created=created,
+    if len(shops) != 3 or len(categories) != 6:
+        raise ValueError("Dữ liệu mẫu yêu cầu 3 shop và 6 danh mục")
+
+    shop_by_export_id = {number: shop for number, shop in enumerate(shops, 1)}
+    category_by_export_id = {number: category for number, category in enumerate(categories, 1)}
+    variants_by_shop: dict[int, list[ProductVariant]] = {shop.id: [] for shop in shops}
+    products_by_export_id: dict[int, Product] = {}
+    variants_by_export_id: dict[int, ProductVariant] = {}
+
+    # A previously seeded database may contain products that were renamed.
+    # Locate those by their exported variant SKUs before trying product names.
+    variant_skus_by_product: dict[int, list[str]] = {}
+    for row in variant_rows:
+        variant_skus_by_product.setdefault(int(row["product_id"]), []).append(row["sku"])
+
+    for row in product_rows:
+        export_id = int(row["id"])
+        shop = shop_by_export_id[int(row["shop_id"])]
+        category = category_by_export_id[int(row["category_id"])]
+        name = row["name"]
+        product = None
+        for sku in variant_skus_by_product.get(export_id, []):
+            matched_variant = session.scalar(select(ProductVariant).where(ProductVariant.sku == sku))
+            if matched_variant is not None:
+                if product is not None and product.id != matched_variant.product_id:
+                    raise ValueError(f"SKU của sản phẩm CSV {export_id} thuộc nhiều sản phẩm")
+                product = matched_variant.product
+        if product is None:
+            product = session.scalar(
+                select(Product).where(Product.shop_id == shop.id, Product.name == name)
             )
+        if product is not None and product.shop_id != shop.id:
+            raise ValueError(f"Sản phẩm {name} thuộc sai shop")
+        if product is None:
+            product = Product(
+                shop=shop, category=category, name=name,
+                description=row["description"], image_url=row["image_url"],
+                base_price=Decimal(row["base_price"]),
+            )
+            session.add(product)
+            session.flush()
+            created["products"] += 1
+        # Catalog CSV is the source of truth for descriptive product fields.
+        product.category = category
+        product.name = name
+        product.description = row["description"]
+        product.image_url = row["image_url"]
+        product.base_price = Decimal(row["base_price"])
+        product.is_active = row["is_active"].strip().lower() in ("true", "t", "1", "yes")
+        products_by_export_id[export_id] = product
 
-            sizes = CATEGORY_SIZES[category.name]
-            for variant_number, (size, color) in enumerate(
-                zip(sizes, VARIANT_COLORS, strict=True),
-                start=1,
-            ):
-                sku = f"P{product.id}-{size}-{color}"
-                variant = get_or_create_variant(
-                    session,
-                    product=product,
-                    size=size,
-                    color=color,
-                    price=base_price + Decimal((variant_number - 1) * 20_000),
-                    sku=sku,
-                    created=created,
+    for row in variant_rows:
+        export_id = int(row["id"])
+        product = products_by_export_id[int(row["product_id"])]
+        sku = row["sku"]
+        variant = session.scalar(select(ProductVariant).where(ProductVariant.sku == sku))
+        if variant is not None and variant.product_id != product.id:
+            raise ValueError(f"SKU {sku} đã thuộc sản phẩm khác; dừng seed để bảo vệ dữ liệu")
+        if variant is None:
+            variant = session.scalar(
+                select(ProductVariant).where(
+                    ProductVariant.product_id == product.id,
+                    ProductVariant.size == row["size"],
+                    ProductVariant.color == row["color"],
                 )
-                shop_variants.append(variant)
+            )
+            if variant is not None and variant.sku != sku:
+                raise ValueError(f"Biến thể {variant.id} có SKU khác CSV; dừng seed")
+        if variant is None:
+            variant = ProductVariant(
+                product=product, sku=sku, size=row["size"],
+                color=row["color"], price=Decimal(row["price"]),
+            )
+            session.add(variant)
+            session.flush()
+            created["variants"] += 1
+        variant.price = Decimal(row["price"])
+        variant.is_active = row["is_active"].strip().lower() in ("true", "t", "1", "yes")
+        variants_by_export_id[export_id] = variant
+        variants_by_shop[product.shop_id].append(variant)
 
-                sequence = (shop_number - 1) * 45 + (product_number - 1) * 3
-                sequence += variant_number
-                if sequence % 17 == 0:
-                    quantity = 0
-                elif sequence % 11 == 0:
-                    quantity = random.randint(1, 4)
-                else:
-                    quantity = random.randint(6, 50)
-                get_or_create_inventory(
-                    session,
-                    variant=variant,
-                    shop=shop,
-                    quantity=quantity,
-                    created=created,
+    for row in inventory_rows:
+        variant = variants_by_export_id[int(row["variant_id"])]
+        shop = shop_by_export_id[int(row["shop_id"])]
+        if variant.product.shop_id != shop.id:
+            raise ValueError(f"Tồn kho của biến thể {variant.sku} thuộc sai shop")
+        existing = session.scalar(select(Inventory).where(Inventory.variant_id == variant.id))
+        if existing is None:
+            existing = Inventory(
+                variant=variant,
+                shop=shop,
+                quantity=int(row["quantity"]),
+                low_stock_threshold=int(row["low_stock_threshold"]),
+            )
+            session.add(existing)
+            session.flush()
+            created["inventory"] += 1
+        # Never overwrite live inventory quantities on repeat seed runs.
+        if existing.quantity < existing.low_stock_threshold:
+            open_alert = session.scalar(
+                select(LowStockAlert.id).where(
+                    LowStockAlert.variant_id == variant.id,
+                    LowStockAlert.is_resolved.is_(False),
                 )
+            )
+            if open_alert is None:
+                session.add(LowStockAlert(
+                    variant_id=variant.id,
+                    shop_id=existing.shop_id,
+                    quantity_at_alert=existing.quantity,
+                ))
+                session.flush()
+                created["low_stock_alerts"] += 1
 
-        variants_by_shop[shop.id] = shop_variants
-
+    if not all(variants_by_shop.values()):
+        raise ValueError("Mỗi shop phải có ít nhất một biến thể để tạo đơn mẫu")
+    copy_seed_images()
     return variants_by_shop
+
 
 
 def create_order_history(
