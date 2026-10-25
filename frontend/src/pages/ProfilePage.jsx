@@ -75,7 +75,11 @@ export default function ProfilePage() {
 
   return (
     <SiteLayout wide>
-      <h1>Hồ sơ cá nhân</h1>
+      <div className="fashion-profile-heading">
+        <span>FASHION / MY ACCOUNT</span>
+        <h1>Hồ sơ cá nhân</h1>
+        <p>Quản lý thông tin và địa chỉ giao hàng của bạn.</p>
+      </div>
       {error && (
         <p className="form-error" role="alert">
           {error}
@@ -87,8 +91,8 @@ export default function ProfilePage() {
         </p>
       )}
       {profile && (
-        <div className="profile-grid">
-          <div className="avatar-preview">
+        <div className="profile-grid fashion-profile-grid">
+          <div className="avatar-preview fashion-profile-avatar">
             {form.avatar_url && !avatarFailed ? (
               <img src={form.avatar_url} alt="Ảnh đại diện" onError={() => setAvatarFailed(true)} />
             ) : (
@@ -97,7 +101,7 @@ export default function ProfilePage() {
               </span>
             )}
           </div>
-          <form className="form-stack" onSubmit={saveProfile}>
+          <form className="form-stack fashion-profile-form" onSubmit={saveProfile}>
             <label>
               Email
               <input value={profile.email} disabled />

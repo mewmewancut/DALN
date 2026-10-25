@@ -87,9 +87,10 @@ export default function OrderDetailPage() {
       )}
       {order && (
         <>
-          <div className="order-heading">
+          <div className="order-heading fashion-detail-heading">
             <div>
-              <p className="eyebrow">{formatDateTime(order.created_at)}</p>
+              <p className="eyebrow">FASHION / ORDER DETAIL</p>
+              <p>{formatDateTime(order.created_at)}</p>
               <h1>{order.code}</h1>
             </div>
             <span className={`status-badge status-${order.status.toLowerCase()}`}>

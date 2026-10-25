@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router";
 
 import client from "../../api/client.js";
 import { errorMessage } from "../../api/errorMessage.js";
@@ -15,7 +15,9 @@ export default function ProductCatalog({ shopId = null }) {
   const navigate = useNavigate();
   const { session } = useAuth();
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [filters, setFilters] = useCatalogFilters(shopId != null);
+  const [keywordDraft, setKeywordDraft] = useState("");
+  const isComposing = useRef(false);
+  const [filters, setFilters] = useCatalogFilters();
   const [categories, setCategories] = useState([]);
   const [categoryError, setCategoryError] = useState("");
   const [result, setResult] = useState({
@@ -27,6 +29,9 @@ export default function ProductCatalog({ shopId = null }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [fallbackProducts, setFallbackProducts] = useState([]);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
+  const [fallbackError, setFallbackError] = useState("");
 
   const { favoriteIds, busyIds, wishlistError, wishlistLoading, toggleWishlist } = useWishlist(
     session?.role === "BUYER",
@@ -85,6 +90,76 @@ export default function ProductCatalog({ shopId = null }) {
     };
   }, [filters, refreshKey, shopId]);
 
+  useEffect(() => {
+    if (shopId != null || loading || error || result.items.length > 0 || !filters.keyword.trim()) {
+      setFallbackProducts([]);
+      setFallbackLoading(false);
+      setFallbackError("");
+      return;
+    }
+
+    let active = true;
+    const controller = new AbortController();
+
+    async function loadFallback() {
+      setFallbackLoading(true);
+      setFallbackProducts([]);
+      setFallbackError("");
+
+      try {
+        const words = filters.keyword
+          .trim()
+          .split(/\s+/)
+          .filter((word) => word.length >= 2);
+
+        let products = [];
+
+        for (const word of [...words].sort((a, b) => b.length - a.length)) {
+          const response = await client.get("/products", {
+            params: {
+              keyword: word,
+              page: 1,
+              page_size: 6,
+            },
+            signal: controller.signal,
+          });
+
+          products = response.data.items || [];
+          if (products.length > 0) break;
+        }
+
+        if (products.length === 0) {
+          const response = await client.get("/products", {
+            params: {
+              sort: "newest",
+              page: 1,
+              page_size: 6,
+            },
+            signal: controller.signal,
+          });
+
+          products = response.data.items || [];
+        }
+
+        if (active) setFallbackProducts(products);
+      } catch (requestError) {
+        if (active) setFallbackError(errorMessage(requestError));
+      } finally {
+        if (active) setFallbackLoading(false);
+      }
+    }
+
+    loadFallback();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [shopId, loading, error, result, filters.keyword]);
+  useEffect(() => {
+    setKeywordDraft(filters.keyword);
+  }, [filters.keyword]);
+
   function changeFilter(key, value) {
     setFilters((previous) => ({
       ...previous,
@@ -128,18 +203,56 @@ export default function ProductCatalog({ shopId = null }) {
   return (
     <>
       {shopId == null && (
-        <header className="catalog-hero">
-          <div>
-            <h1>Sản phẩm</h1>
+        <header className="fashion-hero">
+          <div className="fashion-hero-content">
+            <span className="fashion-eyebrow">FASHION MARKETPLACE</span>
+
+            <h1>
+              Khám phá phong cách
+              <br />
+              của riêng bạn.
+            </h1>
+
+            <p>Những thiết kế thời trang hiện đại, tinh tế dành cho phong cách riêng của bạn.</p>
+
+            <a href="#catalog-products" className="fashion-hero-button">
+              Khám phá bộ sưu tập
+            </a>
           </div>
 
-          <div className="catalog-proof" aria-label="Thông tin catalog">
-            <strong>{result.total}</strong>
-            <span>sản phẩm</span>
-          </div>
+          <div className="fashion-hero-art" aria-hidden="true" />
         </header>
       )}
 
+      {/* DALN FEATURED CATEGORIES */}
+      {shopId == null && categories.length > 0 && (
+        <section className="daln-featured-categories">
+          <div className="daln-category-heading">
+            <span>KHÁM PHÁ PHONG CÁCH</span>
+            <h2>Danh mục nổi bật</h2>
+            <p>Khám phá những lựa chọn thời trang dành cho bạn.</p>
+          </div>
+
+          <div className="daln-category-grid">
+            {categories.slice(0, 3).map((category, index) => (
+              <Link
+                key={category.id}
+                to={`/?category_id=${encodeURIComponent(category.id)}`}
+                className={`daln-category-card daln-category-${index + 1}`}
+                onClick={() =>
+                  document.getElementById("catalog-products")?.scrollIntoView?.({ block: "start" })
+                }
+              >
+                <div className="daln-category-card-content">
+                  <span>COLLECTION 0{index + 1}</span>
+                  <h3>{category.name}</h3>
+                  <span className="daln-category-explore">Khám phá bộ sưu tập →</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
       {shopId == null && session?.role === "BUYER" && (
         <RecommendedProducts
           key={session.token}
@@ -187,8 +300,23 @@ export default function ProductCatalog({ shopId = null }) {
             Tìm sản phẩm
             <input
               type="search"
-              value={filters.keyword}
-              onChange={(event) => changeFilter("keyword", event.target.value)}
+              value={keywordDraft}
+              onChange={(event) => {
+                const value = event.target.value;
+                setKeywordDraft(value);
+                // Chờ bộ gõ tiếng Việt chốt chữ rồi mới cập nhật URL và gọi API.
+                if (isComposing.current || event.nativeEvent.isComposing) return;
+                changeFilter("keyword", value);
+              }}
+              onCompositionStart={() => {
+                isComposing.current = true;
+              }}
+              onCompositionEnd={(event) => {
+                isComposing.current = false;
+                const value = event.currentTarget.value;
+                setKeywordDraft(value);
+                changeFilter("keyword", value);
+              }}
               placeholder="Tên sản phẩm"
             />
           </label>
@@ -220,6 +348,7 @@ export default function ProductCatalog({ shopId = null }) {
             <input
               type="number"
               min="0"
+              max="1000000000"
               value={filters.min_price}
               onChange={(event) => changeFilter("min_price", event.target.value)}
             />
@@ -230,14 +359,23 @@ export default function ProductCatalog({ shopId = null }) {
             <input
               type="number"
               min="0"
+              max="1000000000"
               value={filters.max_price}
               onChange={(event) => changeFilter("max_price", event.target.value)}
             />
           </label>
         </aside>
 
-        <section className="catalog-results" aria-label="Danh sách sản phẩm">
+        <section id="catalog-products" className="catalog-results" aria-label="Danh sách sản phẩm">
           <div className="results-heading">
+            {/* DALN PRODUCT SECTION HEADING */}
+            {shopId == null && (
+              <div className="daln-product-heading">
+                <span>DALN COLLECTION</span>
+                <h2>Khám phá sản phẩm</h2>
+                <p>Những lựa chọn thời trang dành cho phong cách của bạn.</p>
+              </div>
+            )}
             <div>
               <strong>
                 {loading
@@ -293,25 +431,56 @@ export default function ProductCatalog({ shopId = null }) {
               </button>
             </div>
           ) : result.items.length === 0 ? (
-            <div className="catalog-state">
-              <strong>
-                {shopId != null && activeFilterCount === 0
-                  ? "Shop chưa có sản phẩm đang bán"
-                  : "Không tìm thấy sản phẩm phù hợp"}
-              </strong>
+            <>
+              <div className="catalog-state">
+                <strong>
+                  {shopId != null && activeFilterCount === 0
+                    ? "Shop chưa có sản phẩm đang bán"
+                    : "Không tìm thấy sản phẩm phù hợp"}
+                </strong>
 
-              <p>
-                {shopId != null && activeFilterCount === 0
-                  ? "Bạn có thể quay lại sau hoặc khám phá sản phẩm từ các shop khác."
-                  : "Thử thay đổi từ khóa, danh mục hoặc khoảng giá để xem thêm kết quả."}
-              </p>
+                <p>
+                  {shopId != null && activeFilterCount === 0
+                    ? "Bạn có thể quay lại sau hoặc khám phá sản phẩm từ các shop khác."
+                    : "Thử thay đổi từ khóa, danh mục hoặc khoảng giá để xem thêm kết quả."}
+                </p>
 
-              {activeFilterCount > 0 && (
-                <button type="button" onClick={resetFilters}>
-                  Xóa bộ lọc
-                </button>
+                {activeFilterCount > 0 && (
+                  <button type="button" onClick={resetFilters}>
+                    Xóa bộ lọc
+                  </button>
+                )}
+              </div>
+
+              {shopId == null && filters.keyword.trim() && (
+                <div className="catalog-fallback">
+                  <h2>Có thể bạn sẽ thích</h2>
+                  <p>Khám phá những sản phẩm khác dành cho bạn.</p>
+
+                  {fallbackLoading ? (
+                    <p>Đang tải gợi ý...</p>
+                  ) : fallbackError ? (
+                    <p className="form-error" role="alert">
+                      Không tải được gợi ý: {fallbackError}
+                    </p>
+                  ) : fallbackProducts.length > 0 ? (
+                    <div className="product-grid">
+                      {fallbackProducts.map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          isFavorite={favoriteIds.has(product.id)}
+                          isBusy={wishlistLoading || busyIds.has(product.id)}
+                          onToggleFavorite={toggleFavorite}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p>Hiện chưa có sản phẩm đề xuất.</p>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           ) : (
             <div className="product-grid">
               {result.items.map((product) => (

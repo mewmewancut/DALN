@@ -104,5 +104,5 @@ it("hiện lỗi tải và không hiện form rỗng giả", async () => {
   await renderAt("/account/preferences");
 
   expect(alertText()).toBe("Không tải được sở thích");
-  expect(container.querySelector("form")).toBeNull();
+  expect(container.querySelector("main form")).toBeNull();
 });

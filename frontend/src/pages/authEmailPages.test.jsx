@@ -54,7 +54,7 @@ async function fill(labelText, value) {
 async function submit() {
   await act(async () =>
     container
-      .querySelector("form")
+      .querySelector("main form")
       .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
   );
 }
@@ -64,7 +64,7 @@ it("xác minh email bằng token trong fragment qua POST", async () => {
     data: { message: "Email đã được xác nhận. Bạn có thể đăng nhập." },
   });
   await renderAt("/verify-email#token=verify-token-value-1234567890123456");
-  await act(async () => container.querySelector("button").click());
+  await act(async () => container.querySelector("main button").click());
   expect(post).toHaveBeenCalledWith("/auth/verify-email", {
     token: "verify-token-value-1234567890123456",
   });

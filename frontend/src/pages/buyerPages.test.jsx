@@ -57,7 +57,7 @@ async function fill(labelText, value) {
 async function submit() {
   await act(async () =>
     container
-      .querySelector("form")
+      .querySelector("main form")
       .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
   );
 }
@@ -242,6 +242,99 @@ it("hiện trạng thái rỗng và lỗi khi tải catalog", async () => {
   get.mockRejectedValue({ response: { data: { detail: "Lỗi catalog" } } });
   await fill("Tìm sản phẩm", "áo");
   expect(container.querySelector('[role="alert"]').textContent).toBe("Lỗi catalog");
+});
+
+it("tìm từ header đưa từ khóa vào catalog qua URL và giữ các filter khác về mặc định", async () => {
+  const get = vi.spyOn(client, "get").mockImplementation(async (url, options) => {
+    if (url === "/categories") return { data: [{ id: 3, name: "Áo" }] };
+    return { data: { items: [product], total: 1, page: options.params.page, page_size: 20 } };
+  });
+  await renderAt("/?category_id=3&page=2");
+  expect(get).toHaveBeenLastCalledWith("/products", {
+    params: { category_id: "3", sort: "newest", page: 2, page_size: 20 },
+  });
+  const headerInput = container.querySelector('input[aria-label="Tìm kiếm sản phẩm"]');
+  await act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+    setter.call(headerInput, "váy");
+    headerInput.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await act(async () =>
+    container
+      .querySelector(".header-search-form")
+      .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
+  );
+  expect(get).toHaveBeenLastCalledWith("/products", {
+    params: { keyword: "váy", sort: "newest", page: 1, page_size: 20 },
+  });
+  const catalogInput = [...container.querySelectorAll("label")]
+    .find((item) => item.textContent.includes("Tìm sản phẩm"))
+    .querySelector("input");
+  expect(catalogInput.value).toBe("váy");
+});
+
+it("thẻ danh mục nổi bật lọc catalog trong ứng dụng", async () => {
+  const get = vi.spyOn(client, "get").mockImplementation(async (url, options) => {
+    if (url === "/categories") return { data: [{ id: 3, name: "Áo" }] };
+    return { data: { items: [product], total: 1, page: options.params.page, page_size: 20 } };
+  });
+  await renderAt("/");
+  const card = container.querySelector(".daln-category-card");
+  expect(card.textContent).toContain("Áo");
+  await act(async () => card.click());
+  expect(get).toHaveBeenLastCalledWith("/products", {
+    params: { category_id: "3", sort: "newest", page: 1, page_size: 20 },
+  });
+});
+
+it("gợi ý thay thế khi tìm không có kết quả và báo lỗi nếu không tải được gợi ý", async () => {
+  let fallbackFails = false;
+  vi.spyOn(client, "get").mockImplementation(async (url, options) => {
+    if (url === "/categories") return { data: [] };
+    if (options.params.page_size === 6) {
+      if (fallbackFails) throw { response: { data: { detail: "Gợi ý lỗi" } } };
+      return { data: { items: [{ ...product, id: 8, name: "Váy gợi ý" }] } };
+    }
+    return { data: { items: [], total: 0, page: 1, page_size: 20 } };
+  });
+  await renderAt("/");
+  await fill("Tìm sản phẩm", "áo xyz");
+  expect(container.textContent).toContain("Không tìm thấy sản phẩm phù hợp");
+  expect(container.querySelector(".catalog-fallback").textContent).toContain("Váy gợi ý");
+  fallbackFails = true;
+  await fill("Tìm sản phẩm", "quần xyz");
+  expect(container.querySelector('.catalog-fallback [role="alert"]').textContent).toBe(
+    "Không tải được gợi ý: Gợi ý lỗi",
+  );
+});
+
+it("không lọc catalog khi bộ gõ tiếng Việt còn đang soạn chữ", async () => {
+  const get = vi.spyOn(client, "get").mockImplementation(async (url) => {
+    if (url === "/categories") return { data: [] };
+    return { data: { items: [product], total: 1, page: 1, page_size: 20 } };
+  });
+  await renderAt("/");
+  const input = [...container.querySelectorAll("label")]
+    .find((item) => item.textContent.includes("Tìm sản phẩm"))
+    .querySelector("input");
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set;
+  const keywordCalls = () =>
+    get.mock.calls.filter(([url, options]) => url === "/products" && options.params.keyword);
+  await act(async () => {
+    input.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    setter.call(input, "a");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(input.value).toBe("a");
+  expect(keywordCalls()).toHaveLength(0);
+  await act(async () => {
+    setter.call(input, "áo");
+    input.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true, data: "áo" }));
+  });
+  expect(keywordCalls()).toHaveLength(1);
+  expect(get).toHaveBeenLastCalledWith("/products", {
+    params: { keyword: "áo", sort: "newest", page: 1, page_size: 20 },
+  });
 });
 
 it("chọn màu rồi size để xem đúng giá và tồn kho, đổi màu sẽ xóa size đã chọn", async () => {

@@ -10,7 +10,13 @@ export default function ShopDashboardPage() {
   const { data, loading, error, refresh } = useDashboard("/shop/stats/dashboard", range);
   return (
     <div className="dashboard-page">
-      <h1>Tổng quan shop</h1>
+      <header className="fashion-dashboard-heading">
+        <div>
+          <span>FASHION / SELLER CENTER</span>
+          <h1>Tổng quan shop</h1>
+          <p>Theo dõi hiệu quả kinh doanh và hoạt động cửa hàng.</p>
+        </div>
+      </header>
       <DashboardToolbar range={range} onChange={setRange} loading={loading} onRefresh={refresh} />
       {loading && <p role="status">Đang tải số liệu...</p>}
       {error && (

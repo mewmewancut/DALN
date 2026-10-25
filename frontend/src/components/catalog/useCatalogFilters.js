@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useSearchParams } from "react-router";
 
 const DEFAULTS = {
@@ -10,10 +10,10 @@ const DEFAULTS = {
   page: 1,
 };
 
-export default function useCatalogFilters(persistInUrl) {
-  const [localFilters, setLocalFilters] = useState(DEFAULTS);
+// Filter luôn nằm trên URL để ô tìm kiếm ở header và thẻ danh mục mở đúng kết quả.
+export default function useCatalogFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const urlFilters = useMemo(() => {
+  const filters = useMemo(() => {
     const page = Number(searchParams.get("page"));
     const sort = searchParams.get("sort");
     return {
@@ -25,13 +25,8 @@ export default function useCatalogFilters(persistInUrl) {
       page: Number.isSafeInteger(page) && page > 0 ? page : 1,
     };
   }, [searchParams]);
-  const filters = persistInUrl ? urlFilters : localFilters;
 
   function setFilters(update) {
-    if (!persistInUrl) {
-      setLocalFilters(update);
-      return;
-    }
     const next = typeof update === "function" ? update(filters) : update;
     const params = new URLSearchParams();
     for (const key of Object.keys(DEFAULTS)) {

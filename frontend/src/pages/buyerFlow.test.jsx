@@ -128,8 +128,8 @@ async function fill(labelText, value) {
 
 async function submitVisibleForm() {
   const form =
-    [...container.querySelectorAll("form")].find((item) => item.offsetParent !== null) ??
-    container.querySelector("form");
+    [...container.querySelectorAll("main form")].find((item) => item.offsetParent !== null) ??
+    container.querySelector("main form");
   await act(async () =>
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })),
   );
@@ -181,6 +181,9 @@ it("sửa và xóa item trong giỏ, đồng thời chặn số lượng vượt
   });
 
   await renderAt("/cart");
+  // Bố cục hai cột: các nhóm shop ở cột trái, tổng thanh toán ở cột phải.
+  expect(container.querySelector(".fashion-cart-items .cart-shop-group")).not.toBeNull();
+  expect(container.querySelector(".fashion-cart-sidebar .cart-summary")).not.toBeNull();
   await fill("Số lượng", "4");
   expect(container.textContent).toContain("Số lượng phải từ 1 đến 3");
   expect(button("Cập nhật").disabled).toBe(true);

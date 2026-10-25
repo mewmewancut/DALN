@@ -25,7 +25,7 @@ afterEach(async () => {
   delete globalThis.IS_REACT_ACT_ENVIRONMENT;
 });
 
-async function render(role = null) {
+async function render(role = null, path = "/") {
   if (role)
     localStorage.setItem(
       "fashion_auth",
@@ -33,7 +33,7 @@ async function render(role = null) {
     );
   await act(async () =>
     root.render(
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[path]}>
         <AuthProvider>
           <SiteLayout>
             <h1>Nội dung trang</h1>
@@ -70,5 +70,36 @@ it.each([
   expect(nav.querySelectorAll('svg[aria-hidden="true"]').length).toBe(links.length);
   expect([...nav.querySelectorAll("a")].every((link) => link.textContent.trim().length > 0)).toBe(
     true,
+  );
+});
+
+it.each([
+  [null, true, ["/", "/cart", "/login", "/register"]],
+  ["BUYER", true, ["/", "/cart", "/orders", "/account/profile"]],
+  ["SHOP_OWNER", false, []],
+  ["ADMIN", false, []],
+])(
+  "chỉ hiện tìm kiếm catalog và link footer dùng được cho role %s",
+  async (role, search, links) => {
+    await render(role);
+    expect(container.querySelector(".header-search") !== null).toBe(search);
+    const footer = container.querySelector("footer");
+    expect([...footer.querySelectorAll("a")].map((link) => link.getAttribute("href"))).toEqual(
+      links,
+    );
+  },
+);
+
+it.each([
+  [null, "/", null],
+  [null, "/cart", "Về trang chủ"],
+  ["SHOP_OWNER", "/shop/dashboard", null],
+  ["SHOP_OWNER", "/account/profile", "Về trang quản lý shop"],
+  ["ADMIN", "/admin/dashboard", null],
+  ["ADMIN", "/account/profile", "Về trang quản trị"],
+])("nút quay về của role %s ở %s không trỏ vào chính trang hiện tại", async (role, path, label) => {
+  await render(role, path);
+  expect(container.querySelector(".back-home-button")?.textContent.replace("←", "") ?? null).toBe(
+    label,
   );
 });

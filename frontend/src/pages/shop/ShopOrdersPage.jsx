@@ -75,8 +75,12 @@ export default function ShopOrdersPage() {
 
   return (
     <>
-      <h1>Đơn hàng</h1>
-      <div className="status-tabs" aria-label="Lọc trạng thái đơn hàng">
+      <header className="fashion-seller-heading">
+        <span>FASHION / ORDER MANAGEMENT</span>
+        <h1>Quản lý đơn hàng</h1>
+        <p>Theo dõi, xác nhận và xử lý các đơn hàng của cửa hàng.</p>
+      </header>
+      <div className="status-tabs fashion-orders-tabs" aria-label="Lọc trạng thái đơn hàng">
         <button type="button" aria-pressed={status === ""} onClick={() => selectStatus("")}>
           Tất cả
         </button>
@@ -104,8 +108,8 @@ export default function ShopOrdersPage() {
       )}
       {!loading && !loadError && result.items.length === 0 && <p>Chưa có đơn hàng phù hợp.</p>}
       {!loading && !loadError && result.items.length > 0 && (
-        <div className="table-wrap">
-          <table className="data-table">
+        <div className="table-wrap fashion-orders-table">
+          <table className="data-table fashion-orders-data">
             <thead>
               <tr>
                 <th>Mã đơn</th>

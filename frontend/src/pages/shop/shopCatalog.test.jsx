@@ -103,7 +103,7 @@ it("chủ shop chưa có shop phải tạo shop trước, sau đó vào khu qu�
   expect(client.get).not.toHaveBeenCalled();
 
   await fill("Tên shop", "Shop Mới");
-  await submit(container.querySelector("form"));
+  await submit(container.querySelector("main form"));
 
   expect(post).toHaveBeenCalledWith("/shops", { name: "Shop Mới", description: null });
   expect(JSON.parse(localStorage.getItem("fashion_auth")).shop_id).toBe(11);
@@ -117,7 +117,7 @@ it("giữ form tạo shop và hiện lỗi API khi tạo thất bại", async ()
   });
   await renderAt("/shop/dashboard");
   await fill("Tên shop", "Shop Mới");
-  await submit(container.querySelector("form"));
+  await submit(container.querySelector("main form"));
   expect(alertText()).toBe("Bạn đã có shop");
   expect(JSON.parse(localStorage.getItem("fashion_auth")).shop_id).toBeNull();
   expect(container.textContent).toContain("Tạo shop của bạn");

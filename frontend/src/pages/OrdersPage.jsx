@@ -70,8 +70,12 @@ export default function OrdersPage() {
 
   return (
     <SiteLayout wide>
-      <h1>Đơn hàng của tôi</h1>
-      <div className="status-tabs" aria-label="Lọc trạng thái đơn hàng">
+      <header className="fashion-orders-heading">
+        <span>FASHION / MY ORDERS</span>
+        <h1>Đơn hàng của tôi</h1>
+        <p>Theo dõi và quản lý các đơn hàng đã đặt.</p>
+      </header>
+      <div className="status-tabs fashion-orders-tabs" aria-label="Lọc trạng thái đơn hàng">
         <button
           type="button"
           aria-pressed={status === ""}
@@ -109,9 +113,9 @@ export default function OrdersPage() {
       )}
       {!loading && !loadError && result.items.length === 0 && <p>Chưa có đơn hàng phù hợp.</p>}
       {!loading && !loadError && (
-        <div className="order-list">
+        <div className="order-list fashion-orders-list">
           {result.items.map((order) => (
-            <article className="order-card" key={order.id}>
+            <article className="order-card fashion-order-card" key={order.id}>
               <div>
                 <Link to={`/orders/${order.id}`}>
                   <strong>{order.code}</strong>

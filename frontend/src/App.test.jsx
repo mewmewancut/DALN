@@ -120,7 +120,11 @@ it("lưu phiên và đi tới trang đúng vai trò sau đăng nhập", async ()
 
 it("xóa phiên và rời trang được bảo vệ khi đăng xuất", async () => {
   await renderAt("/shop/dashboard", "SHOP_OWNER");
-  await act(async () => container.querySelector("button").click());
+  await act(async () =>
+    [...container.querySelectorAll("button")]
+      .find((button) => button.textContent === "Đăng xuất")
+      .click(),
+  );
   expect(container.textContent).toContain("Đăng nhập");
   expect(container.textContent).not.toContain("Tổng quan shop");
   expect(localStorage.getItem("fashion_auth")).toBeNull();

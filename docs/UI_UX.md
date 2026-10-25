@@ -119,3 +119,14 @@ Ngày 07/10/2026, bổ sung `/shops/:id`, dùng cùng SiteLayout và catalog c�
 Ảnh kiểm tra ở `output/playwright/storefront-desktop.png` và `output/playwright/storefront-mobile.png` (artifact local, không đưa vào commit). Có 12 test backend cho API/nghiệp vụ, 23 test frontend cho gian hàng và 2 test route quản trị bổ sung; lệnh/kết quả chuẩn tại [Testing](TESTING.md#gian-hàng-công-khai).
 
 Browser E2E tự động trong CI, kiểm tra Safari/Firefox, logo/banner tùy chỉnh, theo dõi/chat/đánh giá shop vẫn Planned.
+
+## Thiết kế lại giao diện thời trang ngày 25/10/2026
+
+Giao diện buyer và seller dùng thêm `frontend/src/styles/fashion-redesign.css` (import đầu tiên trong `styles.css`, trước `foundation.css` và `management.css`). Nghiệp vụ, API và phân quyền không đổi.
+
+- Header có ô tìm kiếm cho khách và BUYER: gợi ý tối đa 5 sản phẩm sau 300 ms ngừng gõ, bỏ kết quả của từ khóa cũ, báo lỗi API thay vì báo “không có sản phẩm”; nếu không khớp thì gợi ý theo từng từ rồi sản phẩm mới nhất. Gửi tìm kiếm mở `/?keyword=...`. SHOP_OWNER/ADMIN không thấy ô này vì catalog chuyển họ về dashboard.
+- Catalog chung có hero, ba thẻ danh mục nổi bật (lọc trong ứng dụng, không tải lại trang) và khối “Có thể bạn sẽ thích” khi tìm không có kết quả. Filter của catalog chung và gian hàng cùng lưu trên URL; ô từ khóa chờ bộ gõ tiếng Việt chốt chữ rồi mới lọc.
+- Nút quay về theo vai trò (trang chủ, quản lý shop hoặc quản trị) ẩn khi đang ở chính trang đó. Footer chỉ hiện link dùng được với vai trò hiện tại.
+- Đăng nhập/đăng ký dùng bố cục hai cột có ảnh (WebP), một cột dưới 760 px. Giỏ hàng chia hai cột: nhóm theo shop và tổng thanh toán. Sidebar seller dưới 1000 px thành hàng link cuộn ngang như sidebar admin.
+
+Kiểm tra: Vitest cho tìm kiếm header, footer/nút quay về theo vai trò, thẻ danh mục, gợi ý thay thế và lỗi, bố cục giỏ hàng, filter qua URL và bộ gõ. Chưa kiểm tra trực quan trên Safari/Firefox.

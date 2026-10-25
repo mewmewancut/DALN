@@ -23,7 +23,7 @@ Shop bị khóa và shop không tồn tại cùng trả `404`; frontend báo gia
 ## Cấu trúc triển khai
 
 - Backend: router `shops.py` → `get_public_shop` trong `shop_service.py` → schema whitelist `PublicShopResponse`.
-- Frontend: `ShopStorefrontPage` tải profile trước khi mount catalog; `ProductCatalog` dùng chung với `ProductListPage`; `useCatalogFilters` lưu URL riêng cho gian hàng, giữ hành vi filter local của catalog chung.
+- Frontend: `ShopStorefrontPage` tải profile trước khi mount catalog; `ProductCatalog` dùng chung với `ProductListPage`; `useCatalogFilters` lưu filter trên URL cho cả gian hàng và catalog chung, để ô tìm kiếm ở header (`/?keyword=...`) và thẻ danh mục mở đúng kết quả.
 - `ShopLink` dùng chung cho tên shop; card tách link sản phẩm và link shop, không lồng hai thẻ link.
 
 Test/lệnh chuẩn ở [Testing](TESTING.md#gian-hàng-công-khai). Kiểm tra browser và giới hạn ở [UI/UX](UI_UX.md#gian-hàng-công-khai).

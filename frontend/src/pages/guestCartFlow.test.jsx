@@ -176,7 +176,7 @@ it("keeps the guest cart through registration, verification and login, then chec
   await fill("Họ và tên", "Nguyễn An");
   await fill("Email", "an@example.com");
   await fill("Mật khẩu", "secret123");
-  await submit(container.querySelector("form"));
+  await submit(container.querySelector("main form"));
   expect(container.textContent).toContain("Kiểm tra email");
   expect(readGuestCart().items).toHaveLength(2);
   await click(container.querySelector('[aria-label="Test navigation"] a[href^="/verify-email#"]'));
@@ -185,14 +185,14 @@ it("keeps the guest cart through registration, verification and login, then chec
   await click(container.querySelector('[aria-label="Test navigation"] a[href="/login"]'));
   await fill("Email", "an@example.com");
   await fill("Mật khẩu", "secret123");
-  await submit(container.querySelector("form"));
+  await submit(container.querySelector("main form"));
   expect(container.querySelector("h1").textContent).toBe("Thanh toán");
   expect(readGuestCart().items).toEqual([]);
   expect(container.querySelector("h1").textContent).toBe("Thanh toán");
   expect(container.querySelector(".order-box").textContent).toContain("Áo B");
   expect(container.querySelector(".order-box").textContent).not.toContain("Áo A");
   await fill("Địa chỉ giao hàng", "Địa chỉ thử nghiệm");
-  await submit(container.querySelector("form"));
+  await submit(container.querySelector("main form"));
   expect(post).toHaveBeenLastCalledWith(
     "/orders/checkout",
     expect.objectContaining({ shop_id: 2 }),
@@ -267,7 +267,7 @@ it("blocks direct checkout when a multi-shop cart has no selection", async () =>
   const post = vi.spyOn(client, "post");
   await renderAt("/checkout");
   expect(container.textContent).toContain("Chọn một shop");
-  expect(container.querySelector("form")).toBeNull();
+  expect(container.querySelector("main form")).toBeNull();
   expect(post).not.toHaveBeenCalled();
 });
 
@@ -279,7 +279,7 @@ it("does not import a guest cart for a shop owner", async () => {
   await renderAt("/login");
   await fill("Email", "owner@example.com");
   await fill("Mật khẩu", "secret123");
-  await submit(container.querySelector("form"));
+  await submit(container.querySelector("main form"));
   expect(post).toHaveBeenCalledTimes(1);
   expect(readGuestCart().items).toHaveLength(1);
   expect(container.textContent).toContain("Tạo shop");

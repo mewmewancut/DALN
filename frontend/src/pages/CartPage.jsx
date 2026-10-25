@@ -133,44 +133,52 @@ export default function CartPage() {
           <Link to="/">Tiếp tục mua sắm</Link>
         </div>
       )}
-      {!loading &&
-        !loadError &&
-        groups.map((group) => (
-          <CartShopGroup
-            key={group.shop_id ?? "unavailable"}
-            group={group}
-            quantities={quantities}
-            busy={pendingItem !== null}
-            selected={selected?.shop_id === group.shop_id}
-            onSelect={() => select(group)}
-            onQuantity={(id, value) => setQuantities((current) => ({ ...current, [id]: value }))}
-            onUpdate={update}
-            onRemove={remove}
-          />
-        ))}
-      {!loading && !loadError && cart.items.length > 0 && (
-        <div className="cart-summary">
-          <strong>Tổng thanh toán: {formatCurrency(selected?.total_amount ?? 0)}</strong>
-          {!selected && <p>Chọn một shop để thanh toán.</p>}
-          {pendingItem !== null && <p role="status">Đang cập nhật giỏ hàng...</p>}
-          {hasDraft && <p role="status">Cập nhật số lượng trước khi thanh toán.</p>}
-          <button
-            className="primary-button"
-            type="button"
-            disabled={
-              !selected ||
-              selected.shop_id == null ||
-              pendingItem !== null ||
-              hasDraft ||
-              invalid ||
-              !!mergeError
-            }
-            onClick={checkout}
-          >
-            Thanh toán
-          </button>
+      <div className="fashion-cart-layout">
+        <div className="fashion-cart-items">
+          {!loading &&
+            !loadError &&
+            groups.map((group) => (
+              <CartShopGroup
+                key={group.shop_id ?? "unavailable"}
+                group={group}
+                quantities={quantities}
+                busy={pendingItem !== null}
+                selected={selected?.shop_id === group.shop_id}
+                onSelect={() => select(group)}
+                onQuantity={(id, value) =>
+                  setQuantities((current) => ({ ...current, [id]: value }))
+                }
+                onUpdate={update}
+                onRemove={remove}
+              />
+            ))}
         </div>
-      )}
+        <div className="fashion-cart-sidebar">
+          {!loading && !loadError && cart.items.length > 0 && (
+            <div className="cart-summary">
+              <strong>Tổng thanh toán: {formatCurrency(selected?.total_amount ?? 0)}</strong>
+              {!selected && <p>Chọn một shop để thanh toán.</p>}
+              {pendingItem !== null && <p role="status">Đang cập nhật giỏ hàng...</p>}
+              {hasDraft && <p role="status">Cập nhật số lượng trước khi thanh toán.</p>}
+              <button
+                className="primary-button"
+                type="button"
+                disabled={
+                  !selected ||
+                  selected.shop_id == null ||
+                  pendingItem !== null ||
+                  hasDraft ||
+                  invalid ||
+                  !!mergeError
+                }
+                onClick={checkout}
+              >
+                Thanh toán
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
       {!loading && !loadError && mergeError && <GuestCartRecovery onRetry={refresh} />}
       {loadError && (
         <button type="button" onClick={refresh}>
