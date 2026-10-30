@@ -137,3 +137,176 @@ def test_product_reviews_endpoint_defaults_and_missing_product(
     }
 
     assert client.get("/products/999999999/reviews").status_code == 404
+
+
+def test_shop_can_reply_and_mark_review_read(
+    db_session: Session, client: TestClient
+) -> None:
+    context = create_order(client, db_session)
+    deliver_order(client, context)
+
+    created = client.post(
+        "/reviews",
+        json={
+            "order_item_id": context["order"]["items"][0]["id"],
+            "rating": 5,
+            "comment": "Sản phẩm đẹp, giao hàng nhanh",
+        },
+        headers=context["headers"],
+    )
+    assert created.status_code == 200
+    review_id = created.json()["id"]
+
+    # Chu shop xem danh sach danh gia
+    response = client.get(
+        "/reviews/shop",
+        headers=context["owner_headers"],
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 1
+    assert body["unread_count"] == 1
+    assert body["items"][0]["id"] == review_id
+    assert body["items"][0]["shop_reply"] is None
+
+    # Chu shop danh dau da doc
+    read_response = client.patch(
+        f"/reviews/shop/{review_id}/read",
+        headers=context["owner_headers"],
+    )
+    assert read_response.status_code == 200
+    assert read_response.json()["shop_review_read_at"] is not None
+
+    after_read = client.get(
+        "/reviews/shop",
+        headers=context["owner_headers"],
+    )
+    assert after_read.status_code == 200
+    assert after_read.json()["unread_count"] == 0
+
+    # Chu shop phan hoi khach hang
+    reply_response = client.post(
+        f"/reviews/shop/{review_id}/reply",
+        json={"reply": "Cảm ơn bạn đã ủng hộ shop!"},
+        headers=context["owner_headers"],
+    )
+    assert reply_response.status_code == 200
+    assert reply_response.json()["shop_reply"] == "Cảm ơn bạn đã ủng hộ shop!"
+    assert reply_response.json()["shop_replied_at"] is not None
+
+    # Khach hang nhin thay phan hoi
+    product_reviews = client.get(
+        f"/products/{context['product'].id}/reviews"
+    )
+    assert product_reviews.status_code == 200
+    assert (
+        product_reviews.json()["items"][0]["shop_reply"]
+        == "Cảm ơn bạn đã ủng hộ shop!"
+    )
+
+
+def test_buyer_cannot_manage_shop_reviews(
+    db_session: Session, client: TestClient
+) -> None:
+    context = create_order(client, db_session)
+    deliver_order(client, context)
+
+    created = client.post(
+        "/reviews",
+        json={
+            "order_item_id": context["order"]["items"][0]["id"],
+            "rating": 5,
+        },
+        headers=context["headers"],
+    )
+    assert created.status_code == 200
+    review_id = created.json()["id"]
+
+    assert client.get(
+        "/reviews/shop",
+        headers=context["headers"],
+    ).status_code == 403
+
+    assert client.post(
+        f"/reviews/shop/{review_id}/reply",
+        json={"reply": "Không có quyền"},
+        headers=context["headers"],
+    ).status_code == 403
+
+    assert client.patch(
+        f"/reviews/shop/{review_id}/read",
+        headers=context["headers"],
+    ).status_code == 403
+
+
+def test_other_shop_cannot_manage_reviews(
+    db_session: Session, client: TestClient
+) -> None:
+    context = create_order(client, db_session)
+    deliver_order(client, context)
+
+    created = client.post(
+        "/reviews",
+        json={
+            "order_item_id": context["order"]["items"][0]["id"],
+            "rating": 5,
+            "comment": "Sản phẩm tốt",
+        },
+        headers=context["headers"],
+    )
+    assert created.status_code == 200
+    review_id = created.json()["id"]
+
+    # Tao tai khoan chu shop thu hai
+    _, other_owner_headers = user_with_token(
+        db_session,
+        "other-shop-review@example.com",
+        "SHOP_OWNER",
+    )
+
+    db_session.commit()
+
+    # Tao shop thu hai
+    other_shop = client.post(
+        "/shops",
+        json={
+            "name": "Shop B - Review Test",
+            "description": "Shop kiem thu phan quyen",
+        },
+        headers=other_owner_headers,
+    )
+    assert other_shop.status_code == 201
+
+    # Shop B khong duoc nhin thay danh gia cua shop A
+    listing = client.get(
+        "/reviews/shop",
+        headers=other_owner_headers,
+    )
+    assert listing.status_code == 200
+    assert listing.json()["total"] == 0
+    assert listing.json()["unread_count"] == 0
+
+    # Shop B khong duoc phan hoi danh gia cua shop A
+    reply = client.post(
+        f"/reviews/shop/{review_id}/reply",
+        json={"reply": "Phan hoi trai phep"},
+        headers=other_owner_headers,
+    )
+    assert reply.status_code == 404
+
+    # Shop B khong duoc danh dau da doc
+    read = client.patch(
+        f"/reviews/shop/{review_id}/read",
+        headers=other_owner_headers,
+    )
+    assert read.status_code == 404
+
+    # Xac nhan danh gia cua shop A khong bi thay doi
+    original = client.get(
+        "/reviews/shop",
+        headers=context["owner_headers"],
+    )
+    assert original.status_code == 200
+    assert original.json()["total"] == 1
+    assert original.json()["unread_count"] == 1
+    assert original.json()["items"][0]["shop_reply"] is None

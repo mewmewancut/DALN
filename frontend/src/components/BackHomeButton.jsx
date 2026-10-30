@@ -11,8 +11,8 @@ export default function BackHomeButton() {
     destination = "/admin/dashboard";
     label = "Về trang quản trị";
   } else if (session?.role === "SHOP_OWNER") {
-    destination = "/shop/dashboard";
-    label = "Về trang quản lý shop";
+    destination = "/";
+    label = "Về trang sản phẩm";
   }
 
   return (

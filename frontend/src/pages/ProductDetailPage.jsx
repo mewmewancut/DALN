@@ -244,6 +244,27 @@ export default function ProductDetailPage() {
                     <strong>{review.rating}/5 sao</strong>
                     <span>{formatDateTime(review.created_at)}</span>
                     {review.comment && <p>{review.comment}</p>}
+                    {review.shop_reply && (
+                      <div
+                        style={{
+                          marginTop: 12,
+                          padding: "12px 16px",
+                          background: "#f5f1eb",
+                          borderLeft: "3px solid #b99573",
+                          borderRadius: 8,
+                        }}
+                      >
+                        <strong>Phản hồi từ shop</strong>
+                        <p style={{ margin: "8px 0 0", whiteSpace: "pre-wrap" }}>
+                          {review.shop_reply}
+                        </p>
+                        {review.shop_replied_at && (
+                          <small style={{ color: "#666" }}>
+                            {formatDateTime(review.shop_replied_at)}
+                          </small>
+                        )}
+                      </div>
+                    )}
                   </article>
                 ))}
               </div>

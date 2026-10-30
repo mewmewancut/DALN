@@ -1,12 +1,13 @@
 import HeaderSearch from "./HeaderSearch.jsx";
-import BackHomeButton from "./BackHomeButton.jsx";
-import { Link, NavLink } from "react-router";
+
+import { Link, NavLink, useLocation } from "react-router";
 
 import { useAuth } from "../auth/AuthContext.jsx";
 import UiIcon from "./UiIcon.jsx";
 
 export default function SiteLayout({ children, wide = false }) {
   const { session, logout } = useAuth();
+  const location = useLocation();
   const management = ["ADMIN", "SHOP_OWNER"].includes(session?.role);
 
   const navClassName = ({ isActive }) => `site-nav-link${isActive ? " active" : ""}`;
@@ -25,7 +26,7 @@ export default function SiteLayout({ children, wide = false }) {
           <span>FASHION</span>
         </Link>
 
-        <HeaderSearch />
+        {location.pathname === "/" && <HeaderSearch />}
         <nav className="site-nav" aria-label="Điều hướng tài khoản">
           {session ? (
             <>
@@ -98,7 +99,7 @@ export default function SiteLayout({ children, wide = false }) {
       </header>
       <main className="shell" id="main-content" tabIndex={-1}>
         <section className={`card${wide ? " card-wide" : ""}`}>
-          <BackHomeButton />
+
           {children}
         </section>
       </main>

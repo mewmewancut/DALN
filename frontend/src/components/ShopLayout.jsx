@@ -6,10 +6,12 @@ import SidebarLayout from "./SidebarLayout.jsx";
 import SiteLayout from "./SiteLayout.jsx";
 
 const SHOP_LINKS = [
+  { to: "/", label: "Trang chủ" },
   { to: "/shop/dashboard", label: "Tổng quan" },
   { to: "/shop/chatbot", label: "Chatbot Genie" },
   { to: "/shop/products", label: "Sản phẩm" },
   { to: "/shop/orders", label: "Đơn hàng" },
+  { to: "/shop/reviews", label: "Đánh giá khách hàng" },
   { to: "/shop/inventory", label: "Tồn kho" },
   { to: "/shop/alerts", label: "Cảnh báo" },
   { to: "/shop/suppliers", label: "Nhà cung cấp" },

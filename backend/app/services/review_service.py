@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from fastapi import HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -6,8 +8,9 @@ from sqlalchemy.orm import Session
 from app.models.catalog import Product
 from app.models.order import Order, OrderItem
 from app.models.review import Review
+from app.models.shop import Shop
 from app.models.user import User
-from app.schemas.review import ReviewCreate, ReviewPage, ReviewResponse
+from app.schemas.review import ReviewCreate, ReviewPage, ReviewResponse, ShopReviewPage, ShopReviewReply, ShopReviewResponse
 
 
 def _response(review: Review) -> ReviewResponse:
@@ -19,6 +22,8 @@ def _response(review: Review) -> ReviewResponse:
         rating=review.rating,
         comment=review.comment,
         created_at=review.created_at,
+        shop_reply=review.shop_reply,
+        shop_replied_at=review.shop_replied_at,
     )
 
 
@@ -78,3 +83,108 @@ def list_product_reviews(db: Session, product_id: int, *, page: int, page_size: 
         page_size=page_size,
         rating_average=float(rating_average) if rating_average is not None else None,
     )
+
+
+def _shop_review_response(review: Review, product_name: str) -> ShopReviewResponse:
+    return ShopReviewResponse(
+        **_response(review).model_dump(),
+        product_name=product_name,
+        shop_review_read_at=review.shop_review_read_at,
+    )
+
+
+def _get_shop_review(db: Session, shop: Shop, review_id: int) -> tuple[Review, Product]:
+    result = db.execute(
+        select(Review, Product)
+        .join(Product, Review.product_id == Product.id)
+        .where(
+            Review.id == review_id,
+            Product.shop_id == shop.id,
+        )
+    ).first()
+
+    if result is None:
+        raise HTTPException(status_code=404, detail="Đánh giá không tồn tại trong shop")
+
+    return result
+
+
+def list_shop_reviews(
+    db: Session,
+    shop: Shop,
+    *,
+    page: int,
+    page_size: int,
+) -> ShopReviewPage:
+    filters = [Product.shop_id == shop.id]
+
+    total = db.scalar(
+        select(func.count())
+        .select_from(Review)
+        .join(Product, Review.product_id == Product.id)
+        .where(*filters)
+    ) or 0
+
+    unread_count = db.scalar(
+        select(func.count())
+        .select_from(Review)
+        .join(Product, Review.product_id == Product.id)
+        .where(*filters, Review.shop_review_read_at.is_(None))
+    ) or 0
+
+    results = db.execute(
+        select(Review, Product.name)
+        .join(Product, Review.product_id == Product.id)
+        .where(*filters)
+        .order_by(Review.created_at.desc(), Review.id.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
+
+    return ShopReviewPage(
+        items=[
+            _shop_review_response(review, product_name)
+            for review, product_name in results
+        ],
+        total=total,
+        unread_count=unread_count,
+        page=page,
+        page_size=page_size,
+    )
+
+
+def reply_to_shop_review(
+    db: Session,
+    shop: Shop,
+    review_id: int,
+    request: ShopReviewReply,
+) -> ShopReviewResponse:
+    review, product = _get_shop_review(db, shop, review_id)
+
+    reply = request.reply.strip()
+    if not reply:
+        raise HTTPException(status_code=422, detail="Phản hồi không được để trống")
+
+    review.shop_reply = reply
+    review.shop_replied_at = datetime.now(timezone.utc)
+    review.shop_review_read_at = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(review)
+
+    return _shop_review_response(review, product.name)
+
+
+def mark_shop_review_read(
+    db: Session,
+    shop: Shop,
+    review_id: int,
+) -> ShopReviewResponse:
+    review, product = _get_shop_review(db, shop, review_id)
+
+    if review.shop_review_read_at is None:
+        review.shop_review_read_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(review)
+
+    return _shop_review_response(review, product.name)
