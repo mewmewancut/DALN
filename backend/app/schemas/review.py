@@ -19,6 +19,8 @@ class ReviewResponse(BaseModel):
     rating: int
     comment: str | None
     created_at: datetime
+    shop_reply: str | None = None
+    shop_replied_at: datetime | None = None
 
 
 class ReviewPage(BaseModel):
@@ -27,3 +29,22 @@ class ReviewPage(BaseModel):
     page: int
     page_size: int
     rating_average: float | None
+
+
+class ShopReviewReply(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reply: str = Field(min_length=1, max_length=2000)
+
+
+class ShopReviewResponse(ReviewResponse):
+    product_name: str
+    shop_review_read_at: datetime | None = None
+
+
+class ShopReviewPage(BaseModel):
+    items: list[ShopReviewResponse]
+    total: int
+    unread_count: int
+    page: int
+    page_size: int

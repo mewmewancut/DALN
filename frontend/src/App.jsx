@@ -34,17 +34,21 @@ import ShopAlertsPage from "./pages/shop/ShopAlertsPage.jsx";
 import ShopDashboardPage from "./pages/shop/ShopDashboardPage.jsx";
 import ShopInventoryPage from "./pages/shop/ShopInventoryPage.jsx";
 import ShopOrdersPage from "./pages/shop/ShopOrdersPage.jsx";
+import ShopReviewsPage from "./pages/shop/ShopReviewsPage.jsx";
 import ShopProductsPage from "./pages/shop/ShopProductsPage.jsx";
 import ShopPurchaseOrdersPage from "./pages/shop/ShopPurchaseOrdersPage.jsx";
 import ShopSuppliersPage from "./pages/shop/ShopSuppliersPage.jsx";
 
-function BuyerRoute({ children }) {
+function BuyerRoute({ children, roles = ["BUYER"] }) {
   const { session } = useAuth();
-  if (session && session.role !== "BUYER") {
+  if (session && !roles.includes(session.role)) {
     return <Navigate to={homeForRole(session.role)} replace />;
   }
   return children;
 }
+
+// Chủ shop được xem catalog như khách, nhưng giỏ hàng vẫn chỉ dành cho buyer.
+const CATALOG_ROLES = ["BUYER", "SHOP_OWNER"];
 
 function GuestRoute({ children }) {
   const { session } = useAuth();
@@ -72,7 +76,7 @@ export default function App() {
         <Route
           path="/"
           element={
-            <BuyerRoute>
+            <BuyerRoute roles={CATALOG_ROLES}>
               <ProductListPage />
             </BuyerRoute>
           }
@@ -80,7 +84,7 @@ export default function App() {
         <Route
           path="/products/:id"
           element={
-            <BuyerRoute>
+            <BuyerRoute roles={CATALOG_ROLES}>
               <ProductDetailPage />
             </BuyerRoute>
           }
@@ -88,7 +92,7 @@ export default function App() {
         <Route
           path="/shops/:id"
           element={
-            <BuyerRoute>
+            <BuyerRoute roles={CATALOG_ROLES}>
               <ShopStorefrontPage />
             </BuyerRoute>
           }
@@ -182,6 +186,7 @@ export default function App() {
           <Route path="chatbot" element={<ChatbotPage />} />
           <Route path="products" element={<ShopProductsPage />} />
           <Route path="orders" element={<ShopOrdersPage />} />
+          <Route path="reviews" element={<ShopReviewsPage />} />
           <Route path="inventory" element={<ShopInventoryPage />} />
           <Route path="alerts" element={<ShopAlertsPage />} />
           <Route path="suppliers" element={<ShopSuppliersPage />} />

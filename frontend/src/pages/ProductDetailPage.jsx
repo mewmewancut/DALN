@@ -30,6 +30,8 @@ export default function ProductDetailPage() {
   const { favoriteIds, busyIds, wishlistError, wishlistLoading, toggleWishlist } = useWishlist(
     session?.role === "BUYER",
   );
+  // Chủ shop chỉ xem sản phẩm; giỏ hàng và yêu thích là API của buyer.
+  const canShop = !session || session.role === "BUYER";
 
   useEffect(() => {
     let active = true;
@@ -131,16 +133,18 @@ export default function ProductDetailPage() {
                 </span>
               </div>
               <h1>{product.name}</h1>
-              <WishlistButton
-                className="detail-wishlist"
-                productName={product.name}
-                isFavorite={favoriteIds.has(product.id)}
-                isBusy={wishlistLoading || busyIds.has(product.id)}
-                onClick={() => {
-                  if (!session) navigate("/login");
-                  else toggleWishlist(product.id);
-                }}
-              />
+              {canShop && (
+                <WishlistButton
+                  className="detail-wishlist"
+                  productName={product.name}
+                  isFavorite={favoriteIds.has(product.id)}
+                  isBusy={wishlistLoading || busyIds.has(product.id)}
+                  onClick={() => {
+                    if (!session) navigate("/login");
+                    else toggleWishlist(product.id);
+                  }}
+                />
+              )}
               {wishlistError && (
                 <p className="form-error" role="alert">
                   Không cập nhật được yêu thích: {wishlistError}
@@ -206,14 +210,20 @@ export default function ProductDetailPage() {
                 ) : (
                   <p className="selection-hint">Chọn màu và kích cỡ để kiểm tra tồn kho.</p>
                 )}
-                <button
-                  type="button"
-                  className="primary-button add-to-cart"
-                  disabled={!selectedVariant || selectedVariant.quantity <= 0 || adding}
-                  onClick={addSelectedVariant}
-                >
-                  {adding ? "Đang thêm..." : "Thêm vào giỏ"}
-                </button>
+                {canShop ? (
+                  <button
+                    type="button"
+                    className="primary-button add-to-cart"
+                    disabled={!selectedVariant || selectedVariant.quantity <= 0 || adding}
+                    onClick={addSelectedVariant}
+                  >
+                    {adding ? "Đang thêm..." : "Thêm vào giỏ"}
+                  </button>
+                ) : (
+                  <p className="selection-hint">
+                    Chỉ tài khoản người mua mới thêm được vào giỏ hàng.
+                  </p>
+                )}
                 {cartMessage && (
                   <p className="success-message" role="status">
                     {cartMessage}
@@ -244,6 +254,27 @@ export default function ProductDetailPage() {
                     <strong>{review.rating}/5 sao</strong>
                     <span>{formatDateTime(review.created_at)}</span>
                     {review.comment && <p>{review.comment}</p>}
+                    {review.shop_reply && (
+                      <div
+                        style={{
+                          marginTop: 12,
+                          padding: "12px 16px",
+                          background: "#f5f1eb",
+                          borderLeft: "3px solid #b99573",
+                          borderRadius: 8,
+                        }}
+                      >
+                        <strong>Phản hồi từ shop</strong>
+                        <p style={{ margin: "8px 0 0", whiteSpace: "pre-wrap" }}>
+                          {review.shop_reply}
+                        </p>
+                        {review.shop_replied_at && (
+                          <small style={{ color: "#666" }}>
+                            {formatDateTime(review.shop_replied_at)}
+                          </small>
+                        )}
+                      </div>
+                    )}
                   </article>
                 ))}
               </div>

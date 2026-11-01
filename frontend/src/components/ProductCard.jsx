@@ -39,13 +39,15 @@ export default function ProductCard({ product, isFavorite, isBusy, onToggleFavor
           </p>
         </div>
       </div>
-      <WishlistButton
-        className="product-card-wishlist"
-        productName={product.name}
-        isFavorite={isFavorite}
-        isBusy={isBusy}
-        onClick={(event) => onToggleFavorite(event, product.id)}
-      />
+      {onToggleFavorite && (
+        <WishlistButton
+          className="product-card-wishlist"
+          productName={product.name}
+          isFavorite={isFavorite}
+          isBusy={isBusy}
+          onClick={(event) => onToggleFavorite(event, product.id)}
+        />
+      )}
     </article>
   );
 }

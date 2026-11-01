@@ -36,6 +36,8 @@ export default function ProductCatalog({ shopId = null }) {
   const { favoriteIds, busyIds, wishlistError, wishlistLoading, toggleWishlist } = useWishlist(
     session?.role === "BUYER",
   );
+  // Chủ shop chỉ xem catalog; yêu thích là API của buyer.
+  const canShop = !session || session.role === "BUYER";
 
   useEffect(() => {
     let active = true;
@@ -471,7 +473,7 @@ export default function ProductCatalog({ shopId = null }) {
                           product={product}
                           isFavorite={favoriteIds.has(product.id)}
                           isBusy={wishlistLoading || busyIds.has(product.id)}
-                          onToggleFavorite={toggleFavorite}
+                          onToggleFavorite={canShop ? toggleFavorite : undefined}
                         />
                       ))}
                     </div>
@@ -489,7 +491,7 @@ export default function ProductCatalog({ shopId = null }) {
                   product={product}
                   isFavorite={favoriteIds.has(product.id)}
                   isBusy={wishlistLoading || busyIds.has(product.id)}
-                  onToggleFavorite={toggleFavorite}
+                  onToggleFavorite={canShop ? toggleFavorite : undefined}
                 />
               ))}
             </div>

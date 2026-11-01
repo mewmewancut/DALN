@@ -31,7 +31,9 @@ test_engine = create_engine(get_settings().test_database_url, pool_pre_ping=True
 
 @pytest.fixture(scope="session", autouse=True)
 def create_test_tables() -> Generator[None, None, None]:
-    Base.metadata.drop_all(bind=test_engine)
+    with test_engine.begin() as connection:
+        connection.exec_driver_sql("DROP SCHEMA public CASCADE")
+        connection.exec_driver_sql("CREATE SCHEMA public")
     Base.metadata.create_all(bind=test_engine)
     yield
     test_engine.dispose()

@@ -76,10 +76,9 @@ it.each([
 it.each([
   [null, true, ["/", "/cart", "/login", "/register"]],
   ["BUYER", true, ["/", "/cart", "/orders", "/account/profile"]],
-  ["SHOP_OWNER", false, []],
-  ["ADMIN", false, []],
+  ["SHOP_OWNER", true, []],
 ])(
-  "chỉ hiện tìm kiếm catalog và link footer dùng được cho role %s",
+  "hiện tìm kiếm catalog ở trang chủ và link footer dùng được cho role %s",
   async (role, search, links) => {
     await render(role);
     expect(container.querySelector(".header-search") !== null).toBe(search);
@@ -90,16 +89,15 @@ it.each([
   },
 );
 
-it.each([
-  [null, "/", null],
-  [null, "/cart", "Về trang chủ"],
-  ["SHOP_OWNER", "/shop/dashboard", null],
-  ["SHOP_OWNER", "/account/profile", "Về trang quản lý shop"],
-  ["ADMIN", "/admin/dashboard", null],
-  ["ADMIN", "/account/profile", "Về trang quản trị"],
-])("nút quay về của role %s ở %s không trỏ vào chính trang hiện tại", async (role, path, label) => {
-  await render(role, path);
-  expect(container.querySelector(".back-home-button")?.textContent.replace("←", "") ?? null).toBe(
-    label,
-  );
+it.each([null, "BUYER", "SHOP_OWNER"])(
+  "ẩn tìm kiếm catalog ngoài trang chủ cho role %s",
+  async (role) => {
+    await render(role, "/account/profile");
+    expect(container.querySelector(".header-search")).toBeNull();
+  },
+);
+
+it("không còn nút quay về trong nội dung trang", async () => {
+  await render("SHOP_OWNER", "/account/profile");
+  expect(container.querySelector(".back-home-button")).toBeNull();
 });

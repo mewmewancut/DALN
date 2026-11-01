@@ -1,12 +1,12 @@
-import { Link, NavLink } from "react-router";
+import { Link, NavLink, useLocation } from "react-router";
 
 import { useAuth } from "../auth/AuthContext.jsx";
-import BackHomeButton from "./BackHomeButton.jsx";
 import HeaderSearch from "./HeaderSearch.jsx";
 import UiIcon from "./UiIcon.jsx";
 
 export default function SiteLayout({ children, wide = false }) {
   const { session, logout } = useAuth();
+  const location = useLocation();
   const management = ["ADMIN", "SHOP_OWNER"].includes(session?.role);
 
   const navClassName = ({ isActive }) => `site-nav-link${isActive ? " active" : ""}`;
@@ -25,8 +25,8 @@ export default function SiteLayout({ children, wide = false }) {
           <span>FASHION</span>
         </Link>
 
-        {/* Catalog chỉ mở cho khách và buyer; role quản lý bị chuyển về dashboard. */}
-        {!management && <HeaderSearch />}
+        {/* Tìm kiếm chỉ hiện ở trang catalog; admin bị BuyerRoute chuyển về dashboard. */}
+        {location.pathname === "/" && <HeaderSearch />}
         <nav className="site-nav" aria-label="Điều hướng tài khoản">
           {session ? (
             <>
@@ -98,10 +98,7 @@ export default function SiteLayout({ children, wide = false }) {
         </nav>
       </header>
       <main className="shell" id="main-content" tabIndex={-1}>
-        <section className={`card${wide ? " card-wide" : ""}`}>
-          <BackHomeButton />
-          {children}
-        </section>
+        <section className={`card${wide ? " card-wide" : ""}`}>{children}</section>
       </main>
       <footer className="fashion-footer">
         <div className="fashion-footer-inner">

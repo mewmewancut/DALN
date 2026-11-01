@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Integer, Text
+from sqlalchemy import BigInteger, CheckConstraint, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -34,6 +35,18 @@ class Review(IdMixin, CreatedAtMixin, Base):
     )
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
     comment: Mapped[str | None] = mapped_column(Text)
+
+    shop_reply: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    shop_replied_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    shop_review_read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     order_item: Mapped["OrderItem"] = relationship(back_populates="review")
     product: Mapped["Product"] = relationship(back_populates="reviews")
